@@ -19,12 +19,11 @@ def test_clean_lines_removes_headers() -> None:
         "FOOTER\n"
     ]
     global_headers = {"HEADER", "FOOTER"}
-    config = ProcessingConfig(Path("in"), Path("out"))
+    config = ProcessingConfig(Path("in"), Path("out"), typewriter_width=80)
     
     result = clean_lines(lines, global_headers, config)
-    assert "Content line 1 Content line 2" in result
-    assert "HEADER" not in result
-    assert "FOOTER" not in result
+    # With NO merging, they stay as separate lines
+    assert result == ["Content line 1", "Content line 2"]
 
 def test_clean_lines_preserves_page_numbers() -> None:
     lines = [
@@ -33,46 +32,42 @@ def test_clean_lines_preserves_page_numbers() -> None:
         "# Page 1\n"
     ]
     global_headers = {"HEADER", "# Page 1"}
-    config = ProcessingConfig(Path("in"), Path("out"))
+    config = ProcessingConfig(Path("in"), Path("out"), typewriter_width=80)
     
     result = clean_lines(lines, global_headers, config)
     assert "Content" in result
     assert "# Page 1" in result
     assert "HEADER" not in result
 
-def test_paragraph_merging_and_spacing() -> None:
+def test_line_wrapping_and_spacing() -> None:
+    # Testing wrap-only, no merge
+    long_line = (
+        "This is a very long line that should be wrapped because it exceeds "
+        "the typewriter width limit of forty characters."
+    )
     lines = [
-        "This is a line\n",
-        "that should be merged.\n",
+        long_line + "\n",
+        "Short line.\n",
         "\n",
-        "This is a new paragraph.\n",
-        "- This is a list item\n",
-        "- Another list item\n"
+        "- List item\n"
     ]
-    config = ProcessingConfig(Path("in"), Path("out"))
+    config = ProcessingConfig(Path("in"), Path("out"), typewriter_width=40)
     
     result = clean_lines(lines, set(), config)
     
-    assert "This is a line that should be merged." in result
-    assert "" in result  # Blank line
-    assert "This is a new paragraph." in result
-    assert "- This is a list item" in result
-    assert "- Another list item" in result
-    
-    # Verify exact line sequence
-    # Note: clean_lines returns a list of lines without newlines
-    # Expected: 
-    # [
-    #   "This is a line that should be merged.",
-    #   "",
-    #   "This is a new paragraph.",
-    #   "- This is a list item",
-    #   "- Another list item"
-    # ]
-    assert result == [
-        "This is a line that should be merged.",
-        "",
-        "This is a new paragraph.",
-        "- This is a list item",
-        "- Another list item"
+    assert result[0] == "This is a very long line that should be"
+    assert result[1] == "wrapped because it exceeds the"
+    assert result[2] == "typewriter width limit of forty"
+    assert result[3] == "characters."
+    assert result[4] == "Short line."
+    assert result[5] == ""
+    assert result[6] == "- List item"
+
+def test_no_merging_of_short_lines() -> None:
+    lines = [
+        "Line 1\n",
+        "Line 2\n"
     ]
+    config = ProcessingConfig(Path("in"), Path("out"), typewriter_width=80)
+    result = clean_lines(lines, set(), config)
+    assert result == ["Line 1", "Line 2"]

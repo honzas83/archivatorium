@@ -36,7 +36,7 @@ def parse_args(args: list[str]) -> ProcessingConfig:
         "--width", 
         type=int, 
         default=80, 
-        help="Typewriter paragraph width. Lines longer than this are treated as standalone (default: 80)."
+        help="Typewriter width. Lines longer than this are wrapped (default: 80)."
     )
     
     parser.add_argument(

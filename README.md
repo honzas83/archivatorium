@@ -5,7 +5,8 @@ A specialized toolkit for cleaning, formatting, and validating OCR outputs proce
 ## Features
 
 - **Statistical Header/Footer Removal**: Detects and removes repeating boilerplate text across large document sets.
-- **Smart Paragraph Merging**: Merges line breaks within paragraphs while protecting Markdown structures (lists, headers, blockquotes).
+- **Smart Paragraph Wrapping**: Automatically wraps lines exceeding the `typewriter_width` while preserving existing line breaks for shorter lines.
+- **Markdown Protection**: Lines starting with `-`, `*`, `#`, `>`, or `|` are never wrapped to preserve lists and tables.
 - **Directory Mirroring**: Replicates the input directory structure in the output directory.
 - **2-Pass Processing**: Efficiently handles large datasets by identifying global patterns before transformation.
 
