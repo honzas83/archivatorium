@@ -1,6 +1,8 @@
 from pathlib import Path
+
 from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
+
 
 def test_markup_wrapping_integration(tmp_path: Path) -> None:
     input_dir = tmp_path / "input"
@@ -32,6 +34,6 @@ def test_markup_wrapping_integration(tmp_path: Path) -> None:
 
     expected_start = "<PAGE 1>\n[SECRET]\n"
     assert out_content.startswith(expected_start)
-    
+
     # Check for blank line after the wrapped paragraph
     assert "\neighty characters.\n\nAnd another paragraph.\n" in out_content

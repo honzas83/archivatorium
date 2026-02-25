@@ -1,7 +1,6 @@
 import re
 import textwrap
 from pathlib import Path
-from typing import Optional
 
 from ocrpolish.data_model import FrequencyEntry, ProcessingConfig
 from ocrpolish.utils.nlp import get_word_set
@@ -36,7 +35,7 @@ class FrequencyStore:
         entry.verbatim_counts[stripped] = entry.verbatim_counts.get(stripped, 0) + 1
 
 
-def load_filter_list(filter_file_path: Optional[Path]) -> set[frozenset[str]]:
+def load_filter_list(filter_file_path: Path | None) -> set[frozenset[str]]:
     """Load and normalize filter patterns from a file."""
     if not filter_file_path or not filter_file_path.exists():
         return set()
@@ -129,6 +128,34 @@ def format_markdown_table(table_lines: list[str]) -> list[str]:
     return formatted_lines
 
 
+def is_table_separator(line: str) -> bool:
+    """Check if a line is a markdown table separator (e.g., |---|---|)."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    # Remove all characters that are valid in a separator
+    # If the line contains ONLY | - : and whitespace, it's a separator
+    # but it MUST contain at least one dash to distinguish from just pipes.
+    if "-" not in stripped:
+        return False
+    
+    # Remove leading/trailing pipes if present
+    content = stripped
+    if content.startswith("|"):
+        content = content[1:]
+    if content.endswith("|"):
+        content = content[:-1]
+    
+    # After removing pipes, it should only have dashes, colons, and pipes
+    remaining = content.replace("-", "").replace(":", "").replace("|", "").replace(" ", "")
+    return len(remaining) == 0
+
+
+def is_table_line(line: str) -> bool:
+    """Check if a line looks like it belongs to a table (contains a pipe)."""
+    return "|" in line
+
+
 def wrap_lines(lines: list[str], config: ProcessingConfig) -> list[tuple[list[str], bool]]:
     """Wrap long lines. Returns list of (wrapped_lines, did_wrap) tuples."""
     blocks: list[tuple[list[str], bool]] = []
@@ -144,14 +171,28 @@ def wrap_lines(lines: list[str], config: ProcessingConfig) -> list[tuple[list[st
             continue
 
         # Handle tables separately: group consecutive table lines
+        # Lookahead to detect a table even if the first line doesn't start with |
+        is_table = False
         if stripped.startswith("|"):
+            is_table = True
+        elif i + 1 < len(lines) and is_table_line(stripped) and is_table_separator(lines[i + 1]):
+            is_table = True
+
+        if is_table:
             table_lines = []
-            while i < len(lines) and lines[i].strip().startswith("|"):
+            # Gather all consecutive lines that look like table lines
+            while i < len(lines):
+                current_stripped = lines[i].strip()
+                # A table ends at a blank line or a line that clearly isn't a table line
+                if not current_stripped or not is_table_line(current_stripped):
+                    break
                 table_lines.append(lines[i])
                 i += 1
-            formatted_table = format_markdown_table(table_lines)
-            blocks.append((formatted_table, False))
-            continue
+            
+            if table_lines:
+                formatted_table = format_markdown_table(table_lines)
+                blocks.append((formatted_table, False))
+                continue
 
         # Standard line processing
         if should_protect_line(line, config.protected_prefixes):

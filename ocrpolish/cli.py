@@ -60,6 +60,14 @@ def parse_args(args: list[str]) -> ProcessingConfig:
         help="Path to a file containing patterns to exclude. No filtering occurs if omitted.",
     )
 
+    parser.add_argument(
+        "--docx",
+        type=Path,
+        default=None,
+        metavar="DOCX_DIR",
+        help="Generate DOCX files in the specified directory, keeping hierarchy.",
+    )
+
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity.")
 
     parsed = parser.parse_args(args)
@@ -73,6 +81,7 @@ def parse_args(args: list[str]) -> ProcessingConfig:
         save_filtered=parsed.save_filtered,
         frequency_file_path=parsed.frequency_file,
         filter_file_path=parsed.filter_file,
+        docx_output_dir=parsed.docx,
     )
 
 

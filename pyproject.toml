@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "A toolkit for cleaning, formatting, and validating OCR outputs processed by LLMs."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "python-docx",
+]
 
 [tool.ruff]
 line-length = 100

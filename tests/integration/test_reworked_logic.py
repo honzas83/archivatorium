@@ -51,7 +51,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
         "--filter-file",
         str(filter_file),
         "--frequency-file",
-        freq_file_filtered
+        freq_file_filtered,
     ]
     with patch.object(sys, "argv", argv_filtered):
         main()
@@ -59,41 +59,51 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
     # The frequency report should NOT contain "NATO SECRET" now because it was filtered out
     report_filtered_content = (output_dir_2 / freq_file_filtered).read_text()
     assert "NATO SECRET" not in report_filtered_content
-    
+
     # Verify structural markers are ignored in frequency report
     # We add # Page 10 and - 5 - several times
     input_dir_structural = tmp_path / "input_structural"
     input_dir_structural.mkdir()
     (input_dir_structural / "doc.md").write_text("# Page 10\n# Page 10\n- 5 -\n- 5 -\nContent\n")
-    
+
     output_dir_structural = tmp_path / "output_structural"
-    with patch.object(sys, "argv", ["ocrpolish", str(input_dir_structural), str(output_dir_structural)]):
+    with patch.object(
+        sys, "argv", ["ocrpolish", str(input_dir_structural), str(output_dir_structural)]
+    ):
         main()
-        
+
     report_structural = (output_dir_structural / "frequency.txt").read_text()
     assert "# Page 10" not in report_structural
     assert "- 5 -" not in report_structural
-    
+
     doc1_out = (output_dir_2 / "doc1.md").read_text()
     assert "NATO SECRET" not in doc1_out
 
     # Test paragraph protection: "NATO SECRET" should NOT filter a long paragraph containing it
     long_para_content = "This is a long paragraph that mentions NATO SECRET but should not be deleted because it has many words."
     (input_dir / "para.md").write_text(long_para_content)
-    
+
     output_dir_4 = tmp_path / "output_para_protection"
-    with patch.object(sys, "argv", ["ocrpolish", str(input_dir), str(output_dir_4), "--filter-file", str(filter_file)]):
+    with patch.object(
+        sys,
+        "argv",
+        ["ocrpolish", str(input_dir), str(output_dir_4), "--filter-file", str(filter_file)],
+    ):
         main()
-        
+
     para_out = (output_dir_4 / "para.md").read_text()
     # Use normalized comparison to ignore wrapping
     assert long_para_content.replace("\n", " ") in para_out.replace("\n", " ")
-    
+
     # Test threshold match: "NATO SECRET" (2 words) should filter "NATO SECRET PAGE" (3 words)
     # because 2/3 >= 0.5
     (input_dir / "short.md").write_text("NATO SECRET PAGE")
     output_dir_5 = tmp_path / "output_short_match"
-    with patch.object(sys, "argv", ["ocrpolish", str(input_dir), str(output_dir_5), "--filter-file", str(filter_file)]):
+    with patch.object(
+        sys,
+        "argv",
+        ["ocrpolish", str(input_dir), str(output_dir_5), "--filter-file", str(filter_file)],
+    ):
         main()
     short_out = (output_dir_5 / "short.md").read_text()
     assert "NATO SECRET PAGE" not in short_out
@@ -108,16 +118,17 @@ def test_consecutive_short_lines(tmp_path: Path) -> None:
     input_dir = tmp_path / "input"
     output_dir = tmp_path / "output"
     input_dir.mkdir()
-    
+
     content = "Line 1\nLine 2\nLine 3\n"
     (input_dir / "short.md").write_text(content)
-    
+
     with patch.object(sys, "argv", ["ocrpolish", str(input_dir), str(output_dir)]):
         main()
-        
+
     out_content = (output_dir / "short.md").read_text()
     # Should be exactly same as input (no blank lines added)
     assert out_content == content
+
 
 def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
     input_dir = tmp_path / "input"
@@ -167,7 +178,7 @@ def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
         input_dir = tmp_path / "input"
         output_dir = tmp_path / "output"
         input_dir.mkdir()
-        
+
         table_content = (
             "| Header 1 | Long Header 2 |\n"
             "|---|---|\n"
@@ -175,13 +186,13 @@ def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
             "| 1 | 2 |\n"
         )
         (input_dir / "table.md").write_text(table_content)
-        
+
         with patch.object(sys, "argv", ["ocrpolish", str(input_dir), str(output_dir)]):
             main()
-            
+
         out_content = (output_dir / "table.md").read_text()
         lines = out_content.splitlines()
-        
+
         # Check alignment
         # Long Header 2 is length 13. "very long cell content" is 22.
         # Col 1 max is "Header 1" (8).
@@ -190,4 +201,3 @@ def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
         assert "|----------|------------------------|" in lines[1]
         assert "| short    | very long cell content |" in lines[2]
         assert "| 1        | 2                      |" in lines[3]
-    

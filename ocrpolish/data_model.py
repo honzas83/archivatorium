@@ -46,3 +46,4 @@ class ProcessingConfig:
     save_filtered: bool = True
     filter_file_path: Path | None = None
     frequency_file_path: Path = Path("frequency.txt")
+    docx_output_dir: Path | None = None

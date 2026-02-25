@@ -35,6 +35,7 @@ python -m ocrpolish.cli [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--width INTEGER`: Typewriter width for wrapping (default: `80`).
 - `--dry-run`: Identify boilerplate without writing primary output files.
 - `--no-filtered`: Disable generation of `.filtered.md` sidecar files.
+- `--docx`: Generate DOCX files mirroring Markdown page structure.
 - `-v, --verbose`: Increase output verbosity.
 
 ## Development
