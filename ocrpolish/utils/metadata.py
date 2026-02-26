@@ -1,17 +1,7 @@
 import re
 from collections import Counter
-from dataclasses import dataclass, field
 
-
-@dataclass
-class PageMetadata:
-    """Metadata extracted from a single page."""
-
-    page_number: int | None = None
-    header_candidates: list[str] = field(default_factory=list)
-    footer_candidates: list[str] = field(default_factory=list)
-    # The actual content lines that should remain in the body
-    body_lines: list[str] = field(default_factory=list)
+from ocrpolish.data_model import PageMetadata
 
 
 class FileMetadataAnalyzer:

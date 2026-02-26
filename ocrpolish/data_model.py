@@ -32,6 +32,20 @@ class FrequencyEntry:
         return max(self.verbatim_counts, key=lambda k: self.verbatim_counts[k])
 
 
+@dataclass
+class PageMetadata:
+    """Metadata for a single logical page in DOCX export."""
+    pdf_page_number: int | None = None
+    original_page_number: int | None = None
+    header_left: list[str] = field(default_factory=list)
+    header_right: list[str] = field(default_factory=list)
+    footer_left: list[str] = field(default_factory=list)
+    footer_right: list[str] = field(default_factory=list)
+    body_lines: list[str] = field(default_factory=list)
+    header_candidates: list[str] = field(default_factory=list)
+    footer_candidates: list[str] = field(default_factory=list)
+
+
 @dataclass(frozen=True)
 class ProcessingConfig:
     """Runtime configuration for OCR post-processing."""

@@ -12,9 +12,9 @@ def normalize_text(text: str) -> str:
 
 
 def get_word_set(text: str) -> frozenset[str]:
-    """Normalize text and return a frozenset of unique words."""
+    """Normalize text and return a frozenset of unique words (case-insensitive)."""
     normalized = normalize_text(text)
-    words = normalized.split()
+    words = [w.lower() for w in normalized.split()]
     return frozenset(words)
 
 

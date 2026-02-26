@@ -207,39 +207,34 @@ def wrap_lines(lines: list[str], config: ProcessingConfig) -> list[tuple[list[st
     return blocks
 
 
+def is_filtered_line(line: str, filter_list: set[frozenset[str]]) -> bool:
+    """Check if a line matches any filter in the filter list."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+
+    if is_structural_marker(stripped):
+        return False
+
+    current_word_set = get_word_set(stripped)
+    n_words = len(current_word_set)
+    if n_words == 0:
+        return False
+
+    for f_set in filter_list:
+        intersection = current_word_set.intersection(f_set)
+        if len(intersection) >= 0.5 * n_words:
+            return True
+    return False
+
+
 def filter_lines(lines: list[str], filter_list: set[frozenset[str]]) -> tuple[list[str], list[str]]:
     """Split lines into filtered (kept) and dropped based on filter list."""
     filtered_lines = []
     dropped_lines = []
 
     for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            filtered_lines.append(line)
-            continue
-
-        # 1. Always preserve structural markers
-        if is_structural_marker(stripped):
-            filtered_lines.append(line)
-            continue
-
-        # 2. Check against filter list
-        current_word_set = get_word_set(stripped)
-        n_words = len(current_word_set)
-
-        if n_words == 0:
-            filtered_lines.append(line)
-            continue
-
-        # Filter if at least half of the words in the line match a filter pattern
-        matched = False
-        for f_set in filter_list:
-            intersection = current_word_set.intersection(f_set)
-            if len(intersection) >= 0.5 * n_words:
-                matched = True
-                break
-
-        if matched:
+        if is_filtered_line(line, filter_list):
             dropped_lines.append(line)
         else:
             filtered_lines.append(line)

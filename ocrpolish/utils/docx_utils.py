@@ -1,12 +1,13 @@
-import re
 from pathlib import Path
 
 from docx import Document
+from docx.section import Section
 from docx.enum.section import WD_SECTION
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 
-from ocrpolish.utils.metadata import FileMetadataAnalyzer, PageMetadata, extract_page_number
+from ocrpolish.data_model import PageMetadata
+from ocrpolish.utils.metadata import extract_page_number
 
 
 def split_markdown_by_pages(content: str, scan_paragraphs: int = 3) -> list[PageMetadata]:
@@ -84,10 +85,92 @@ def calculate_font_size(text: str, base_size: int = 10, max_lines: int = 50) -> 
     return max(6.0, base_size * scale_factor)
 
 
+def _add_margin_line(
+    container: "Section", # type: ignore
+    left: str = "",
+    center: str = "",
+    right: str = "",
+    font_name: str = "Consolas",
+    font_size: float = 10.0,
+) -> None:
+    """Add a line with left, centered, and right aligned components using tab stops."""
+    if not any([left, center, right]):
+        return
+
+    p = container.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    pf = p.paragraph_format
+    pf.tab_stops.clear_all()
+    # Remove spacing between lines in headers/footers
+    pf.space_before = Pt(0)
+    pf.space_after = Pt(0)
+    pf.line_spacing = 1.0
+
+    # A4 content width is ~523pt (595.3 - 72)
+    # Centered at 261.5pt, Right at 523pt
+    pf.tab_stops.add_tab_stop(Pt(261.5), alignment=WD_ALIGN_PARAGRAPH.CENTER)
+    pf.tab_stops.add_tab_stop(Pt(523), alignment=WD_ALIGN_PARAGRAPH.RIGHT)
+
+    # Use double tabs to skip positions if needed
+    run = p.add_run(f"{left}\t{center}\t{right}")
+    run.font.name = font_name
+    run.font.size = Pt(font_size)
+
+
+def _apply_header_footer_metadata(
+    section: Section,
+    metadata: PageMetadata,
+    font_name: str,
+    font_size: float,
+) -> None:
+    """Apply metadata to section headers and footers with centered metadata lines."""
+    # 1. Clear Header
+    header = section.header
+    for p in header.paragraphs:
+        p._element.getparent().remove(p._element)
+
+    # Concatenate all header metadata into one centered line
+    all_header_metadata = []
+    if metadata.header_left:
+        all_header_metadata.extend(metadata.header_left)
+    if metadata.header_right:
+        all_header_metadata.extend(metadata.header_right)
+    header_metadata_str = " ".join(all_header_metadata)
+
+    center_marker = f"- {metadata.original_page_number} -" if metadata.original_page_number else ""
+
+    # Header Line 1: Concatenated Metadata (Centered)
+    _add_margin_line(header, center=header_metadata_str, font_name=font_name, font_size=font_size)
+    # Header Line 2: Original Page Number (Centered)
+    _add_margin_line(header, center=center_marker, font_name=font_name, font_size=font_size)
+
+    # 2. Clear Footer
+    footer = section.footer
+    for p in footer.paragraphs:
+        p._element.getparent().remove(p._element)
+
+    # Concatenate all footer metadata into one centered line
+    all_footer_metadata = []
+    if metadata.footer_left:
+        all_footer_metadata.extend(metadata.footer_left)
+    if metadata.footer_right:
+        all_footer_metadata.extend(metadata.footer_right)
+    footer_metadata_str = " ".join(all_footer_metadata)
+
+    pdf_label = f"PDF Page {metadata.pdf_page_number}" if metadata.pdf_page_number else ""
+
+    # Footer Line 1: Original Page Number (Centered) + PDF Page N (Right)
+    _add_margin_line(footer, center=center_marker, right=pdf_label, font_name=font_name, font_size=font_size)
+    # Footer Line 2: Concatenated Metadata (Centered)
+    _add_margin_line(footer, center=footer_metadata_str, font_name=font_name, font_size=font_size)
+
+
 def _setup_section_margins(doc: Document) -> None:
-    """Adjust margins to 0.5 inch."""
+    """Adjust margins to optimize space (0.3" top/bottom, 0.5" sides)."""
     for section in doc.sections:
-        section.top_margin = section.bottom_margin = Pt(36)
+        # Reduced to 0.3 inch
+        section.top_margin = section.bottom_margin = Pt(21.6)
+        # Keep 0.5 inch
         section.left_margin = section.right_margin = Pt(36)
 
 
@@ -170,6 +253,9 @@ def create_docx_from_pages(
     Create a DOCX file with optimized performance and page numbers in headers/footers.
     """
     doc = Document()
+    # Remove default paragraph to start clean
+    for p in doc.paragraphs:
+        p._element.getparent().remove(p._element)
 
     # Initial setup for first section
     _setup_section_margins(doc)
@@ -190,17 +276,19 @@ def create_docx_from_pages(
             section.top_margin = section.bottom_margin = Pt(36)
             section.left_margin = section.right_margin = Pt(36)
 
-        # Apply page number to header and footer if extracted
-        if page_metadata.page_number is not None:
-            _apply_page_number(
-                section,
-                page_metadata.page_number,
-                font_name,
-                dynamic_size,
-            )
+        # Apply enhanced header and footer metadata
+        _apply_header_footer_metadata(
+            section,
+            page_metadata,
+            font_name,
+            dynamic_size,
+        )
 
         lines = page_content.splitlines()
         line_idx = 0
+        
+        if not lines:
+            doc.add_paragraph()
         
         while line_idx < len(lines):
             line = lines[line_idx]
