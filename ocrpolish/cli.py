@@ -1,12 +1,14 @@
 import sys
 from pathlib import Path
+
 import click
 
 from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
-from ocrpolish.utils.logging import setup_logging
-from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.processor_metadata import MetadataProcessor
+from ocrpolish.services.ollama_client import OllamaClient
+from ocrpolish.utils.logging import setup_logging
+
 
 @click.group()
 @click.option("-v", "--verbose", is_flag=True, help="Increase output verbosity.")
@@ -120,18 +122,38 @@ def clean(
     is_flag=True, 
     help="If set, logs the metadata without writing files."
 )
-def metadata(
+@click.option(
+    "--vault-root", 
+    type=click.Path(path_type=Path), 
+    default=None, 
+    help="Root directory of the Obsidian vault for relative link calculation."
+)
+@click.option(
+    "--pdf-dir", 
+    type=click.Path(path_type=Path), 
+    default=None, 
+    help="Directory containing source PDF files (if different from input_dir)."
+)
+def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
     model: str,
     recursive: bool,
     ollama_url: str,
     overwrite: bool,
-    dry_run: bool
+    dry_run: bool,
+    vault_root: Path | None,
+    pdf_dir: Path | None
 ) -> None:
     """Extracts metadata from Markdown files using a local Ollama instance."""
     client = OllamaClient(model=model, host=ollama_url)
-    processor = MetadataProcessor(client, output_dir, overwrite=overwrite)
+    processor = MetadataProcessor(
+        client, 
+        output_dir, 
+        overwrite=overwrite,
+        vault_root=vault_root,
+        pdf_dir=pdf_dir
+    )
     
     files = sorted(processor.get_files(input_dir, recursive=recursive))
     if not files:

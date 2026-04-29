@@ -62,3 +62,5 @@ class ProcessingConfig:
     frequency_file_path: Path = Path("frequency.txt")
     docx_output_dir: Path | None = None
     scan_paragraphs: int = 3
+    vault_root: Path | None = None
+    pdf_dir: Path | None = None

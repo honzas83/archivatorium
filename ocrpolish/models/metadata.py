@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class CorrespondenceSchema(BaseModel):
     sender: str = Field("", description="The name and/or institution of the sender.")
     recipient: str = Field("", description="The name and/or institution of the recipient.")
@@ -18,11 +19,12 @@ class MetadataSchema(BaseModel):
         )
     )
     summary: str = Field(
-        "", 
+        "",
         description=(
             "A concise summary of the document, limited to exactly two sentences. "
-            "This must be an independent entity; define any abbreviations naturally within the text."
-        )
+            "This must be an independent entity; define any abbreviations naturally "
+            "within the text."
+        ),
     )
     abstract: str = Field(
         "", 
@@ -69,7 +71,10 @@ class MetadataSchema(BaseModel):
     )
     tags: list[str] = Field(
         default_factory=list,
-        description="Arbitrary, hash-tag like keywords (3-8). MUST NOT contain spaces (e.g., #NuclearPlanning)."
+        description=(
+            "Arbitrary, hash-tag like keywords (3-8). MUST NOT contain spaces "
+            "(e.g., #NuclearPlanning)."
+        ),
     )
 
 class LastDateSchema(BaseModel):

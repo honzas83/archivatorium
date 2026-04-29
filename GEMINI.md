@@ -45,3 +45,9 @@ Python 3.12: Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/009-obsidian-markdown-metadata/plan.md
+<!-- SPECKIT END -->

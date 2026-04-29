@@ -23,8 +23,9 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     
     # Split by lines that are exactly '---'
     parts = re.split(r"^---\s*$", content, maxsplit=2, flags=re.MULTILINE)
-    
-    if len(parts) < 3:
+
+    expected_parts = 3
+    if len(parts) < expected_parts:
         # Not a complete frontmatter block
         return {}, content
     
@@ -53,7 +54,7 @@ def stringify_frontmatter(metadata: dict[str, Any]) -> str:
 def prepend_frontmatter(content: str, metadata: dict[str, Any]) -> str:
     """
     Prepends metadata as YAML frontmatter to content, merging with existing if present.
-    Follows strict rules to avoid double delimiters and preserve document structure.
+    Always ensures a clean frontmatter block delimited by '---'.
     """
     existing_metadata, body = parse_frontmatter(content)
     merged_metadata = {**existing_metadata, **metadata}
@@ -63,15 +64,52 @@ def prepend_frontmatter(content: str, metadata: dict[str, Any]) -> str:
     
     yaml_str = yaml.safe_dump(merged_metadata, sort_keys=False, allow_unicode=True)
     
-    # User instruction: "Just check if the original MD starts with '---' (it should) 
-    # and do not add additional '---' after the frontmatter."
-    if body.startswith("---"):
-        # Original file already has a delimiter we can use as the closing one.
-        # We prepend our opening delimiter and the YAML.
-        return f"---\n{yaml_str}{body}"
-    else:
-        # File doesn't start with ---, so we provide both delimiters.
-        return f"---\n{yaml_str}---\n{body.lstrip()}"
+    # Standard Obsidian frontmatter format
+    return f"---\n{yaml_str}---\n\n{body.lstrip()}"
+
+
+def flatten_metadata(data: dict[str, Any], prefix: str = "") -> dict[str, Any]:
+    """
+    Recursively flattens a nested dictionary, joining keys with underscores.
+    """
+    items: list[tuple[str, Any]] = []
+    for k, v in data.items():
+        new_key = f"{prefix}_{k}" if prefix else k
+        if isinstance(v, dict):
+            items.extend(flatten_metadata(v, new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def normalize_obsidian_tags(tags: list[str]) -> list[str]:
+    """
+    Normalizes tags for Obsidian YAML frontmatter:
+    - Removes '#' prefix.
+    - Removes spaces (if any left).
+    """
+    normalized = []
+    for tag in tags:
+        # Strip whitespace first, then remove '#'
+        clean_tag = tag.strip().lstrip("#")
+        # Remove internal spaces just in case
+        clean_tag = clean_tag.replace(" ", "")
+        if clean_tag:
+            normalized.append(clean_tag)
+    return normalized
+
+
+def format_as_callout(text: str, title: str = "Abstract", callout_type: str = "abstract") -> str:
+    """
+    Formats text as an Obsidian callout.
+    """
+    if not text:
+        return ""
+
+    lines = text.strip().splitlines()
+    callout_lines = [f"> [!{callout_type}] {title}"]
+    callout_lines.extend([f"> {line}" for line in lines])
+    return "\n".join(callout_lines) + "\n\n"
 
 
 class FileMetadataAnalyzer:

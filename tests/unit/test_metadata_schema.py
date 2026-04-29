@@ -1,5 +1,5 @@
-import pytest
 from ocrpolish.models.metadata import MetadataSchema
+
 
 def test_metadata_schema_defaults():
     # Test that all fields have reasonable defaults and are not None

@@ -37,8 +37,11 @@ class OllamaClient:
                             ),
                         },
                         {
-                            "role": "user", 
-                            "content": f"{prompt}\n\nStrictly follow this JSON schema:\n{json.dumps(schema.model_json_schema(), indent=2)}"
+                            "role": "user",
+                            "content": (
+                                f"{prompt}\n\nStrictly follow this JSON schema:\n"
+                                f"{json.dumps(schema.model_json_schema(), indent=2)}"
+                            ),
                         },
                     ],
                     format=schema.model_json_schema(),

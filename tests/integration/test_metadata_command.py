@@ -1,9 +1,12 @@
+from unittest.mock import patch
+
 import pytest
 from click.testing import CliRunner
-from unittest.mock import patch
+
 from ocrpolish.cli import cli
-from ocrpolish.models.metadata import MetadataSchema, LastDateSchema
+from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
 from tests.unit.test_ollama_client import create_mock_ollama_response
+
 
 @pytest.fixture
 def temp_dirs(tmp_path):

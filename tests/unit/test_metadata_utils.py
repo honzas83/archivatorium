@@ -1,4 +1,10 @@
-from ocrpolish.utils.metadata import parse_frontmatter, prepend_frontmatter, stringify_frontmatter
+from ocrpolish.utils.metadata import (
+    flatten_metadata,
+    normalize_obsidian_tags,
+    parse_frontmatter,
+    prepend_frontmatter,
+    stringify_frontmatter,
+)
 
 
 def test_parse_frontmatter_valid():
@@ -38,3 +44,27 @@ def test_prepend_frontmatter_merge():
     assert "title: Old" in result
     assert "author: New" in result
     assert "Body" in result
+
+
+def test_flatten_metadata():
+    data = {
+        "title": "Document",
+        "correspondence": {
+            "sender": "John",
+            "details": {
+                "date": "2024"
+            }
+        }
+    }
+    expected = {
+        "title": "Document",
+        "correspondence_sender": "John",
+        "correspondence_details_date": "2024"
+    }
+    assert flatten_metadata(data) == expected
+
+
+def test_normalize_obsidian_tags():
+    tags = ["#NATO", " #Security ", "Deep State", "#Cold War"]
+    expected = ["NATO", "Security", "DeepState", "ColdWar"]
+    assert normalize_obsidian_tags(tags) == expected
