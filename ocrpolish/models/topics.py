@@ -22,3 +22,18 @@ class TopicSelectionSchema(BaseModel):
         description="List of specific topic assignments (at most 3).",
         max_length=3
     )
+
+
+class FlatTopicAssignment(BaseModel):
+    """A single topic assignment in a flat hierarchy pass."""
+    topic_id: str = Field(..., description="The ID of the topic (e.g., 'Category/Topic').")
+    reason: str = Field(..., description="The reason why this topic should be assigned.")
+
+
+class FlatTopicSelectionSchema(BaseModel):
+    """Schema for single-step flat topic selection."""
+    assignments: list[FlatTopicAssignment] = Field(
+        ...,
+        description="List of specific topic assignments (at most 3).",
+        max_length=3
+    )

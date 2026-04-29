@@ -211,7 +211,10 @@ class MetadataProcessor:
             flat_tags_str = ""
             if flat_tags:
                 # Add # to flat tags for body callout (inline)
-                flat_tags_str = " ".join([f"#{t}" if not t.startswith("#") else t for t in flat_tags])
+                tags_with_hash = [
+                    f"#{t}" if not t.startswith("#") else t for t in flat_tags
+                ]
+                flat_tags_str = " ".join(tags_with_hash)
 
             # Build the callout block with dedicated sections for topics and tags
             body_prefix = ""

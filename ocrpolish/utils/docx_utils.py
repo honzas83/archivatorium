@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from docx import Document
 from docx.enum.section import WD_SECTION

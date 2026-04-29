@@ -4,281 +4,532 @@ categories:
     topics:
       - topic: "Nuclear Deterrence"
         description: "The overarching concept of preventing aggression through the threat of nuclear retaliation."
-        positive_anchor: "Mentions of deterrence theory, strategic balance of terror, or mutually assured destruction as a broad concept."
-        negative_anchor: "Specific tactical deployments (see Extended Deterrence) or formal arms limitation talks (see General Arms Control)."
+        positive_samples: |
+          Mentions of deterrence theory
+          Strategic balance of terror
+          Mutually assured destruction as a broad concept
+          Credibility of the deterrent
+        negative_samples: |
+          Specific tactical deployments (see Extended Deterrence)
+          Formal arms limitation talks (see General Arms Control)
+          Conventional-only defense discussions
 
       - topic: "Extended Deterrence and Tactical Nuclear Sharing"
         description: "Deployment of nuclear weapons on allied territory and mechanisms for sharing nuclear responsibilities."
-        positive_anchor: "Discussions on forward-based systems, gravity bombs in Europe, or the nuclear umbrella protecting non-nuclear allies."
-        negative_anchor: "Independent nuclear programs like the French Force de Frappe."
+        positive_samples: |
+          Discussions on forward-based systems
+          Gravity bombs in Europe
+          Nuclear umbrella protecting non-nuclear allies
+          Consultation on nuclear use in Europe
+        negative_samples: |
+          Independent nuclear programs like the French Force de Frappe
+          Strategic ICBM forces based in the US
 
       - topic: "Massive Retaliation"
         description: "The 1950s military doctrine (MC 14/2) threatening a full-scale nuclear response to any attack."
-        positive_anchor: "References to Eisenhower, Dulles, MC 14/2, or tripwire strategies guaranteeing total strategic response."
-        negative_anchor: "Discussions of tailored, graded, or conventional responses (see Flexible Response)."
+        positive_samples: |
+          References to Eisenhower
+          John Foster Dulles
+          MC 14/2
+          Tripwire strategies guaranteeing total strategic response
+        negative_samples: |
+          Discussions of tailored, graded, or conventional responses (see Flexible Response)
+          MC 14/3
 
       - topic: "Flexible Response"
         description: "The strategy adopted in 1967 (MC 14/3) allowing for tailored, escalating force rather than immediate total nuclear war."
-        positive_anchor: "References to MC 14/3, conventional buildup, raising the nuclear threshold, or deliberate escalation."
-        negative_anchor: "All-or-nothing strategic nuclear strikes (see Massive Retaliation)."
+        positive_samples: |
+          References to MC 14/3
+          Conventional buildup
+          Raising the nuclear threshold
+          Deliberate escalation
+        negative_samples: |
+          All-or-nothing strategic nuclear strikes (see Massive Retaliation)
+          MC 14/2
 
       - topic: "Mutually Assured Destruction"
         description: "The doctrine where full-scale use of nuclear weapons causes the complete annihilation of both sides."
-        positive_anchor: "Discussions of counter-value targeting, second-strike capability, and unacceptable damage."
-        negative_anchor: "Strategies to minimize incoming damage or fight a limited nuclear war (see Damage Limitation)."
+        positive_samples: |
+          Discussions of counter-value targeting
+          Second-strike capability
+          Unacceptable damage
+        negative_samples: |
+          Strategies to minimize incoming damage or fight a limited nuclear war (see Damage Limitation)
 
       - topic: "Damage Limitation"
         description: "Strategies and targeting doctrines designed to minimize the impact of an enemy nuclear attack."
-        positive_anchor: "Counterforce targeting (striking silos), pre-emptive strike planning, or active defense interception."
-        negative_anchor: "Retaliatory punishment strategies targeting cities (see Mutually Assured Destruction)."
+        positive_samples: |
+          Counterforce targeting (striking silos)
+          Pre-emptive strike planning
+          Active defense interception
+        negative_samples: |
+          Retaliatory punishment strategies targeting cities (see Mutually Assured Destruction)
 
       - topic: "Nuclear Strategy and Strike Planning"
         description: "Internal mechanisms for developing war plans, target selection, and execution consultation."
-        positive_anchor: "References to the SIOP (Single Integrated Operational Plan), target lists, yield calculations, and strike timing."
-        negative_anchor: "Broad diplomatic discussions on the morality or theory of deterrence."
+        positive_samples: |
+          References to the SIOP (Single Integrated Operational Plan)
+          Target lists
+          Yield calculations
+          Strike timing
+        negative_samples: |
+          Broad diplomatic discussions on the morality or theory of deterrence
+          Routine meeting notices (e.g., 'The next meeting of the Staff Group...')
+          Administrative notes regarding 'Time Factors' discussion scheduling
+          Note by the Secretary regarding meeting logistics
 
       - topic: "French Nuclear Policy"
         description: "Focuses on the Force de Frappe and France's independent nuclear deterrent."
-        positive_anchor: "Mentions of Force de dissuasion, Charles de Gaulle's independence strategy, or withdrawal from NATO command."
-        negative_anchor: "Integration of weapons into the broader NATO command structure."
+        positive_samples: |
+          Mentions of Force de dissuasion
+          Charles de Gaulle's independence strategy
+          Withdrawal from NATO command
+        negative_samples: |
+          Integration of weapons into the broader NATO command structure
 
       - topic: "British Nuclear Policy"
         description: "Covers the UK's independent deterrent and its integration into NATO."
-        positive_anchor: "Nassau Agreement, Polaris/Trident acquisition, or the V bomber force."
-        negative_anchor: "French or US independent strategic programs."
+        positive_samples: |
+          Nassau Agreement
+          Polaris/Trident acquisition
+          The V bomber force
+        negative_samples: |
+          French or US independent strategic programs
 
       - topic: "Soviet Nuclear Policy"
         description: "Analyses and estimates of the USSR's nuclear arsenal and doctrine."
-        positive_anchor: "Intelligence reports on Soviet ICBMs, Strategic Rocket Forces, or Warsaw Pact nuclear posture."
-        negative_anchor: "NATO's internal force planning."
+        positive_samples: |
+          Intelligence reports on Soviet ICBMs
+          Strategic Rocket Forces
+          Warsaw Pact nuclear posture
+        negative_samples: |
+          NATO's internal force planning
 
   - category: "Treaties and Arms Control"
     description: "Diplomatic efforts, bilateral negotiations, and multilateral treaties aimed at limiting or eliminating specific categories of weapons."
     topics:
       - topic: "Strategic Arms Limitation Talks"
         description: "Bilateral SALT I and SALT II negotiations between the US and USSR regarding strategic ballistic missiles."
-        positive_anchor: "Mentions of ABM Treaty, SALT negotiations, ICBM limits, or strategic parity."
-        negative_anchor: "Treaties regarding intermediate or short-range missiles in Europe (see Intermediate-Range Nuclear Forces)."
+        positive_samples: |
+          Mentions of ABM Treaty
+          SALT negotiations
+          ICBM limits
+          Strategic parity
+        negative_samples: |
+          Treaties regarding intermediate or short-range missiles in Europe (see Intermediate-Range Nuclear Forces)
 
       - topic: "Intermediate-Range Nuclear Forces"
         description: "Negotiations and treaties eliminating land-based ballistic and cruise missiles (500-5,500km)."
-        positive_anchor: "Zero option, INF Treaty, elimination of Pershing II and SS-20s."
-        negative_anchor: "The deployment phase or the immediate political crisis (see Euromissile Crisis)."
+        positive_samples: |
+          Zero option
+          INF Treaty
+          Elimination of Pershing II and SS-20s
+        negative_samples: |
+          The deployment phase or the immediate political crisis (see Euromissile Crisis)
 
       - topic: "Non-Proliferation Treaty"
         description: "The 1968 global treaty aimed at limiting the spread of nuclear weapons."
-        positive_anchor: "NPT signing, IAEA safeguards, preventing non-nuclear weapon states from acquiring the bomb."
-        negative_anchor: "Instances of states actually acquiring or seeking technology outside the treaty (see Nuclear Proliferation)."
+        positive_samples: |
+          NPT signing
+          IAEA safeguards
+          Preventing non-nuclear weapon states from acquiring the bomb
+        negative_samples: |
+          Instances of states actually acquiring or seeking technology outside the treaty (see Nuclear Proliferation)
 
       - topic: "General Arms Control"
         description: "Broad negotiations and disarmament efforts not fitting specific treaty categories (e.g., MBFR)."
-        positive_anchor: "Mutual and Balanced Force Reductions (MBFR), conventional disarmament, or UN disarmament conferences."
-        negative_anchor: "Specific bilateral nuclear treaties like SALT or INF."
+        positive_samples: |
+          Mutual and Balanced Force Reductions (MBFR)
+          Conventional disarmament
+          UN disarmament conferences
+        negative_samples: |
+          Specific bilateral nuclear treaties like SALT or INF
 
       - topic: "Nuclear Proliferation"
         description: "The spread of nuclear weapons and fissile material to unrecognised nations."
-        positive_anchor: "Concerns about third-party states acquiring bombs, fissile material smuggling, or covert nuclear programs."
-        negative_anchor: "Legal frameworks designed to stop this (see Non-Proliferation Treaty)."
+        positive_samples: |
+          Concerns about third-party states acquiring bombs
+          Fissile material smuggling
+          Covert nuclear programs
+        negative_samples: |
+          Legal frameworks designed to stop this (see Non-Proliferation Treaty)
 
       - topic: "Chemical Weapons"
         description: "Deployment, deterrence, and arms control surrounding toxic chemical munitions."
-        positive_anchor: "Nerve gas, mustard gas, chemical stockpiles, or the Chemical Weapons Convention."
-        negative_anchor: "Pathogens (see Biological Weapons) or radioactive weapons."
+        positive_samples: |
+          Nerve gas
+          Mustard gas
+          Chemical stockpiles
+          The Chemical Weapons Convention
+        negative_samples: |
+          Pathogens (see Biological Weapons)
+          Radioactive weapons
 
       - topic: "Biological Weapons"
         description: "Deployment, deterrence, and arms control surrounding weaponized pathogens."
-        positive_anchor: "Weaponized anthrax, biological warfare, or the Biological Weapons Convention."
-        negative_anchor: "Toxic but non-living agents (see Chemical Weapons)."
+        positive_samples: |
+          Weaponized anthrax
+          Biological warfare
+          The Biological Weapons Convention
+        negative_samples: |
+          Toxic but non-living agents (see Chemical Weapons)
 
   - category: "Geopolitics and Crises"
     description: "Specific historical flashpoints, geographical tensions, and the broader diplomatic relationship between opposing blocs or individual nations."
     topics:
       - topic: "Soviet and Russian Relations"
         description: "The overarching diplomatic, political, and strategic relationship between the Alliance and Moscow."
-        positive_anchor: "East-West relations, general diplomatic cables with Moscow, or broad Cold War tension assessments."
-        negative_anchor: "Specific localized flashpoints (like the Berlin Crisis) or specific eras (like Detente)."
+        positive_samples: |
+          East-West relations
+          General diplomatic cables with Moscow
+          Broad Cold War tension assessments
+        negative_samples: |
+          Specific localized flashpoints (like the Berlin Crisis)
+          Specific eras (like Detente)
 
       - topic: "Warsaw Pact"
         description: "The Soviet-led military alliance, its structure, and internal dynamics."
-        positive_anchor: "Warsaw Treaty Organization, Eastern Bloc military coordination, or internal satellite state dynamics."
-        negative_anchor: "Direct diplomatic negotiations between NATO and the Soviet Union itself."
+        positive_samples: |
+          Warsaw Treaty Organization
+          Eastern Bloc military coordination
+          Internal satellite state dynamics
+        negative_samples: |
+          Direct diplomatic negotiations between NATO and the Soviet Union itself
 
       - topic: "Berlin Crisis"
         description: "Crises involving the status of Berlin, primarily culminating in the building of the Berlin Wall."
-        positive_anchor: "Berlin airlift, Checkpoint Charlie, Berlin Wall, or Khrushchev's ultimatums regarding the city."
-        negative_anchor: "General East German relations not centered on the city's status."
+        positive_samples: |
+          Berlin airlift
+          Checkpoint Charlie
+          Berlin Wall
+          Khrushchev's ultimatums regarding the city
+        negative_samples: |
+          General East German relations not centered on the city's status
 
       - topic: "Cuban Missile Crisis"
         description: "The October 1962 crisis regarding Soviet missile deployments in Cuba."
-        positive_anchor: "Jupiter missiles in Turkey trade-off, naval blockade/quarantine of Cuba, or October 1962."
-        negative_anchor: "General discussions of Latin American geopolitics."
+        positive_samples: |
+          Jupiter missiles in Turkey trade-off
+          Naval blockade/quarantine of Cuba
+          October 1962
+        negative_samples: |
+          General discussions of Latin American geopolitics
 
       - topic: "Euromissile Crisis"
         description: "The late 70s/early 80s crisis over the deployment of SS-20s and the NATO 'Dual-Track' decision."
-        positive_anchor: "Dual-Track decision, SS-20 deployments, Pershing II, GLCMs, or massive European anti-nuclear protests."
-        negative_anchor: "The diplomatic resolution and treaty signing (see Intermediate-Range Nuclear Forces)."
+        positive_samples: |
+          Dual-Track decision
+          SS-20 deployments
+          Pershing II
+          GLCMs
+          Massive European anti-nuclear protests
+        negative_samples: |
+          The diplomatic resolution and treaty signing (see Intermediate-Range Nuclear Forces)
 
       - topic: "Able Archer Exercise"
         description: "The November 1983 NATO command post exercise that triggered a major war scare."
-        positive_anchor: "Able Archer 83, Soviet war scare, RYaN intelligence operation, or misinterpretation of military exercises."
-        negative_anchor: "Standard, routine military exercises without crisis implications."
+        positive_samples: |
+          Able Archer 83
+          Soviet war scare
+          RYaN intelligence operation
+          Misinterpretation of military exercises
+        negative_samples: |
+          Standard, routine military exercises without crisis implications
 
       - topic: "Balkan Operations"
         description: "NATO's peacekeeping and military interventions in the former Yugoslavia during the 1990s."
-        positive_anchor: "IFOR, SFOR, KFOR, Operation Allied Force, Bosnia, or Kosovo."
-        negative_anchor: "Cold War-era operational planning for the Southern Flank."
+        positive_samples: |
+          IFOR
+          SFOR
+          KFOR
+          Operation Allied Force
+          Bosnia
+          Kosovo
+        negative_samples: |
+          Cold War-era operational planning for the Southern Flank
 
       - topic: "Detente"
         description: "The 1970s period of easing geopolitical tensions between the East and West."
-        positive_anchor: "Helsinki Accords, peaceful coexistence, or the general thawing of Cold War relations in the 70s."
-        negative_anchor: "Specific technical agreements (see Crisis Management and Confidence Building)."
+        positive_samples: |
+          Helsinki Accords
+          Peaceful coexistence
+          The general thawing of Cold War relations in the 70s
+        negative_samples: |
+          Specific technical agreements (see Crisis Management and Confidence Building)
 
       - topic: "Greece and Turkey Relations"
         description: "Intra-alliance disputes and geopolitical management of the Southern Flank."
-        positive_anchor: "Cyprus dispute, Aegean Sea boundaries, or friction between Athens and Ankara."
-        negative_anchor: "General alliance burden-sharing disputes involving multiple nations."
+        positive_samples: |
+          Cyprus dispute
+          Aegean Sea boundaries
+          Friction between Athens and Ankara
+        negative_samples: |
+          General alliance burden-sharing disputes involving multiple nations
 
       - topic: "US and NATO Relations"
         description: "Dynamics, leadership roles, and friction between Washington and European allies."
-        positive_anchor: "Transatlantic rift, American leadership of the Alliance, or European autonomy debates."
-        negative_anchor: "Specific financial disputes over troop costs (see Burden Sharing)."
+        positive_samples: |
+          Transatlantic rift
+          American leadership of the Alliance
+          European autonomy debates
+        negative_samples: |
+          Specific financial disputes over troop costs (see Burden Sharing)
 
       - topic: "Indo Pacific and Asian Affairs"
         description: "NATO's strategic view regarding security dynamics in Asia (excluding China)."
-        positive_anchor: "SEATO ties, Korean War impacts on Europe, or South Asian security assessments."
-        negative_anchor: "Direct assessments of the PRC (see China)."
+        positive_samples: |
+          SEATO ties
+          Korean War impacts on Europe
+          South Asian security assessments
+        negative_samples: |
+          Direct assessments of the PRC (see China)
 
       - topic: "China"
         description: "Intelligence and diplomatic relations specifically concerning the PRC."
-        positive_anchor: "Sino-Soviet split, Maoist foreign policy, or recognizing the PRC."
-        negative_anchor: "General Asian security dynamics not involving Beijing."
+        positive_samples: |
+          Sino-Soviet split
+          Maoist foreign policy
+          Recognizing the PRC
+        negative_samples: |
+          General Asian security dynamics not involving Beijing
 
       - topic: "Neutral and Non-Aligned Nations"
         new_addition: true
         description: "Diplomatic relations and strategic considerations regarding European neutrals or the Non-Aligned Movement."
-        positive_anchor: "Policies toward Sweden, Switzerland, Austria, Finlandization, or relations with Yugoslavia/India."
-        negative_anchor: "Internal dynamics of official Warsaw Pact or NATO members."
+        positive_samples: |
+          Policies toward Sweden
+          Switzerland
+          Austria
+          Finlandization
+          Relations with Yugoslavia/India
+        negative_samples: |
+          Internal dynamics of official Warsaw Pact or NATO members
 
   - category: "Internal Alliance Dynamics"
     description: "The political, structural, and bureaucratic management of NATO, including financial contributions, membership, and decision-making mechanisms."
     topics:
       - topic: "Burden Sharing and Host Nation Support"
         description: "Debates regarding financial/logistical contributions of allies and housing US forces."
-        positive_anchor: "Offset agreements, demanding Europeans pay more for defense, or host nation infrastructure funding."
-        negative_anchor: "Domestic, internal national budget debates (see Defense Spending)."
+        positive_samples: |
+          Offset agreements
+          Demanding Europeans pay more for defense
+          Host nation infrastructure funding
+        negative_samples: |
+          Domestic, internal national budget debates (see Defense Spending)
 
       - topic: "Political Consultation Mechanisms"
         description: "Formal and informal processes by which NATO members align foreign policies."
-        positive_anchor: "North Atlantic Council (NAC) meetings, Harmel Report, or consensus building."
-        negative_anchor: "Invoking treaty guarantees due to a threat (see Article 4 Consultations). Document is a formal notice for a meeting. Document is a short formal note."
+        positive_samples: |
+          North Atlantic Council (NAC) meetings
+          Harmel Report
+          Consensus building
+          Consultation on major policy shifts
+        negative_samples: |
+          Invoking treaty guarantees due to a threat (see Article 4 Consultations).
+          Routine administrative notices of next meetings (e.g., NPG Staff Group notices).
+          Document is a short formal note or procedural announcement.
+          Meeting agendas or scheduling correspondence without policy substance.
+          Standard distribution lists or transmittal letters.
 
       - topic: "Article 4 Consultations"
         description: "Treaty provision allowing a member to call consultations when threatened."
-        positive_anchor: "Formal invocation of Article 4, territorial integrity threats not yet reaching armed attack."
-        negative_anchor: "Routine political meetings or full mutual defense responses (see Article 5)."
+        positive_samples: |
+          Formal invocation of Article 4
+          Territorial integrity threats not yet reaching armed attack
+        negative_samples: |
+          Routine political meetings or full mutual defense responses (see Article 5)
 
       - topic: "Command and Control Authority"
         description: "Mechanisms for ordering military action, particularly 'dual-key' nuclear release."
-        positive_anchor: "Dual-key arrangements, PALs (Permissive Action Links), release authority, or the chain of command."
-        negative_anchor: "The specific target lists or strike plans (see Nuclear Strategy and Strike Planning)."
+        positive_samples: |
+          Dual-key arrangements
+          PALs (Permissive Action Links)
+          Release authority
+          The chain of command
+        negative_samples: |
+          The specific target lists or strike plans (see Nuclear Strategy and Strike Planning)
 
       - topic: "NATO Enlargement"
         description: "Political processes and debates surrounding the admission of new member states."
-        positive_anchor: "Accession protocols, open door policy, Madrid Summit, or post-Cold War expansion into Eastern Europe."
-        negative_anchor: "Internal reorganizations of existing commands (see Institutional Restructuring)."
+        positive_samples: |
+          Accession protocols
+          Open door policy
+          Madrid Summit
+          Post-Cold War expansion into Eastern Europe
+        negative_samples: |
+          Internal reorganizations of existing commands (see Institutional Restructuring)
 
       - topic: "Institutional Restructuring"
         description: "Internal changes to NATO's organizational chart and bureaucratic reforms."
-        positive_anchor: "Moving SHAPE to Mons, creating new military commands, or dissolving bureaucratic committees."
-        negative_anchor: "Adding entirely new countries to the Alliance (see NATO Enlargement)."
+        positive_samples: |
+          Moving SHAPE to Mons
+          Creating new military commands
+          Dissolving bureaucratic committees
+        negative_samples: |
+          Adding entirely new countries to the Alliance (see NATO Enlargement)
 
       - topic: "Multilateral Force"
         description: "The 1960s proposal (MLF) for a jointly operated fleet of ballistic missile ships."
-        positive_anchor: "MLF, mixed-manned surface fleet, or sharing control of sea-based deterrents."
-        negative_anchor: "Standard forward deployment of US nuclear weapons (see Extended Deterrence)."
+        positive_samples: |
+          MLF
+          Mixed-manned surface fleet
+          Sharing control of sea-based deterrents
+        negative_samples: |
+          Standard forward deployment of US nuclear weapons (see Extended Deterrence)
 
       - topic: "Defense Spending"
         description: "National military budgets and the economic impact of maintaining armed forces."
-        positive_anchor: "Percentage of GDP spent on defense, military procurement budgets, or economic constraints."
-        negative_anchor: "Friction specifically about paying the US for troop basing (see Burden Sharing)."
+        positive_samples: |
+          Percentage of GDP spent on defense
+          Military procurement budgets
+          Economic constraints
+        negative_samples: |
+          Friction specifically about paying the US for troop basing (see Burden Sharing)
 
       - topic: "Specific Commands and Infrastructure"
         new_addition: true
         description: "Discussions explicitly focused on SACEUR, SACLANT, or physical infrastructure projects."
-        positive_anchor: "Appointments of SACEUR, NATO pipelines (CEPS), NADGE radar sites, or commonly funded infrastructure."
-        negative_anchor: "Abstract political reorganizations or pure strategy debates."
+        positive_samples: |
+          Appointments of SACEUR
+          NATO pipelines (CEPS)
+          NADGE radar sites
+          Commonly funded infrastructure
+        negative_samples: |
+          Abstract political reorganizations or pure strategy debates
 
       - topic: "Civil Emergency Planning"
         new_addition: true
         description: "Continuity of government, resource stockpiling, and civilian infrastructure resilience."
-        positive_anchor: "Civil defense committees, food stockpiling, protecting civilian infrastructure, or continuity of government."
-        negative_anchor: "Active military interception of nuclear weapons (see Damage Limitation)."
+        positive_samples: |
+          Civil defense committees
+          Food stockpiling
+          Protecting civilian infrastructure
+          Continuity of government
+        negative_samples: |
+          Active military interception of nuclear weapons (see Damage Limitation)
 
   - category: "Military Operations and Capabilities"
     description: "The physical readiness, joint training, hardware standardization, and specific conventional defense initiatives of the Alliance."
     topics:
       - topic: "Article 5 Collective Defense"
         description: "The core principle that an armed attack against one is an attack against all."
-        positive_anchor: "Legal obligations of mutual defense, invoking Article 5, or debates on casus belli."
-        negative_anchor: "Pre-conflict consultations regarding a potential threat (see Article 4 Consultations)."
+        positive_samples: |
+          Legal obligations of mutual defense
+          Invoking Article 5
+          Debates on casus belli
+        negative_samples: |
+          Pre-conflict consultations regarding a potential threat (see Article 4 Consultations)
 
       - topic: "Multilateral Military Exercises"
         description: "Planning and execution of simulated military operations by NATO forces."
-        positive_anchor: "REFORGER, Autumn Forge, joint naval maneuvers, or interoperability testing in the field."
-        negative_anchor: "The specific 1983 exercise that caused a massive war scare (see Able Archer Exercise)."
+        positive_samples: |
+          REFORGER
+          Autumn Forge
+          Joint naval maneuvers
+          Interoperability testing in the field
+        negative_samples: |
+          The specific 1983 exercise that caused a massive war scare (see Able Archer Exercise)
 
       - topic: "Military Interoperability"
         description: "Technical and logistical standardization of military equipment among allied nations."
-        positive_anchor: "STANAGs, standardizing 5.56mm rounds, compatible communications gear, or cross-servicing agreements."
-        negative_anchor: "Sharing underlying intellectual property or classified tech (see Technology Transfers)."
+        positive_samples: |
+          STANAGs
+          Standardizing 5.56mm rounds
+          Compatible communications gear
+          Cross-servicing agreements
+        negative_samples: |
+          Sharing underlying intellectual property or classified tech (see Technology Transfers)
 
       - topic: "Conventional Deterrence"
         description: "Preventing aggression through the threat of a robust, non-nuclear military defense."
-        positive_anchor: "Conventional force buildups, armored divisions, or fighting a symmetrical war without crossing the nuclear threshold."
-        negative_anchor: "Relying on small forces meant only to trigger a nuclear response (see Tripwire Forces)."
+        positive_samples: |
+          Conventional force buildups
+          Armored divisions
+          Fighting a symmetrical war without crossing the nuclear threshold
+        negative_samples: |
+          Relying on small forces meant only to trigger a nuclear response (see Tripwire Forces)
 
       - topic: "Tripwire Forces"
         description: "Small, forward-deployed forces guaranteeing the political trigger of a larger response."
-        positive_anchor: "Berlin Brigade, small border detachments meant to die to trigger Article 5, or lack of operational depth."
-        negative_anchor: "Forces designed to actually halt and defeat a Soviet invasion conventionally."
+        positive_samples: |
+          Berlin Brigade
+          Small border detachments meant to die to trigger Article 5
+          Lack of operational depth
+        negative_samples: |
+          Forces designed to actually halt and defeat a Soviet invasion conventionally
 
       - topic: "Intelligence Sharing"
         description: "Exchange of classified information, espionage data, and strategic warnings."
-        positive_anchor: "Sharing satellite imagery, spy networks, early warning data, or managing intelligence leaks."
-        negative_anchor: "Public information or propaganda campaigns."
+        positive_samples: |
+          Sharing satellite imagery
+          Spy networks
+          Early warning data
+          Managing intelligence leaks
+        negative_samples: |
+          Public information or propaganda campaigns
 
       - topic: "Air and Missile Defense"
         description: "Systems designed to intercept incoming enemy bombers or ballistic missiles."
-        positive_anchor: "Surface-to-air missiles, Patriot systems, Strategic Defense Initiative (SDI), or early warning radar networks."
-        negative_anchor: "Civil defense shelters (see Civil Emergency Planning)."
+        positive_samples: |
+          Surface-to-air missiles
+          Patriot systems
+          Strategic Defense Initiative (SDI)
+          Early warning radar networks
+        negative_samples: |
+          Civil defense shelters (see Civil Emergency Planning)
 
       - topic: "Enhanced Radiation Weapons"
         description: "Development and proposed deployment of 'neutron bombs'."
-        positive_anchor: "Neutron bomb, minimizing blast damage while maximizing lethal radiation, or the Carter administration controversy."
-        negative_anchor: "Standard tactical nuclear gravity bombs."
+        positive_samples: |
+          Neutron bomb
+          Minimizing blast damage while maximizing lethal radiation
+          The Carter administration controversy
+        negative_samples: |
+          Standard tactical nuclear gravity bombs
 
       - topic: "Defense Industry"
         description: "The commercial and manufacturing base that produces military hardware."
-        positive_anchor: "Defense contractors, joint production of fighter jets (e.g., Tornado), or military-industrial capacity."
-        negative_anchor: "The national government budgets paying for the hardware (see Defense Spending)."
+        positive_samples: |
+          Defense contractors
+          Joint production of fighter jets (e.g., Tornado)
+          Military-industrial capacity
+        negative_samples: |
+          The national government budgets paying for the hardware (see Defense Spending)
 
       - topic: "Technology Transfers"
         description: "Sharing advanced technologies among allies, or preventing leaks to the Soviet bloc."
-        positive_anchor: "COCOM lists, preventing dual-use technology sales to the USSR, or sharing classified aerospace tech."
-        negative_anchor: "Standardizing basic field gear like ammunition (see Military Interoperability)."
+        positive_samples: |
+          COCOM lists
+          Preventing dual-use technology sales to the USSR
+          Sharing classified aerospace tech
+        negative_samples: |
+          Standardizing basic field gear like ammunition (see Military Interoperability)
 
       - topic: "Energy Security"
         description: "Vulnerability of energy supplies, such as reliance on Soviet gas or Middle Eastern oil."
-        positive_anchor: "1973 oil crisis impact on NATO, Soviet-European gas pipelines, or securing sea lanes for oil."
-        negative_anchor: "Internal domestic economic issues unrelated to strategic fuel supplies."
+        positive_samples: |
+          1973 oil crisis impact on NATO
+          Soviet-European gas pipelines
+          Securing sea lanes for oil
+        negative_samples: |
+          Internal domestic economic issues unrelated to strategic fuel supplies
 
       - topic: "Crisis Management and Confidence Building"
         description: "Tactical agreements and communication tools designed to prevent accidental war."
-        positive_anchor: "Moscow-Washington hotline, pre-notification of military movements, or Open Skies."
-        negative_anchor: "The broader, decade-long political era of easing tensions (see Detente)."
+        positive_samples: |
+          Moscow-Washington hotline
+          Pre-notification of military movements
+          Open Skies
+        negative_samples: |
+          The broader, decade-long political era of easing tensions (see Detente)
 
       - topic: "Psychological Operations and Propaganda"
         new_addition: true
         description: "Information warfare, countering disinformation, and shaping public morale."
-        positive_anchor: "Radio Free Europe, leafleting, countering Soviet active measures, or managing psychological warfare."
-        negative_anchor: "Passive tracking of how citizens feel (see Public Opinion)."
+        positive_samples: |
+          Radio Free Europe
+          Leafleting
+          Countering Soviet active measures
+          Managing psychological warfare
+        negative_samples: |
+          Passive tracking of how citizens feel (see Public Opinion)

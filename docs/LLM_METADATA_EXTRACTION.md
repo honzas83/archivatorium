@@ -40,14 +40,24 @@ If a document is large (>12kB) and the date is missing from the first chunk, the
 
 ---
 
-## Two-Step Topic Detection
+## Topic Detection Workflow
 
-When a hierarchy YAML (e.g., `NATO_themes.yaml`) is provided, `ocrpolish` performs a high-precision categorization process.
+When a hierarchy YAML (e.g., `NATO_themes.yaml`) is provided, `ocrpolish` performs a high-precision categorization process. Two modes are available:
 
-### Step 1: Category Selection
+### 1. Single-Step Flat Extraction (Recommended)
+Enabled with the `--flat-topics` flag. This mode flattens the hierarchy into a single YAML list and passes it to the LLM in one pass.
+
+- **Sample Visibility**: The LLM sees all positive and negative samples for all topics simultaneously, allowing for better cross-topic discrimination.
+- **Efficiency**: Reduces LLM API calls and avoids the "blind" category selection step.
+- **Mapping**: The system automatically maps flat `Category/Topic` IDs back to the standard hierarchical model.
+
+### 2. Two-Step Hierarchical Detection (Legacy)
+The default mode if `--flat-topics` is not set. It uses a narrowing approach:
+
+#### Step 1: Category Selection
 The LLM is presented with the raw 10kB document excerpt and a list of high-level categories (including their descriptions) from the hierarchy. It selects only the categories that apply.
 
-### Step 2: Topic Assignment
+#### Step 2: Topic Assignment
 For the selected categories, the LLM is presented with all sub-topics, including:
 - Detailed topic descriptions.
 - **Positive Anchors**: Keywords/concepts that strongly suggest a match.

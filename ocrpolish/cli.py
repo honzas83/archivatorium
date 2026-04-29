@@ -134,7 +134,12 @@ def clean(
     "-h",
     type=click.Path(exists=True, path_type=Path),
     default=None,
-    help="Optional path to a YAML topic hierarchy for two-step topic extraction.",
+    help="Optional path to a YAML topic hierarchy for topic extraction.",
+)
+@click.option(
+    "--flat-topics",
+    is_flag=True,
+    help="Perform single-step flat topic extraction instead of two-step.",
 )
 def metadata(  # noqa: PLR0913
     input_dir: Path,
@@ -147,13 +152,18 @@ def metadata(  # noqa: PLR0913
     vault_root: Path | None,
     pdf_dir: Path | None,
     hierarchy_file: Path | None,
+    flat_topics: bool,
 ) -> None:
     """Extracts metadata from Markdown files using a local Ollama instance."""
     client = OllamaClient(model=model, host=ollama_url)
     
     topic_extractor = None
     if hierarchy_file:
-        topic_extractor = TopicExtractor(client, hierarchy_file)
+        topic_extractor = TopicExtractor(
+            client, 
+            hierarchy_file, 
+            flat_mode=flat_topics
+        )
 
     processor = MetadataProcessor(
         client, 
