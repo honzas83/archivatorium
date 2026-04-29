@@ -7,6 +7,7 @@ from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
 from ocrpolish.processor_metadata import MetadataProcessor
 from ocrpolish.services.ollama_client import OllamaClient
+from ocrpolish.services.topics_service import TopicExtractor
 from ocrpolish.utils.logging import setup_logging
 
 
@@ -128,6 +129,13 @@ def clean(
     default=None,
     help="Directory containing source PDF files (if different from input_dir).",
 )
+@click.option(
+    "--hierarchy-file",
+    "-h",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Optional path to a YAML topic hierarchy for two-step topic extraction.",
+)
 def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
@@ -138,11 +146,22 @@ def metadata(  # noqa: PLR0913
     dry_run: bool,
     vault_root: Path | None,
     pdf_dir: Path | None,
+    hierarchy_file: Path | None,
 ) -> None:
     """Extracts metadata from Markdown files using a local Ollama instance."""
     client = OllamaClient(model=model, host=ollama_url)
+    
+    topic_extractor = None
+    if hierarchy_file:
+        topic_extractor = TopicExtractor(client, hierarchy_file)
+
     processor = MetadataProcessor(
-        client, output_dir, overwrite=overwrite, vault_root=vault_root, pdf_dir=pdf_dir
+        client, 
+        output_dir, 
+        overwrite=overwrite, 
+        vault_root=vault_root, 
+        pdf_dir=pdf_dir,
+        topic_extractor=topic_extractor
     )
 
     files = sorted(processor.get_files(input_dir, recursive=recursive))

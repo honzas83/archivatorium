@@ -1,1 +1,3 @@
-{"feature_directory": "specs/010-refine-obsidian-metadata"}
+{
+  "feature_directory": "specs/011-llm-topic-extraction"
+}

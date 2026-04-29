@@ -105,6 +105,16 @@ def normalize_obsidian_tags(tags: list[str]) -> list[str]:
     return normalized
 
 
+def format_hierarchical_tag(category: str, topic: str) -> str:
+    """
+    Formats a category and topic into an Obsidian hierarchical tag.
+    Spaces are replaced with hyphens.
+    """
+    clean_cat = category.strip().replace(" ", "-")
+    clean_topic = topic.strip().replace(" ", "-")
+    return f"#{clean_cat}/{clean_topic}"
+
+
 def format_as_callout(text: str, title: str = "Abstract", callout_type: str = "abstract") -> str:
     """
     Formats text as an Obsidian callout.

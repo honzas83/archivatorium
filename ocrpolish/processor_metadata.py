@@ -6,17 +6,21 @@ from typing import Any
 
 from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
 from ocrpolish.services.ollama_client import OllamaClient
+from ocrpolish.services.topics_service import TopicExtractor
 from ocrpolish.utils.metadata import (
     flatten_metadata,
     format_as_callout,
+    format_hierarchical_tag,
     normalize_obsidian_tags,
+    parse_frontmatter,
+    stringify_frontmatter,
 )
 
 logger = logging.getLogger(__name__)
 
 # Constants for context window management
-CHUNK_SIZE = 6000
-LARGE_DOC_THRESHOLD = 8000
+CHUNK_SIZE = 10000
+LARGE_DOC_THRESHOLD = 12000
 
 
 class MetadataProcessor:
@@ -27,12 +31,14 @@ class MetadataProcessor:
         overwrite: bool = False,
         vault_root: Path | None = None,
         pdf_dir: Path | None = None,
+        topic_extractor: TopicExtractor | None = None,
     ):
         self.client = ollama_client
         self.output_dir = output_dir
         self.overwrite = overwrite
         self.vault_root = vault_root
         self.pdf_dir = pdf_dir
+        self.topic_extractor = topic_extractor
         self.tag_counts: Counter[str] = Counter()
 
     def _get_pdf_link(self, input_file: Path) -> str:
@@ -115,7 +121,6 @@ class MetadataProcessor:
 
         try:
             content = input_file.read_text(encoding="utf-8")
-            from ocrpolish.utils.metadata import parse_frontmatter, stringify_frontmatter
 
             # 1. Separate existing frontmatter from body
             existing_metadata, original_body = parse_frontmatter(content)
@@ -192,17 +197,44 @@ class MetadataProcessor:
             title = metadata_dict.get("title", "")
             abstract = metadata_dict.pop("abstract", "")
 
-            # Build the callout block
+            # US-011: Perform topic extraction if extractor is provided
+            topic_list_items = []
+            if self.topic_extractor and abstract:
+                assignments = self.topic_extractor.extract_topics(first_chunk)
+                if assignments:
+                    for a in assignments:
+                        tag = format_hierarchical_tag(a.category, a.topic)
+                        topic_list_items.append(f"{tag} — {a.reason}")
+
+            # US3: Extract flat tags and remove from frontmatter property
+            flat_tags = metadata_dict.pop("tags", [])
+            flat_tags_str = ""
+            if flat_tags:
+                # Add # to flat tags for body callout (inline)
+                flat_tags_str = " ".join([f"#{t}" if not t.startswith("#") else t for t in flat_tags])
+
+            # Build the callout block with dedicated sections for topics and tags
             body_prefix = ""
-            if title or abstract:
-                callout_body = ""
+            if title or abstract or topic_list_items or flat_tags_str:
+                sections = []
                 if title:
-                    callout_body += f"# {title}\n\n"
+                    sections.append(f"# {title}")
                 if abstract:
-                    callout_body += f"{abstract}"
+                    sections.append(abstract)
+                
+                if topic_list_items:
+                    topic_section = "## Categories/Topics\n\n" + "\n".join(topic_list_items)
+                    sections.append(topic_section)
+                
+                if flat_tags_str:
+                    sections.append(f"## Tags\n\n{flat_tags_str}")
+
+                callout_body = "\n\n".join(sections)
 
                 # Wrap in callout
-                body_prefix = format_as_callout(callout_body, title="", callout_type="abstract")
+                body_prefix = format_as_callout(
+                    callout_body.strip(), title="", callout_type="abstract"
+                )
 
             # Combine everything: [Frontmatter] + [Callout] + [Original Body]
             frontmatter_str = stringify_frontmatter(metadata_dict)

@@ -40,7 +40,7 @@ ocrpolish clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--docx DOCX_DIR`: Generate DOCX files in the specified directory.
 
 ### Extracting Metadata
-Extracts structured data using a local LLM.
+Extracts structured data and hierarchical topics using a local LLM.
 
 ```bash
 ocrpolish metadata [OPTIONS] INPUT_DIR OUTPUT_DIR
@@ -51,6 +51,9 @@ ocrpolish metadata [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--ollama-url TEXT`: URL of the Ollama server (default: `http://localhost:11434`).
 - `--recursive / --no-recursive`: Process subdirectories (default: `recursive`).
 - `--overwrite`: Overwrite existing files in output directory.
+- `--hierarchy-file, -h`: Optional path to a YAML topic hierarchy (e.g., `topics/NATO_themes.yaml`). If provided, performs a two-step hierarchical topic extraction.
+- `--vault-root PATH`: Root directory of the Obsidian vault for relative link calculation.
+- `--pdf-dir PATH`: Directory containing source PDF files.
 
 ## Development
 

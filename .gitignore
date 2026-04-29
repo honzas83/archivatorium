@@ -216,3 +216,5 @@ NATO_NPG/
 NATO_NPG_metadata/
 frequency.txt
 *.filtered.md
+NATO_NPG_pdf/
+.DS_Store

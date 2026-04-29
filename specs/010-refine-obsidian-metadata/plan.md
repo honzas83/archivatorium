@@ -1,65 +1,104 @@
-# Implementation Plan: Refine Obsidian Metadata
+# Implementation Plan: [FEATURE]
 
-**Branch**: `010-refine-obsidian-metadata` | **Date**: 2026-04-29 | **Spec**: [specs/010-refine-obsidian-metadata/spec.md](spec.md)
-**Input**: Feature specification from `/specs/010-refine-obsidian-metadata/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-The goal of this feature is to refine the metadata extraction output for better Obsidian compatibility and document structure. This involves renaming frontmatter keys, simplifying the summary to a single sentence, moving the title and abstract into an Obsidian callout block at the start of the body, removing empty attributes, and formatting numeric tags.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
 **Language/Version**: Python 3.12  
-**Primary Dependencies**: `pydantic`, `ollama`, `pyyaml`, `click`  
+**Primary Dependencies**: [NEEDS CLARIFICATION: e.g. click, typer, pydantic]  
 **Storage**: Filesystem (input/output directories)  
-**Testing**: `pytest`, `coverage`  
+**Testing**: pytest, coverage  
 **Target Platform**: CLI (cross-platform Python)
 **Project Type**: Single project
-**Performance Goals**: Minimal overhead on top of LLM extraction.  
-**Constraints**: Recursive processing, directory mirroring, Obsidian metadata limitations.
-**Scale/Scope**: Impacts the `metadata` command and its core processing logic.
+**Performance Goals**: [NEEDS CLARIFICATION]  
+**Constraints**: Recursive processing, directory mirroring
+**Scale/Scope**: [NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **Principle I: Quality-Driven Python Development**: YES. Using Python 3.12, ruff, mypy, and pytest.
-- **Principle II: CLI-First Interface**: YES. Part of the `ocrpolish` CLI.
-- **Principle III: Recursive Directory Processing**: YES. Handled by `MetadataProcessor`.
-- **Principle IV: Data Isolation**: YES. Data remains in `data/`.
-- **Principle V: Atomic Git Workflow**: YES. Each task will be committed separately.
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/010-refine-obsidian-metadata/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-└── tasks.md             # Phase 2 output
+specs/[###-feature]/
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
-ocrpolish/
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
 ├── models/
-│   └── metadata.py      # MetadataSchema updates
-├── utils/
-│   └── metadata.py      # tag normalization and formatting updates
-└── processor_metadata.py # core processing logic updates
+├── services/
+├── cli/
+└── lib/
 
 tests/
-├── unit/
-│   ├── test_metadata_utils.py
-│   └── test_metadata_processor.py
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Single project. Modifications are confined to existing metadata processing modules.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
-*No constitution violations detected.*
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
