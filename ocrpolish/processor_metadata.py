@@ -224,7 +224,8 @@ class MetadataProcessor:
                 assignments = self.topic_extractor.extract_topics(first_chunk)
                 if assignments:
                     for a in assignments:
-                        tag = format_hierarchical_tag(a.category, a.topic)
+                        # US-015: Add 'Category' prefix for consistent indexing
+                        tag = format_hierarchical_tag("Category", a.category, a.topic)
                         topic_list_items.append(f"{tag} — {a.reason}")
 
             # US-014: Process mentioned entities into hierarchical tags
