@@ -8,7 +8,11 @@ import xlsxwriter  # type: ignore
 import yaml  # type: ignore
 
 from ocrpolish.models.metadata import MetadataSchema
-from ocrpolish.utils.metadata import extract_abstract_tags, parse_frontmatter
+from ocrpolish.utils.metadata import (
+    extract_abstract_tags,
+    normalize_tag_component,
+    parse_frontmatter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +21,13 @@ INDEX_PREFIXES = ["State", "City", "Org", "Category"]
 # Minimum components for a hierarchical City tag (#City/State/City)
 CITY_TAG_MIN_PARTS = 3
 
+
 @dataclass
 class EntityReference:
     prefix: str
     value: str
     label: str
+
 
 @dataclass
 class IndexEntry:
@@ -31,6 +37,7 @@ class IndexEntry:
     date: str = ""
     entities: list[EntityReference] = field(default_factory=list)
     raw_metadata: dict[str, Any] = field(default_factory=dict)
+
 
 class IndexingService:
     def __init__(self, input_dir: Path, topics_yaml: Path | None = None):
@@ -72,15 +79,15 @@ class IndexingService:
             # T019: Graceful handling of malformed YAML
             logger.warning(f"Malformed frontmatter in {file_path}: {e}")
             metadata, body = {}, content
-        
+
         raw_tags = metadata.get("tags", [])
         if isinstance(raw_tags, str):
             raw_tags = [raw_tags]
         elif not isinstance(raw_tags, list):
             raw_tags = []
-        
+
         abstract_tags = extract_abstract_tags(body)
-        
+
         all_raw_tags = set()
         for t in raw_tags:
             if not isinstance(t, str):
@@ -101,7 +108,7 @@ class IndexingService:
             summary=metadata.get("summary", ""),
             date=metadata.get("date", ""),
             entities=entities,
-            raw_metadata=metadata
+            raw_metadata=metadata,
         )
         self.entries.append(entry)
 
@@ -229,7 +236,7 @@ class IndexingService:
                     used_topics.add(entity.value)
 
         lines = ["# Index of Categories/Topics\n"]
-        
+
         if not themes_data or not isinstance(themes_data, dict):
             return
 
@@ -238,25 +245,30 @@ class IndexingService:
             cat_name = cat.get("category")
             if not cat_name:
                 continue
-                
-            cat_tag = f"#Category/{cat_name}"
+
+            normalized_cat = normalize_tag_component(cat_name)
+            cat_tag = f"#Category/{normalized_cat}"
             cat_desc = cat.get("description", "")
-            
+
             topics = cat.get("topics", [])
             # Check if category or any of its subtopics are used
             has_used_st = any(
-                f"#Category/{cat_name}/{t.get('topic')}" in used_topics for t in topics
+                f"#Category/{normalized_cat}/{normalize_tag_component(t.get('topic', ''))}"
+                in used_topics
+                for t in topics
             )
-            
+
             if cat_tag in used_topics or has_used_st:
                 lines.append(f"## {cat_tag}")
                 if cat_desc:
                     lines.append(cat_desc)
-                
+
                 for topic in topics:
                     st_name = topic.get("topic")
                     st_desc = topic.get("description", "")
-                    st_tag = f"#Category/{cat_name}/{st_name}"
+                    st_tag = (
+                        f"#Category/{normalized_cat}/{normalize_tag_component(st_name)}"
+                    )
                     if st_tag in used_topics:
                         lines.append(f"{st_tag} -- {st_desc}")
 

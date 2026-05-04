@@ -11,10 +11,10 @@ def test_gen_topics_index(tmp_path: Path) -> None:
     topics_yaml.write_text(
         """
 categories:
-  - category: "Doctrine"
+  - category: "Doctrine and Strategy"
     description: "Military doctrines."
     topics:
-      - topic: "Nuclear"
+      - topic: "Nuclear Deterrence"
         description: "Nuclear strategy."
       - topic: "Conventional"
         description: "Conventional strategy."
@@ -24,16 +24,21 @@ categories:
 
     indexer = IndexingService(vault_dir, topics_yaml=topics_yaml)
 
-    # Mock entries
+    # Mock entries with normalized tags (as they would be in a real doc)
     indexer.entries = [
         IndexEntry(
             doc_path=Path("doc1.md"),
-            entities=[EntityReference("Category", "#Category/Doctrine/Nuclear", "Nuclear")],
+            entities=[
+                EntityReference(
+                    "Category",
+                    "#Category/Doctrine-and-Strategy/Nuclear-Deterrence",
+                    "Nuclear Deterrence",
+                )
+            ],
         )
     ]
 
-    # We need to mock _write_index or just let it write to tmp_path
-    # IndexingService._write_index writes to self.input_dir
+    # Generate indices
     indexer.generate_markdown_indices()
 
     index_file = vault_dir / "Index - Topics.md"
@@ -41,7 +46,12 @@ categories:
 
     content = index_file.read_text(encoding="utf-8")
     assert "# Index of Categories/Topics" in content
-    assert "## #Category/Doctrine" in content
+    # Header should be normalized
+    assert "## #Category/Doctrine-and-Strategy" in content
     assert "Military doctrines." in content
-    assert "#Category/Doctrine/Nuclear -- Nuclear strategy." in content
-    assert "#Category/Doctrine/Conventional" not in content  # Not used
+    # Topic should be normalized and matched
+    assert (
+        "#Category/Doctrine-and-Strategy/Nuclear-Deterrence -- Nuclear strategy."
+        in content
+    )
+    assert "#Category/Doctrine-and-Strategy/Conventional" not in content  # Not used
