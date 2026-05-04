@@ -24,17 +24,18 @@ As a researcher, I want to export all document metadata to a spreadsheet so that
 
 ### User Story 2 - Generate Obsidian Index Pages (Priority: P1)
 
-As a knowledge manager, I want to have index pages in my Obsidian vault that group documents by State, City, and Topic so that I can easily navigate the collection.
+As a knowledge manager, I want to have index pages in my Obsidian vault that group documents by State, City, Organization, and Topic so that I can easily navigate the collection.
 
 **Why this priority**: Essential for the Obsidian vault experience, providing entry points into the graph based on common entities.
 
-**Independent Test**: Run `python -m ocrpolish.cli index vault_dir`. Verify that `Index - States.md`, `Index - Cities.md`, and `Index - Topics.md` are created in the vault.
+**Independent Test**: Run `python -m ocrpolish.cli index vault_dir`. Verify that `Index - States.md`, `Index - Cities.md`, `Index - Organizations.md`, and `Index - Topics.md` are created in the vault. These pages should list the relevant hashtags (e.g., `#State/Belgium`) rather than individual document links.
 
 **Acceptance Scenarios**:
 
-1. **Given** documents containing `#State/Canada` and `#State/Belgium`, **When** the index is generated, **Then** `Index - States.md` shows alphabetical sections (B, C) with lists of documents associated with those states.
-2. **Given** documents with `#City/Belgium/Brussels`, **When** the index is generated, **Then** `Index - Cities.md` groups cities under their respective states (Belgium -> Brussels).
-3. **Given** a topics YAML file, **When** the index is generated, **Then** `Index - Topics.md` shows a hierarchical list of categories and topics with their descriptions.
+1. **Given** documents containing `#State/Canada` and `#State/Belgium`, **When** the index is generated, **Then** `Index - States.md` shows alphabetical sections (B, C) containing the hashtags `#State/Belgium` and `#State/Canada` respectively.
+2. **Given** documents with `#City/Belgium/Brussels`, **When** the index is generated, **Then** `Index - Cities.md` shows a section for `Belgium` containing the hashtag `#City/Belgium/Brussels`.
+3. **Given** documents with `#Org/NATO`, **When** the index is generated, **Then** `Index - Organizations.md` lists the hashtag `#Org/NATO`.
+4. **Given** a topics YAML file, **When** the index is generated, **Then** `Index - Topics.md` shows a hierarchical list of category/topic hashtags with their descriptions from the YAML.
 
 ---
 
@@ -56,7 +57,7 @@ As a user, I want the indexing tool to find entities mentioned in the document a
 
 - **Empty Vault**: If the input directory contains no `.md` files, the tool should report "No documents found" and exit gracefully.
 - **Malformed Frontmatter**: Documents with invalid YAML should be skipped with a warning, but the rest of the indexing process should continue.
-- **Conflicting Tags**: If an entity appears both in frontmatter and the abstract, it should only be counted once per document for the index.
+- **Conflicting Tags**: If an entity appears both in frontmatter and the abstract, they MUST be merged and deduplicated so each unique entity is only counted once per document for the index.
 - **Missing Topics YAML**: If generating a topic index but no YAML is provided, the tool should either fallback to using tags found in documents or error out if the YAML is mandatory.
 
 ## Requirements *(mandatory)*
@@ -67,18 +68,29 @@ As a user, I want the indexing tool to find entities mentioned in the document a
 - **FR-002**: System MUST recursively scan `INPUT_DIR` for `.md` files.
 - **FR-003**: System MUST parse YAML frontmatter from each document.
 - **FR-004**: System MUST parse the `[!abstract]` callout block in the document body to extract hierarchical tags (e.g., `#State/...`, `#City/...`, `#Org/...`, `#Category/Topic`).
-- **FR-005**: System MUST generate an XLSX file if `--output-xlsx` is provided, with columns matching the project's metadata schema.
-- **FR-006**: System MUST generate `Index - States.md` with alphabetical grouping (A, B, C...) of `#State/` tags.
-- **FR-007**: System MUST generate `Index - Cities.md` with grouping by state (State -> City) for `#City/` tags.
-- **FR-008**: System MUST generate `Index - Topics.md` using a provided YAML for structure and descriptions.
-- **FR-009**: System MUST allow specifying the path to the topics YAML file via a CLI argument (e.g., `--topics-yaml`).
-- **FR-010**: System MUST save Markdown index pages in the root of `INPUT_DIR`. The path should be defined as a configurable variable relative to the vault root in the implementation.
+- **FR-005**: System MUST generate an XLSX file if `--output-xlsx` is provided, strictly containing columns for fields defined in the project's `MetadataSchema` Pydantic model.
+- **FR-006**: System MUST generate `Index - States.md` listing `#State/` hashtags found in the vault, grouped by their first letter.
+- **FR-007**: System MUST generate `Index - Cities.md` listing `#City/` hashtags found in the vault, grouped by state.
+- **FR-008**: System MUST generate `Index - Organizations.md` listing `#Org/` hashtags found in the vault.
+- **FR-009**: System MUST generate `Index - Topics.md` listing category/topic hashtags with descriptions from the provided topics YAML.
+- **FR-010**: System MUST allow specifying the path to the topics YAML file via a CLI argument (e.g., `--topics-yaml`).
+- **FR-011**: System MUST save Markdown index pages in the root of `INPUT_DIR`. The path should be defined as a configurable variable relative to the vault root in the implementation.
+- **FR-012**: System MUST only index hierarchical tags with specific predefined prefixes (State, City, Org, Category), but the list of prefixes MUST be easily extensible in the source code.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Metadata Index**: A collection of records representing all processed documents and their associated attributes.
 - **Entity Reference**: A link between a document and a specific entity (State, City, Organization, or Topic) extracted from the document's metadata or content.
 - **Topic Hierarchy**: A structured definition of categories and sub-topics, including labels and descriptions, used to organize documents.
+
+## Clarifications
+
+### Session 2026-05-04
+- Q: Should a dedicated index for Organizations be created? → A: Yes, create `Index - Organizations.md` and be prepared to extend the list to other entities.
+- Q: Should the indexer automatically discover and index all hierarchical tag prefixes or stick to a predefined list? → A: Stick to a predefined list (States, Cities, Organizations, Topics).
+- Q: How should conflicting metadata between frontmatter and the abstract be handled? → A: Merge and deduplicate entities from both sources.
+- Q: Which fields should be included in the XLSX index? → A: Only fields explicitly defined in the `MetadataSchema` Pydantic model.
+- Q: How should documents be linked in the Markdown index pages? → A: Use hashtags (e.g., `#State/Belgium`) instead of full document references (e.g., `[[Doc]]`), allowing Obsidian to handle the document list via the tag.
 
 ## Success Criteria *(mandatory)*
 
