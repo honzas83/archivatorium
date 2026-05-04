@@ -44,6 +44,26 @@ class IndexingService:
         self.input_dir = input_dir
         self.topics_yaml = topics_yaml
         self.entries: list[IndexEntry] = []
+        self.index_prefixes = set(INDEX_PREFIXES)
+        self._load_dynamic_prefixes()
+
+    def _load_dynamic_prefixes(self) -> None:
+        """Loads normalized category names from topics YAML as valid prefixes."""
+        if not self.topics_yaml or not self.topics_yaml.exists():
+            return
+        try:
+            with open(self.topics_yaml, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data and isinstance(data, dict):
+                    categories = data.get("categories", [])
+                    for cat in categories:
+                        name = cat.get("category")
+                        if name:
+                            self.index_prefixes.add(normalize_tag_component(name))
+        except Exception as e:
+            logger.warning(
+                f"Could not load dynamic prefixes from {self.topics_yaml}: {e}"
+            )
 
     def _parse_entity(self, tag: str) -> EntityReference | None:
         """Parses a hierarchical tag into an EntityReference."""
@@ -54,7 +74,7 @@ class IndexingService:
             return None
 
         prefix = parts[0]
-        if prefix not in INDEX_PREFIXES:
+        if prefix not in self.index_prefixes:
             return None
 
         if len(parts) < 2:  # Must have at least prefix/label
@@ -229,11 +249,13 @@ class IndexingService:
             return
 
         # Get used topics
+        # Support both #Category/Cat/Topic and legacy #Cat/Topic
         used_topics = set()
         for entry in self.entries:
             for entity in entry.entities:
-                if entity.prefix == "Category":
-                    used_topics.add(entity.value)
+                # If prefix is Category, it's a new style tag
+                # If prefix is one of the category names, it's a legacy style tag
+                used_topics.add(entity.value)
 
         lines = ["# Index of Categories/Topics\n"]
 
@@ -247,29 +269,41 @@ class IndexingService:
                 continue
 
             normalized_cat = normalize_tag_component(cat_name)
-            cat_tag = f"#Category/{normalized_cat}"
+            cat_tag_new = f"#Category/{normalized_cat}"
+            cat_tag_legacy = f"#{normalized_cat}"
             cat_desc = cat.get("description", "")
 
             topics = cat.get("topics", [])
+
+            # Helper to check if a specific topic tag (new or legacy) is used
+            def is_topic_used(c_norm: str, t_norm: str) -> bool:
+                return (
+                    f"#Category/{c_norm}/{t_norm}" in used_topics
+                    or f"#{c_norm}/{t_norm}" in used_topics
+                )
+
             # Check if category or any of its subtopics are used
             has_used_st = any(
-                f"#Category/{normalized_cat}/{normalize_tag_component(t.get('topic', ''))}"
-                in used_topics
+                is_topic_used(
+                    normalized_cat, normalize_tag_component(t.get("topic", ""))
+                )
                 for t in topics
             )
 
-            if cat_tag in used_topics or has_used_st:
-                lines.append(f"## {cat_tag}")
+            if cat_tag_new in used_topics or cat_tag_legacy in used_topics or has_used_st:
+                # We use the new style for the header in the index
+                lines.append(f"## {cat_tag_new}")
                 if cat_desc:
                     lines.append(cat_desc)
 
                 for topic in topics:
                     st_name = topic.get("topic")
                     st_desc = topic.get("description", "")
-                    st_tag = (
-                        f"#Category/{normalized_cat}/{normalize_tag_component(st_name)}"
-                    )
-                    if st_tag in used_topics:
-                        lines.append(f"{st_tag} -- {st_desc}")
+                    st_norm = normalize_tag_component(st_name)
+                    st_tag_new = f"#Category/{normalized_cat}/{st_norm}"
+                    st_tag_legacy = f"#{normalized_cat}/{st_norm}"
+
+                    if st_tag_new in used_topics or st_tag_legacy in used_topics:
+                        lines.append(f"{st_tag_new} -- {st_desc}")
 
         self._write_index("Index - Topics.md", "\n".join(lines))

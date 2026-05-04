@@ -24,14 +24,14 @@ categories:
 
     indexer = IndexingService(vault_dir, topics_yaml=topics_yaml)
 
-    # Mock entries with normalized tags (as they would be in a real doc)
+    # Mock entries with legacy style tags
     indexer.entries = [
         IndexEntry(
             doc_path=Path("doc1.md"),
             entities=[
                 EntityReference(
-                    "Category",
-                    "#Category/Doctrine-and-Strategy/Nuclear-Deterrence",
+                    "Doctrine-and-Strategy",
+                    "#Doctrine-and-Strategy/Nuclear-Deterrence",
                     "Nuclear Deterrence",
                 )
             ],
