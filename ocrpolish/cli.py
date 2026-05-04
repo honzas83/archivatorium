@@ -6,6 +6,7 @@ import click
 from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
 from ocrpolish.processor_metadata import MetadataProcessor
+from ocrpolish.services.indexing_service import IndexingService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.topics_service import TopicExtractor
 from ocrpolish.utils.logging import setup_logging
@@ -189,6 +190,56 @@ def metadata(  # noqa: PLR0913
                 processor.process_file(input_file, output_file)
             except Exception as e:
                 click.echo(f"\nError processing {relative_path}: {e}", err=True)
+
+
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output-xlsx",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Path to save the XLSX metadata index.",
+)
+@click.option(
+    "--topics-yaml",
+    "-t",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to the YAML file defining topic hierarchy.",
+)
+@click.option(
+    "--recursive/--no-recursive",
+    default=True,
+    help="Whether to scan subdirectories. (Default: recursive)",
+)
+def index(
+    input_dir: Path,
+    output_xlsx: Path | None,
+    topics_yaml: Path | None,
+    recursive: bool,
+) -> None:
+    """Generates Obsidian index pages and an optional XLSX index from vault metadata."""
+    indexer = IndexingService(input_dir, topics_yaml=topics_yaml)
+
+    click.echo(f"Scanning vault: {input_dir}")
+    # Get file list for progress bar
+    pattern = "**/*.md" if recursive else "*.md"
+    files = [f for f in input_dir.glob(pattern) if not f.name.startswith("Index - ")]
+    
+    if not files:
+        click.echo("No markdown files found to index.")
+        return
+
+    with click.progressbar(files, label="Indexing documents") as bar:
+        for file_path in bar:
+            indexer.process_file(file_path)
+
+    if output_xlsx:
+        click.echo(f"Generating XLSX index: {output_xlsx}")
+        indexer.generate_xlsx(output_xlsx)
+
+    click.echo("Generating Markdown indices...")
+    indexer.generate_markdown_indices()
+    click.echo("Done.")
 
 
 def main() -> None:

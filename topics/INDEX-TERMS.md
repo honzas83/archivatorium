@@ -1,0 +1,803 @@
+# Extracted index terms
+
+- Acheson, Dean
+  - and collective security
+  - Atlantic Treaty
+  - and NATO strategy
+  - and NSC
+- Achilles, Theodore C.
+- Act of Chapultepec (1945)
+- Adenauer, Konrad
+  - and NATO
+  - and strategy
+  - Eastern European Policy
+  - and NATO strategic concept
+  - weaknesses and abandonment
+- Afghanistan
+  - Afghanistan Compact
+  - civilian czar
+  - Comprehensive Approach failure
+  - Comprehensive Approach policy
+  - counterinsurgency
+  - downscaled mission
+  - ISAF (International Security Assistance Force)
+  - NATO’s marginalized operation
+  - and Pakistan
+  - provincial reconstruction teams (PRTs)
+  - Soviet invasion
+  - US withdrawal
+- al-Assad, Bashar
+- Albania
+  - accession talks
+- Algeria
+- Arcadia conference (1941–2)
+- armed forces
+  - Combined Joint Task Forces (CJTF)
+  - MBFR (Mutual and Balanced Force Reductions) talks
+  - Soviet conventional forces reductions
+  - Treaty on Conventional Armed Forces in Europe
+  - see also defense policy
+  - see also military policy
+- Ashdown, Paddy
+- Atlantic Charter
+- Atlantic Community
+- Atlantic Council
+- Atlanticism
+  - European institutionalization
+  - new
+  - as organization
+  - as twenty-first century
+  - and NATO enlargement
+  - definition
+  - critical junctures
+  - final stage
+  - integrated military structure
+  - NATO adoption of
+  - Scandinavian relations
+- Atlantic Treaty
+- Attlee, Clement
+- AUKUS (Australia, UK, US) alliance
+- Bahr, Egon
+- Baker, James
+- balance-of-power politics
+- Belgium
+  - Atlantic Treaty
+  - NATO headquarters
+  - nuclear missiles
+- Berlin blockade
+- Berlin Democratic Union
+- Berlin, Germany Basic Treaty (1971)
+- Berlusconi, Silvio
+- Bevin, Ernest
+- Bidault, Georges
+- Biden, Joe
+- Blair Doctrine
+- Blair, Tony
+- Bohlen, Charles
+- Bonnet, Henri
+- Bosnia conflict
+  - IFOR peace implementation force
+  - NATO and
+  - Operation Deliberate Force
+  - Protection Force (UNPROFOR) (Yugoslavia)
+  - Russian cooperation
+  - Russian support for Serbia
+  - US and
+- Brandt, Willy
+- Brussels Treaty
+- Canadian threat
+- Chad Mission
+- Charles de Gaulle
+- Christian Democratic Union (CDU)
+- civilian czar
+- Cold War
+- Combined Joint Task Forces (CJTF)
+- Comprehensive Approach
+- Concerns
+- counterinsurgency
+- Cuban Missile Crisis
+- Defense Strategic Guidance
+- defense budget
+- defense policy
+- Defense Strategic Guidance
+- deterrence
+- Deutsch, Karl
+- “Developments in the Soviet Union” (NATO)
+- Dinardo, Jeff
+- differentiated response
+- dual-hatting
+- Dulles, John Foster
+- Duncan, Duncan
+- Dunkirk Treaty (1947)
+- Eastern Europe
+  - Cold War aftermath
+  - in early Cold War
+  - NATO headquarters
+  - NATO membership enlargement
+  - Soviet troops in
+- East Germany
+  - CSCE
+  - and US SACEUR
+  - as US president
+- EDC
+- End of Alliance, The
+- European Coal and Steel Community (ECSC)
+- European Confederation
+- European Council
+- European Defense Community (EDC)
+  - breakup of
+  - US president and
+  - as US president
+- European integration
+  - interest in
+  - institutional alternative to NATO
+  - NATO compared to
+  - politics of
+  - NATO and
+- European Political Cooperation (EPC)
+- European Security and Defence Identity (ESDI)
+- European Security Strategy
+- European Union
+  - creation of
+  - NATO relations with
+  - Rapid Reaction Force of
+- FEB (Financial and Economic Board)
+  - escalation
+  - foreshadowing
+- Finland and Sweden
+- France
+  - and EDC
+  - and NATO strategy
+  - and European integration
+  - flexible response strategy
+  - France’s and Suez
+  - Germany as
+  - Suez
+  - and Iraq War
+  - withdrawal agreement with
+- German Democratic Republic
+- German question
+- German reunification
+  - and Western
+  - International and NATO
+  - Soviet
+  - NATO criteria
+  - rapid German unification
+- Germany
+  - and Europe
+  - CDU and French
+  - EDC
+  - Hallstein
+  - post-Cold War
+  - division and fall of Berlin Wall
+  - First Berlin Crisis
+  - Korean War
+  - revisionist
+  - German strategic adaptation
+  - Second Berlin Crisis
+  - as part of international system
+  - and France
+  - see also West Germany
+- Gorbachev, Mikhail
+  - graduated response plans
+- Greece
+  - Civil War
+- Gruenther, Alfred M.
+  - and MC
+- Gulf Cooperation Council
+- Gulf War
+- Harmel, Pierre
+- Harmel Report
+- Harriman, W. Averell
+- Heiss, Mary
+- Hendrickson, Ryan
+- Heuser, Beatrice
+- historical institutionalism
+- Holbrooke, Richard
+- Hungary
+  - Hungarian Revolution (1956)
+  - see also Austria-Hungary
+- human capital
+- Hura, Myron
+- hybrid warfare
+- ideology
+- Ikenberry, John
+  - as commercial institutions
+  - as liberal order
+  - as integrated military structure
+  - institutionalized
+  - on German unification
+  - NATO and
+- Implementation Force (IFOR)
+- implementation
+  - information-sharing
+  - mechanism adaptation
+  - shortcomings of mechanism crisis actions
+  - NATO and Europe
+  - mechanism problems
+- India
+- individual skill complexity
+- Indochina
+- INF Treaty
+- information-sharing
+- institutional adaptation
+- institutional resistance
+- institutionalization
+- institutions
+- integrated military command
+- integrated military structure
+- Inter-American Treaty of Reciprocal Assistance (1947)
+- Intermediate Nuclear Force (INF) Treaty
+- internal balancing
+- internal threats
+- international anarchy
+- international humanitarian law
+- international institutions
+  - defining
+  - NATO and
+  - Soviet Union and
+  - on functionalism
+  - literature on
+  - mechanism of
+  - nuclear arms control and
+  - occupation
+  - NATO strategy and
+  - as organizing
+  - after Berlin Crisis
+  - Korean War and
+  - German strategy and
+  - Gulf War situations
+  - persistence
+  - policy resistance
+  - response
+  - as an organization
+  - resistance to
+  - literature on mechanisms of
+  - power relations
+  - role of
+  - strategy
+  - twenty-first century
+- international law
+- international politics
+  - power shifts
+  - uncertainty
+- International Security Assistance Force (ISAF)
+  - Afghanistan
+  - Iraq War and
+  - invasion of Kuwait by
+- international security cooperation
+- interoperability
+  - issues of
+  - radio usage in Afghanistan
+- Iran
+- Iraq
+- Iraq War (2003)
+  - coalition of the willing
+- Ireland
+  - CSCE
+  - institutional distance
+  - nonaligned
+- ISAF
+- Israel
+  - arms transfers from the US
+  - relations with Saudi Arabia
+- Ismay, Hastings
+  - accomplishments as secretary-general
+  - leadership style of
+- Italy
+  - defense spending
+  - enticement by the Triple Entente
+  - invasion of Greece
+  - policy of neutrality
+- Jakobsen, Jo
+- Jakobsen, Tor
+- Japan
+- Johnson
+- Kennedy, John F.
+- Kennedy, Robert F.
+- Khrushchev, Nikita
+- Korean War
+- Kosovo
+- Kuwait
+- League
+  - Mutual
+  - institutional mechanisms used by
+  - NATO strategy and
+- legitimacy
+  - importance
+- Libyan intervention
+- Lisbon Conference (1956)
+- London bombing (2005)
+- London Conference (1994)
+- London Declaration
+- Lugar, Richard
+- Lynce, Nuno
+- Macedonia
+- MacLean, Donald
+- MacNamara, Robert
+- Macron, Emmanuel
+- Maastricht Treaty
+- MacArthur, Douglas
+- Madrid train bombing (2004)
+- Malan
+- Maloney
+- Manley, Tom
+- Marshall Plan
+- Marshall, George C.
+- Marshall, George S.
+- Martens, Gérard
+- Mastny, Vojtech
+- Maurer
+- MBFR (Mutual and Balanced Force Reductions) talks
+- MC 14/1
+- MC 14/3
+- MC 400/3 (Military Strategy)
+- MC 400/4 (Military Strategy)
+- McNamara, Robert
+- Mediterranean Dialogue
+- Medium Term Defense Plan
+- Medvedev, Dmitry
+- Michael, Angela
+- Middle East
+  - NATO-Israel War Link agreement
+  - NATO’s southern flank
+  - US policy
+- military
+  - Committees
+  - conventional staff
+  - first Standing Group’s functions assigned to
+  - Production and Supply Board
+  - Strategy Working Group
+  - status
+  - see also forces
+- Military Committee
+- military policy
+  - Combined Joint Task Forces (CJTF)
+  - French military reintegration failure
+  - Harmel Report
+  - Military Committee
+  - Military Strategy (MC 400/3)
+  - military strategy (MC 400/4)
+  - NATO’s strategic concept
+  - new military commands
+  - Readiness Action Plan (RAP)
+  - Russian participation
+- military spending
+- Minear, Ian
+- minimum deterrence
+- Mollet, Guy
+- Monnet, Jean
+- Monument Plan
+- Montgomery, Bernard
+- Moore, Rebecca
+- Morgenthau Plan
+- Moro, Aldo
+- modernization
+  - as mechanism of adaptation
+- multilateral force (MLF)
+- Multilateral Force (MLF)
+- Mutual and Balanced Force Reductions (MBFR)
+- mutually assured destruction (MAD)
+- Nagorno-Karabakh
+- Nassau Agreement
+- Nassau Conference
+- National Security Council (NAC)
+- National Security Council (NACC)
+- National Security Council (NSC)
+- NATO
+  - Americanization
+  - Atlanticism
+  - Concerns
+  - fragmentation
+  - functions
+  - future challenges
+- NATO enlargement
+  - costs
+  - Central and Eastern Europe
+  - Finland and Sweden
+  - forced and Turkey
+  - Moving Toward NATO Expansion
+  - Putin’s aggression
+  - Ukraine and Georgia
+- NATO Military Committee
+  - Rynning on
+- NATO membership
+  - Greece/Turkey
+  - Cold War enlargement
+  - West Germany
+  - plausibility
+- NATO nuclear strategy
+- NATO Nuclear Planning Group
+  - institutional memory
+  - Johnson
+  - manual task forces
+- NATO Parliamentary Assembly
+  - North Atlantic Consultative Council (NACC)
+  - North Atlantic Council
+  - Treaty
+- NATO purpose
+  - NATO-Russia Force (NRF)
+- NATO-Russia Council
+- NATO-Russia Founding Act
+- NATO Strategic Concept
+  - Articles
+  - Article 5
+  - Article 10
+  - Article 11
+  - political provisions
+  - revisions
+- NATO structure and organization
+  - International Staff
+  - Office of the Financial Controller
+  - power relations within
+  - transformation during 1966
+  - internal political structure
+  - conventional defense
+  - formal institutions and meetings
+  - initial structure
+  - allocated authority
+  - institutional military command
+  - see also secretary-general position
+- NATO summit
+- NATO Training Mission-Afghanistan (NTM-A)
+- NATO Transformed
+  - Netherlands
+  - New Approach
+  - New Look
+  - Nordatlantiske Traktat
+- NATO’s Enhanced Forward Presence
+- NATO’s New Mission
+- NATO’s Role
+- Naval Defense Treaty
+- Nehru, Jawaharlal
+- Netherlands
+- New Atlanticism
+- New Look
+- New Strategic Arms Reduction Treaty
+- Nixon, Richard
+- Non-Proliferation Treaty (NPT)
+- Nordatlantiske Traktat
+- North Atlantic Consultative Council (NACC)
+- North Atlantic Council (NAC)
+  - meetings
+- North Atlantic Treaty
+  - Canadian threat
+  - European states
+  - Italy issue
+  - rapid conclusion
+  - US stance
+- North Macedonia
+  - North Atlantic Treaty
+- Norway
+  - Naval Treaty
+- NSC
+- Nuclear Defense Affairs Committee (NDAC)
+  - structure
+- Nuclear Planning Group (NPG)
+  - institutional memory
+  - member weapons
+  - process
+  - structure
+  - UK scheme
+  - US bilateral nuclear
+  - US nuclear on
+- nuclear weapons
+  - AUKUS
+  - deterrence
+  - dual-track option
+  - GRW
+  - Intermediate-Range Nuclear Forces
+  - London Declaration
+  - NATO modernization
+  - Non-Proliferation Treaty (NPT)
+  - Nuclear Planning Group (NPG)
+  - Pershing II missiles
+  - short-range
+  - Soviet reductions
+- Obama, Barack
+- Off-Shore Procurement program
+- Operation Allied Harmony
+- Operation Deliberate Force
+- Operation Enduring Freedom
+- Operation Freedom
+- Operation Joint Endeavor
+- Operation Joint Guardian
+- Operation Joint Protector
+- Operational adaptation
+- Organization for Economic Co-operation and Development (OECD)
+  - Organisation for European Economic Co-operation (OEEC)
+- Organization for European Economic Co-operation (OEEC)
+- Organization for Security and Co-operation in Europe (OSCE)
+  - as mission
+  - United States commitment to NATO
+  - Organization of American States
+  - Organization of Petroleum Exporting Countries (OPEC)
+- Organization of American States (OAS)
+- Organization of Petroleum Exporting Countries (OPEC)
+- Pakistan
+- Pandemic
+- Panetta, Leon
+- Partnership for Peace (PFP)
+  - as creation of
+  - Germany and
+  - rejection
+  - to Croatia
+  - to Macedonia
+  - Permanent Joint Council
+- Patijn, Leopold
+- Pearson, Lester
+- Permanent Joint Council
+- Pershing II missiles
+- Pleven Plan
+- Pleven, René
+- Pipes, Richard
+- Plesch, Daniel
+- Poland
+  - burdens
+  - martial law
+  - NATO membership
+  - NATO’s prudence
+  - symbolic importance
+- Pompidou, Georges
+- Portugal
+  - NATO membership
+- Post-Cold War
+- Potsdam conference (1945)
+  - Yugoslavia
+- Powell, Colin
+- Prague Summit
+  - principal-agent theory
+  - process tracing
+- provincial reconstruction teams (PRTs)
+- Provincial Reconstruction Team (PRT)
+- Putin, Vladimir
+  - and Libya intervention
+  - on NATO relations
+  - re-elected president
+  - support for al-Assad
+  - Turkish downing of Russian plane
+  - Ukraine and Georgia dispute
+  - see also Ukraine-Russia conflict
+- RAP (Readiness Action Plan)
+- Rasmussen, Anders Fogh
+- Reagan, Ronald
+  - foreign policy mixed signals
+  - Reykjavik summit
+  - Strategic Defense Initiative (SDI)
+- Regional Commands
+- Regional Planning Groups
+- Reykjavik summit (1986)
+- Ridgway, Matthew
+- Rio Treaty (1947)
+- Robertson, George
+- Rogers, Bernard
+- Rogers, William
+- Romania
+- Rome Declaration
+- Roosevelt, Franklin D.
+- Russia
+  - force postures
+  - Georgian invasion
+  - Kosovo crisis
+  - Malaysian Airlines flight downing
+  - missile defense and non-proliferation progress
+  - NATO membership plausibility
+  - NATO military strategy
+  - NATO-Russia Council
+  - NATO-Russia Founding Act
+  - NATO’s enhanced forward presence
+  - New Strategic Arms Reduction Treaty
+  - Partnership for Peace member
+  - post-Cold War treatment
+  - Russian troops in Bosnia conflict
+  - in Syria
+  - Ukraine-Russia conflict
+  - Turkey-Russia tension
+  - Yugoslavia and
+  - as socialist security treaty
+  - Organization
+  - Ukraine
+- Russian aggression
+- Russian invasion
+- Russian participation
+- Russian response
+- Russian support for Serbia
+- SACEUR (Supreme Allied Commander Europe)
+- SACT
+- SALT see Strategic Arms Limitation Talks
+- Sarkozy, Nicolas
+- Schlesinger, James
+- Schmidt, Helmut
+- Schröder, Gerhard
+- Schuman, Robert
+- Schutz, Klaus
+- Second World War
+  - Arcadia Conference
+  - post-war visions
+  - war aims
+  - security challenges
+- Secretary General
+- Serbia
+  - Bosnian conflict
+  - Kosovo crisis
+  - see also Bosnia conflict
+- Shelov, Andrei
+- Shevardnadze, Eduard
+- Slovakia
+- Slovenia
+- Solana, Javier
+- Soviet Union
+  - Afghanistan invasion
+  - anti-ballistic missile (ABM) and SALT talks
+  - Soviet conventional forces reductions
+- Spain
+  - NATO membership
+- Spofford, Charles
+- Stalin, Joseph
+- Standing Group
+  - dissolution of
+- Stikker, Dirk
+- Stoltenberg, Jens
+- Strategic Arms Limitation Talks
+  - SALT I
+  - SALT II
+- Strategic Concept
+  - 1991
+  - 1999
+  - 2010
+  - 2022
+- strategy
+  - broad
+  - by Acheson
+  - Arms Reduction Treaty (START)
+  - Concept
+  - Concept (1991)
+  - Concept (1997)
+  - Concept (1999)
+  - Concept (2010)
+  - Concept (2022)
+  - Defence Initiative
+  - deception
+  - developed
+  - as American
+  - in World War II
+  - Huntington
+  - public diplomacy used by
+  - Soviet
+  - transformation
+- Strauss, Franz Josef
+- Suez crisis
+- Supreme Headquarters Allied Powers Europe (SHAPE)
+- Sweden
+  - Brussels Treaty
+  - NATO membership
+- Syria
+  - chemical weapons use
+  - NATO mission
+- Talbott, Strobe
+- technological innovation
+  - Turkey and France
+- Tehran Conference
+- Thatcher, Margaret
+- Thies, Wallace J.
+- Thompson, James
+- Three Wise Men
+- Thrace War
+- Treaty of Paris (1951)
+- Treaty on Conventional Armed Forces in Europe (CFE)
+- Treaty on Non-Proliferation of Nuclear Weapons
+- Treaty on Open Skies (1992)
+- Truman Doctrine
+- Truman, Harry S.
+  - Afghanistan withdrawal
+  - NATO criticism
+  - NATO withdrawal threat
+  - Russian allegations
+- Turkey
+  - and Greece
+  - and Iraq War
+  - Kurdish
+  - Kurdish conflict
+  - martial law
+  - NATO membership
+  - NATO policy
+  - neutrality on Russia
+  - Russian plane downing
+  - vetoes NATO-EU cooperation
+- Ukraine
+  - Malaysian Airlines flight downing
+  - NATO membership issue
+  - Ukraine-Russia conflict
+- Ukraine-Russia conflict
+  - NATO unprepared
+  - Russian aggression
+  - Russian invasion
+  - Western Defense Contact Group
+  - Western response
+- United Kingdom
+  - and Suez
+  - armed forces
+  - general of
+  - joining of NATO
+  - military retrenchment
+  - NATO leadership
+  - nuclear arsenal
+  - NATO sphere of influence
+  - sphere of influence
+- United Nations
+  - Article 51
+  - origin of term
+  - Protection Force (UNPROFOR)
+- United Nations Charter
+- United Nations Protection Force (UNPROFOR)
+  - Chad Mission
+- United States
+  - Afghanistan withdrawal
+  - anti-ballistic missile (ABM) and SALT talks
+  - Bosnia conflict
+  - defense budget
+  - Defense Strategic Guidance
+  - Japan
+  - foreign policy
+  - NATO
+  - NATO enlargement
+  - NATO leadership
+  - North Atlantic Treaty
+  - nuclear energy
+  - post-Cold War ambiguity
+  - relations with NATO
+  - and Russia
+  - Second World War
+  - Soviet threat
+- United States action
+  - Afghanistan
+  - Cuban Missile Crisis
+  - Hong Kong and peacekeeping mission
+- United States contribution
+  - burden sharing
+  - defense budget
+  - military advisors
+  - military forces in Europe
+  - nuclear arsenal
+  - Soviet bilateral relations with
+  - sphere of influence
+  - unilateralism
+- Vance, Cyrus
+- Vandenberg, Arthur
+- Vandenberg Resolution (1948)
+- Vershbow, Alexander
+- Wales, Lord Ismay
+  - as NPG
+  - Article 5 declaration
+  - bin Laden killing
+  - NATO’s marginalized operation
+  - war on terror
+- Wallander, Celeste
+- Warsaw Pact
+- Washington, George
+- Washington Summit
+- Watson, John B.
+- Weber, Jennifer
+- Weinberger, Caspar
+- Western Defense Contact Group
+- Western European Union (WEU)
+- Western Germany
+  - Brandt’s pragmatism
+  - East Germany and
+  - East-West relations
+  - front-line state vulnerability
+- West Germany
+  - 1949 election
+  - armed forces
+  - Berlin Democratic Union
+  - Christian Democratic Union (CDU)
+  - Social Democratic Party (SPD)
+- Wilson, Harold
+- Wilson, James
+- Wittmann, Klaus
+- World War I
+- World War II
+  - Western alliance
+- Yost, David
+- Yugoslavia
+  - Bosnia

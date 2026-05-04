@@ -182,3 +182,24 @@ def extract_last_page_header(content: str) -> int | None:
     if matches:
         return int(matches[-1])
     return None
+
+
+def extract_abstract_tags(content: str) -> list[str]:
+    """
+    Extracts hierarchical tags from the [!abstract] callout block.
+    """
+    # 1. Extract the abstract block
+    # Matches > [!abstract] followed by any number of lines starting with >
+    abstract_match = re.search(
+        r"^> \[!abstract\].*?\n((?:>.*\n?)*)", content, re.MULTILINE | re.IGNORECASE
+    )
+    if not abstract_match:
+        return []
+
+    abstract_text = abstract_match.group(1)
+
+    # 2. Extract tags from the block
+    # Pattern for hierarchical tags: #Prefix/Component...
+    # We look for # followed by letters/digits and /
+    tags = re.findall(r"#[a-zA-Z0-9][a-zA-Z0-9/-]*", abstract_text)
+    return sorted(list(set(tags)))
