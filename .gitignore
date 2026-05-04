@@ -219,3 +219,8 @@ frequency.txt
 NATO_NPG_pdf/
 .DS_Store
 NATO_NPG_metadata.v0/
+
+# Generated data
+*.xlsx
+*.freq.txt
+
