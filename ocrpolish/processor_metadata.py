@@ -1,6 +1,7 @@
 import logging
 import re
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from ocrpolish.utils.metadata import (
     flatten_metadata,
     format_as_callout,
     format_hierarchical_tag,
+    generate_citation_callout,
     normalize_obsidian_tags,
     parse_frontmatter,
     stringify_frontmatter,
@@ -321,6 +323,18 @@ class MetadataProcessor:
                 new_content = frontmatter_str + "\n" + body_prefix + original_body
             else:
                 new_content = frontmatter_str + body_prefix + original_body
+
+            # Append citation callout at the end
+            combined_raw["url_date"] = date.today().strftime("%Y-%m-%d")
+            citation_callout = generate_citation_callout(combined_raw)
+            
+            if not new_content.endswith("\n\n"):
+                if not new_content.endswith("\n"):
+                    new_content += "\n\n"
+                else:
+                    new_content += "\n"
+                    
+            new_content += citation_callout
 
             # Ensure output is .md (Task T010)
             output_file = output_file.with_suffix(".md")

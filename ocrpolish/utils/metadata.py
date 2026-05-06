@@ -1,5 +1,6 @@
 import re
 from collections import Counter
+from datetime import datetime
 from typing import Any
 
 import yaml  # type: ignore
@@ -203,3 +204,150 @@ def extract_abstract_tags(content: str) -> list[str]:
     # We look for # followed by letters/digits and /
     tags = re.findall(r"#[a-zA-Z0-9][a-zA-Z0-9/-]*", abstract_text)
     return sorted(list(set(tags)))
+
+
+def _parse_author(author_name: str) -> tuple[str, str, str]:
+    if not author_name:
+        return "[Unknown Author]", "[Unknown]", "[U.]"
+    parts = author_name.strip().split()
+    if len(parts) == 1:
+        return parts[0], "", f"{parts[0][0]}." if parts[0] else ""
+    first = " ".join(parts[:-1])
+    last = parts[-1]
+    initials = " ".join(f"{p[0]}." for p in parts[:-1])
+    return first, last, initials
+
+
+def _parse_date(date_str: str) -> tuple[str, str, str, str]:
+    if not date_str:
+        return "n.d.", "n.d.", "", ""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        return dt.strftime("%Y/%m/%d"), str(dt.year), dt.strftime("%B"), str(dt.day)
+    except ValueError:
+        try:
+            dt = datetime.strptime(date_str, "%Y")
+            return f"{dt.year}/01/01", str(dt.year), "January", "01"
+        except ValueError:
+            return date_str, date_str, "", ""
+
+
+def format_chicago_citation(data: dict[str, Any]) -> str:
+    """Formats metadata into Chicago citation style."""
+    first, last, _ = _parse_author(data.get("author_name", ""))
+    date_chicago, _, _, _ = _parse_date(data.get("date", ""))
+    
+    author_str = f"{first}, {last}" if last else first
+    title = data.get("title", "Untitled")
+    inst = data.get("author_institution", "")
+    code = data.get("archive_code", "")
+    platform = data.get("platform_name", "NATO Archive Obsidian")
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    urldate = data.get("url_date", "")
+
+    main_part = f"{author_str}, “{title},” {date_chicago}"
+    
+    parts = []
+    if inst:
+        parts.append(inst)
+    if code:
+        parts.append(code)
+    parts.append(platform)
+    if url:
+        parts.append(url)
+    if urldate:
+        parts.append(urldate)
+    
+    if parts:
+        return main_part + ", " + ", ".join(parts) + "."
+    return main_part + "."
+
+
+def format_harvard_citation(data: dict[str, Any]) -> str:
+    """Formats metadata into Harvard citation style."""
+    first, last, initials = _parse_author(data.get("author_name", ""))
+    _, year, _, _ = _parse_date(data.get("date", ""))
+    
+    author_str = f"{last}, {initials}" if last else first
+    title = data.get("title", "Untitled")
+    inst = data.get("author_institution", "")
+    code = data.get("archive_code", "")
+    platform = data.get("platform_name", "NATO Archive Obsidian")
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    urldate = data.get("url_date", "")
+
+    main_part = f"{author_str} ({year}). “{title},”"
+    
+    parts = []
+    if inst:
+        parts.append(inst)
+    if code:
+        parts.append(code)
+    parts.append(platform)
+    if url:
+        parts.append(url)
+    if urldate:
+        parts.append(urldate)
+    
+    if parts:
+        return main_part + " " + ", ".join(parts) + "."
+    return main_part
+
+
+def format_bibtex_citation(data: dict[str, Any]) -> str:
+    """Formats metadata into BibTeX citation style."""
+    first, last, _ = _parse_author(data.get("author_name", ""))
+    _, year, month, day = _parse_date(data.get("date", ""))
+    
+    author_str = f"{last}, {first}" if last else first
+    title = data.get("title", "Untitled")
+    inst = data.get("author_institution", "")
+    code = data.get("archive_code", "")
+    platform = data.get("platform_name", "NATO Archive Obsidian")
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    urldate = data.get("url_date", "")
+
+    note_parts = [p for p in [inst, code, platform] if p]
+    note = ", ".join(note_parts)
+
+    lines = [f"@misc{{{code},"]
+    lines.append(f"  author = {{{author_str}}},")
+    lines.append(f"  title = {{{title}}},")
+    if year:
+        lines.append(f"  year = {{{year}}},")
+    if month:
+        lines.append(f"  month = {{{month}}},")
+    if day:
+        lines.append(f"  day = {{{day}}},")
+    if note:
+        lines.append(f"  note = {{{note}}},")
+    if url:
+        lines.append(f"  url = {{{url}}},")
+    if urldate:
+        lines.append(f"  urldate = {{{urldate}}}")
+    
+    return "\n".join(lines) + "\n}"
+
+
+def generate_citation_callout(data: dict[str, Any]) -> str:
+    """Generates the full Obsidian callout with all citation styles."""
+    chicago = format_chicago_citation(data)
+    harvard = format_harvard_citation(data)
+    bibtex = format_bibtex_citation(data)
+
+    callout_content = (
+        "**Chicago**:\n"
+        "```\n"
+        f"{chicago}\n"
+        "```\n\n"
+        "**Harvard**:\n"
+        "```\n"
+        f"{harvard}\n"
+        "```\n\n"
+        "**BibTeX**:\n"
+        "```\n"
+        f"{bibtex}\n"
+        "```"
+    )
+
+    return format_as_callout(callout_content, title="", callout_type="citing this document")
