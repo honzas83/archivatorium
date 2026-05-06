@@ -10,6 +10,7 @@ from ocrpolish.services.indexing_service import IndexingService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.topics_service import TopicExtractor
 from ocrpolish.utils.logging import setup_logging
+from ocrpolish.utils.metadata import mirror_file
 
 
 @click.group()
@@ -172,22 +173,33 @@ def metadata(  # noqa: PLR0913
         overwrite=overwrite, 
         vault_root=vault_root, 
         pdf_dir=pdf_dir,
-        topic_extractor=topic_extractor
+        topic_extractor=topic_extractor,
+        input_dir=input_dir
     )
 
-    files = sorted(processor.get_files(input_dir, recursive=recursive))
+    files = sorted(processor.get_files(input_dir, recursive=recursive, all_files=True))
     if not files:
-        click.echo("No markdown files found to process.")
+        click.echo("No files found to process.")
         return
 
-    with click.progressbar(files, label="Extracting metadata") as bar:
+    with click.progressbar(files, label="Processing files") as bar:
         for input_file in bar:
             relative_path = input_file.relative_to(input_dir)
             output_file = output_dir / relative_path
 
-            # TODO: Handle dry-run in processor if needed
             try:
-                processor.process_file(input_file, output_file)
+                is_md = input_file.suffix.lower() == ".md"
+                is_filtered = input_file.name.endswith(".filtered.md")
+                is_pdf = input_file.suffix.lower() == ".pdf"
+
+                if is_md and not is_filtered:
+                    processor.process_file(input_file, output_file)
+                elif is_pdf:
+                    # Place PDFs in a 'pdf' subdirectory
+                    pdf_output_file = output_file.parent / "pdf" / output_file.name
+                    mirror_file(input_file, pdf_output_file)
+                else:
+                    mirror_file(input_file, output_file)
             except Exception as e:
                 click.echo(f"\nError processing {relative_path}: {e}", err=True)
 

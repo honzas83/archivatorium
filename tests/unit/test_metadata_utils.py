@@ -6,7 +6,17 @@ from ocrpolish.utils.metadata import (
     parse_frontmatter,
     prepend_frontmatter,
     stringify_frontmatter,
+    safe_read_text,
+    safe_identifier,
 )
+
+
+def test_safe_identifier() -> None:
+    assert safe_identifier("NPG(SG)N(68)1") == "NPG-SG-N-68-1"
+    assert safe_identifier("AC/137-D/498") == "AC-137-D-498"
+    assert safe_identifier("Safe:Key_123-") == "Safe:Key_123"
+    assert safe_identifier("Unsafe!@#$%^&*()") == "Unsafe"
+    assert safe_identifier("") == "unknown"
 
 
 def test_format_hierarchical_tag() -> None:
@@ -93,3 +103,25 @@ def test_normalize_obsidian_tags() -> None:
     tags = ["#NATO", " #Security ", "Deep State", "#Cold War", "1968", "2025"]
     expected = ["NATO", "Security", "DeepState", "ColdWar", "Year1968", "Year2025"]
     assert normalize_obsidian_tags(tags) == expected
+
+
+def test_safe_read_text_with_invalid_utf8(tmp_path):
+    # Create a file with invalid UTF-8 bytes
+    # \xff is not a valid UTF-8 start byte
+    file_path = tmp_path / "invalid.txt"
+    with open(file_path, "wb") as f:
+        f.write(b"Hello \xff World")
+    
+    # safe_read_text should not crash and should replace \xff with \ufffd
+    content = safe_read_text(file_path)
+    assert "Hello" in content
+    assert "World" in content
+    assert "\ufffd" in content
+
+
+def test_safe_read_text_normal(tmp_path):
+    file_path = tmp_path / "normal.txt"
+    file_path.write_text("Standard content", encoding="utf-8")
+    
+    content = safe_read_text(file_path)
+    assert content == "Standard content"

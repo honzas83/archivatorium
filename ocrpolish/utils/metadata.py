@@ -1,6 +1,9 @@
+import os
 import re
+import shutil
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore
@@ -242,7 +245,9 @@ def format_chicago_citation(data: dict[str, Any]) -> str:
     inst = data.get("author_institution", "")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    
+    safe_id = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str}, “{title},” {date_chicago}"
@@ -273,7 +278,9 @@ def format_harvard_citation(data: dict[str, Any]) -> str:
     inst = data.get("author_institution", "")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    
+    safe_id = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str} ({year}). “{title},”"
@@ -294,6 +301,19 @@ def format_harvard_citation(data: dict[str, Any]) -> str:
     return main_part
 
 
+def safe_identifier(key: str) -> str:
+    """
+    Normalizes a key for BibTeX and URLs by replacing unsafe characters with hyphens.
+    Safe characters: a-z, A-Z, 0-9, -, _, :
+    """
+    if not key:
+        return "unknown"
+    # Replace anything not a-z, A-Z, 0-9, -, _, : with a hyphen
+    safe_key = re.sub(r"[^a-zA-Z0-9\-_:]", "-", key)
+    # Collapse multiple hyphens and strip from ends
+    return re.sub(r"-+", "-", safe_key).strip("-")
+
+
 def format_bibtex_citation(data: dict[str, Any]) -> str:
     """Formats metadata into BibTeX citation style."""
     first, last, _ = _parse_author(data.get("author_name", ""))
@@ -304,13 +324,16 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
     inst = data.get("author_institution", "")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{code}")
+    
+    safe_id = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
 
     note_parts = [p for p in [inst, code, platform] if p]
     note = ", ".join(note_parts)
 
-    lines = [f"@misc{{{code},"]
+    safe_id = safe_identifier(code)
+    lines = [f"@misc{{{safe_id},"]
     lines.append(f"  author = {{{author_str}}},")
     lines.append(f"  title = {{{title}}},")
     if year:
@@ -351,3 +374,18 @@ def generate_citation_callout(data: dict[str, Any]) -> str:
     )
 
     return format_as_callout(callout_content, title="", callout_type="citing this document")
+
+
+def safe_read_text(path: Path) -> str:
+    """Reads text from a file with UTF-8 encoding and error replacement."""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def mirror_file(src: Path, dst: Path) -> None:
+    """Mirrors a file from src to dst using hardlinks if possible, else copying."""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(src, dst)
+    except (OSError, FileExistsError):
+        # Fallback to copy if hardlink fails or target already exists
+        shutil.copy2(src, dst)

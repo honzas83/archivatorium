@@ -14,8 +14,10 @@ from ocrpolish.utils.metadata import (
     format_as_callout,
     format_hierarchical_tag,
     generate_citation_callout,
+    mirror_file,
     normalize_obsidian_tags,
     parse_frontmatter,
+    safe_read_text,
     stringify_frontmatter,
 )
 
@@ -35,6 +37,7 @@ class MetadataProcessor:
         vault_root: Path | None = None,
         pdf_dir: Path | None = None,
         topic_extractor: TopicExtractor | None = None,
+        input_dir: Path | None = None,
     ):
         self.client = ollama_client
         self.output_dir = output_dir
@@ -42,11 +45,18 @@ class MetadataProcessor:
         self.vault_root = vault_root
         self.pdf_dir = pdf_dir
         self.topic_extractor = topic_extractor
+        self.input_dir = input_dir
         self.tag_counts: Counter[str] = Counter()
 
     def _get_pdf_link(self, input_file: Path) -> str:
         """Calculates the Obsidian-style link to the source PDF."""
         pdf_filename = f"{input_file.stem}.pdf"
+
+        # If we are mirroring (indicated by input_dir being set),
+        # we assume PDFs are in a 'pdf/' subdirectory relative to the MD.
+        if self.input_dir:
+            return f"[[pdf/{pdf_filename}]]"
+
         if not self.vault_root:
             return f"[[{pdf_filename}]]"
 
@@ -130,7 +140,7 @@ class MetadataProcessor:
             return False
 
         try:
-            content = input_file.read_text(encoding="utf-8")
+            content = safe_read_text(input_file)
 
             # 1. Separate existing frontmatter from body
             existing_metadata, original_body = parse_frontmatter(content)
@@ -345,25 +355,42 @@ class MetadataProcessor:
             logger.error(f"Error processing {input_file}: {e}")
             return False
 
-    def get_files(self, input_dir: Path, recursive: bool = True) -> list[Path]:
+    def get_files(
+        self, input_dir: Path, recursive: bool = True, all_files: bool = False
+    ) -> list[Path]:
         """
-        Returns a list of all .md files to be processed, excluding sidecar .filtered.md files.
+        Returns a list of files to be processed.
+        If all_files is True, returns all files for mirroring.
+        Otherwise returns only .md files, excluding sidecar .filtered.md files.
         """
+        if all_files:
+            pattern = "**/*" if recursive else "*"
+            return [f for f in input_dir.glob(pattern) if f.is_file()]
+
         pattern = "**/*.md" if recursive else "*.md"
-        all_files = input_dir.glob(pattern)
-        return [f for f in all_files if not f.name.endswith(".filtered.md")]
+        all_files_list = input_dir.glob(pattern)
+        return [f for f in all_files_list if not f.name.endswith(".filtered.md")]
 
     def process_directory(self, input_dir: Path, recursive: bool = True) -> None:
         """
-        Traverses directory and processes all .md files in alphabetical order.
+        Traverses directory and processes all files.
+        Markdown files are enriched, others are mirrored via hardlink.
         """
-        files = sorted(self.get_files(input_dir, recursive))
-        logger.info(f"Found {len(files)} markdown files in {input_dir}")
+        files = sorted(self.get_files(input_dir, recursive, all_files=True))
+        logger.info(f"Found {len(files)} files to process in {input_dir}")
 
         for input_file in files:
             relative_path = input_file.relative_to(input_dir)
             output_file = self.output_dir / relative_path
 
-            # Get 50 most frequent tags
-            frequent_tags = [tag for tag, _ in self.tag_counts.most_common(50)]
-            self.process_file(input_file, output_file, frequent_tags)
+            if input_file.suffix.lower() == ".md" and not input_file.name.endswith(".filtered.md"):
+                # Get 50 most frequent tags
+                frequent_tags = [tag for tag, _ in self.tag_counts.most_common(50)]
+                self.process_file(input_file, output_file, frequent_tags)
+            elif input_file.suffix.lower() == ".pdf":
+                # Mirror PDFs to 'pdf' subdirectory
+                pdf_output_file = output_file.parent / "pdf" / output_file.name
+                mirror_file(input_file, pdf_output_file)
+            else:
+                # Mirror other non-markdown files (or filtered md files)
+                mirror_file(input_file, output_file)

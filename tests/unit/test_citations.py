@@ -19,29 +19,29 @@ def sample_metadata() -> dict[str, str]:
         "url_date": "2026-05-06",
         # Default placeholder parameters
         "platform_name": "NATO Archive Obsidian",
-        "url": "https://nato-obsidian.kky.zcu.cz/NPG(SG)N(68)1"
+        "url": "https://nato-obsidian.kky.zcu.cz/NPG-SG-N-68-1"
     }
 
 def test_format_chicago_citation(sample_metadata: dict[str, str]) -> None:
-    expected = "John, Doe, “NATO Defense Strategy 1968,” 1968/05/12, NATO Headquarters, NPG(SG)N(68)1, NATO Archive Obsidian, https://nato-obsidian.kky.zcu.cz/NPG(SG)N(68)1, 2026-05-06."  # noqa: E501
+    expected = "John, Doe, “NATO Defense Strategy 1968,” 1968/05/12, NATO Headquarters, NPG(SG)N(68)1, NATO Archive Obsidian, https://nato-obsidian.kky.zcu.cz/NPG-SG-N-68-1, 2026-05-06."  # noqa: E501
     result = format_chicago_citation(sample_metadata)
     assert result == expected
 
 def test_format_harvard_citation(sample_metadata: dict[str, str]) -> None:
-    expected = "Doe, J. (1968). “NATO Defense Strategy 1968,” NATO Headquarters, NPG(SG)N(68)1, NATO Archive Obsidian, https://nato-obsidian.kky.zcu.cz/NPG(SG)N(68)1, 2026-05-06."  # noqa: E501
+    expected = "Doe, J. (1968). “NATO Defense Strategy 1968,” NATO Headquarters, NPG(SG)N(68)1, NATO Archive Obsidian, https://nato-obsidian.kky.zcu.cz/NPG-SG-N-68-1, 2026-05-06."  # noqa: E501
     result = format_harvard_citation(sample_metadata)
     assert result == expected
 
 def test_format_bibtex_citation(sample_metadata: dict[str, str]) -> None:
     expected = (
-        "@misc{NPG(SG)N(68)1,\n"
+        "@misc{NPG-SG-N-68-1,\n"
         "  author = {Doe, John},\n"
         "  title = {NATO Defense Strategy 1968},\n"
         "  year = {1968},\n"
         "  month = {May},\n"
         "  day = {12},\n"
         "  note = {NATO Headquarters, NPG(SG)N(68)1, NATO Archive Obsidian},\n"
-        "  url = {https://nato-obsidian.kky.zcu.cz/NPG(SG)N(68)1},\n"
+        "  url = {https://nato-obsidian.kky.zcu.cz/NPG-SG-N-68-1},\n"
         "  urldate = {2026-05-06}\n"
         "}"
     )
@@ -56,7 +56,7 @@ def test_generate_citation_callout(sample_metadata: dict[str, str]) -> None:
     assert "> **BibTeX**:" in callout
     assert "John, Doe" in callout
     assert "Doe, J. (1968)" in callout
-    assert "@misc{NPG(SG)N(68)1" in callout
+    assert "@misc{NPG-SG-N-68-1" in callout
 
 
 def test_default_platform_and_url_placeholders() -> None:
