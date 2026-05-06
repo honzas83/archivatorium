@@ -398,9 +398,22 @@ def safe_read_text(path: Path) -> str:
 
 def mirror_file(src: Path, dst: Path) -> None:
     """Mirrors a file from src to dst using hardlinks if possible, else copying."""
+    if not src.exists():
+        return
+
     dst.parent.mkdir(parents=True, exist_ok=True)
+
+    if dst.exists():
+        try:
+            if os.path.samefile(src, dst):
+                return
+        except OSError:
+            pass
+
     try:
         os.link(src, dst)
     except (OSError, FileExistsError):
         # Fallback to copy if hardlink fails or target already exists
+        # shutil.copy2 handles SameFileError internally in newer Python versions
+        # but we check explicitly above to be safe and avoid unnecessary work
         shutil.copy2(src, dst)
