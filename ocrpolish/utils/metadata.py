@@ -209,9 +209,9 @@ def extract_abstract_tags(content: str) -> list[str]:
     return sorted(list(set(tags)))
 
 
-def _parse_author(author_name: str) -> tuple[str, str, str]:
+def _parse_author(author_name: str) -> tuple[str, str, str] | None:
     if not author_name:
-        return "[Unknown Author]", "[Unknown]", "[U.]"
+        return None
     parts = author_name.strip().split()
     if len(parts) == 1:
         return parts[0], "", f"{parts[0][0]}." if parts[0] else ""
@@ -237,21 +237,26 @@ def _parse_date(date_str: str) -> tuple[str, str, str, str]:
 
 def format_chicago_citation(data: dict[str, Any]) -> str:
     """Formats metadata into Chicago citation style."""
-    first, last, _ = _parse_author(data.get("author_name", ""))
+    author_info = _parse_author(data.get("author_name", ""))
     date_chicago, _, _, _ = _parse_date(data.get("date", ""))
-    
-    author_str = f"{first}, {last}" if last else first
-    title = data.get("title", "Untitled")
+
     inst = data.get("author_institution", "")
+    if author_info:
+        first, last, _ = author_info
+        author_str = f"{first}, {last}" if last else first
+    else:
+        author_str = inst or "[Unknown Author]"
+
+    title = data.get("title", "Untitled")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    
+
     safe_id = safe_identifier(code)
     url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str}, “{title},” {date_chicago}"
-    
+
     parts = []
     if inst:
         parts.append(inst)
@@ -262,7 +267,7 @@ def format_chicago_citation(data: dict[str, Any]) -> str:
         parts.append(url)
     if urldate:
         parts.append(urldate)
-    
+
     if parts:
         return main_part + ", " + ", ".join(parts) + "."
     return main_part + "."
@@ -270,21 +275,26 @@ def format_chicago_citation(data: dict[str, Any]) -> str:
 
 def format_harvard_citation(data: dict[str, Any]) -> str:
     """Formats metadata into Harvard citation style."""
-    first, last, initials = _parse_author(data.get("author_name", ""))
+    author_info = _parse_author(data.get("author_name", ""))
     _, year, _, _ = _parse_date(data.get("date", ""))
-    
-    author_str = f"{last}, {initials}" if last else first
-    title = data.get("title", "Untitled")
+
     inst = data.get("author_institution", "")
+    if author_info:
+        _, last, initials = author_info
+        author_str = f"{last}, {initials}" if last else author_info[0]
+    else:
+        author_str = inst or "[Unknown Author]"
+
+    title = data.get("title", "Untitled")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    
+
     safe_id = safe_identifier(code)
     url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str} ({year}). “{title},”"
-    
+
     parts = []
     if inst:
         parts.append(inst)
@@ -295,7 +305,7 @@ def format_harvard_citation(data: dict[str, Any]) -> str:
         parts.append(url)
     if urldate:
         parts.append(urldate)
-    
+
     if parts:
         return main_part + " " + ", ".join(parts) + "."
     return main_part
@@ -316,15 +326,20 @@ def safe_identifier(key: str) -> str:
 
 def format_bibtex_citation(data: dict[str, Any]) -> str:
     """Formats metadata into BibTeX citation style."""
-    first, last, _ = _parse_author(data.get("author_name", ""))
+    author_info = _parse_author(data.get("author_name", ""))
     _, year, month, day = _parse_date(data.get("date", ""))
-    
-    author_str = f"{last}, {first}" if last else first
-    title = data.get("title", "Untitled")
+
     inst = data.get("author_institution", "")
+    if author_info:
+        first, last, _ = author_info
+        author_str = f"{last}, {first}" if last else first
+    else:
+        author_str = inst or "[Unknown Author]"
+
+    title = data.get("title", "Untitled")
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
-    
+
     safe_id = safe_identifier(code)
     url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
     urldate = data.get("url_date", "")
@@ -348,7 +363,7 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
         lines.append(f"  url = {{{url}}},")
     if urldate:
         lines.append(f"  urldate = {{{urldate}}}")
-    
+
     return "\n".join(lines) + "\n}"
 
 

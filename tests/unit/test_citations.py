@@ -75,3 +75,24 @@ def test_default_platform_and_url_placeholders() -> None:
     bibtex = format_bibtex_citation(metadata)
     assert "NATO Archive Obsidian" in bibtex
     assert "https://nato-obsidian.kky.zcu.cz/TEST-123" in bibtex
+
+
+def test_author_fallback_to_institution() -> None:
+    metadata = {
+        "author_name": "",
+        "author_institution": "Nuclear Planning Group",
+        "title": "Corrigendum to Document NPG/D(73)12",
+        "date": "1975-10-24",
+        "archive_code": "NPG/D(73)12-COR1",
+        "url_date": "2026-05-06"
+    }
+    
+    chicago = format_chicago_citation(metadata)
+    # Should start with institution name
+    assert chicago.startswith("Nuclear Planning Group, “Corrigendum to Document NPG/D(73)12,”")
+    
+    harvard = format_harvard_citation(metadata)
+    assert harvard.startswith("Nuclear Planning Group (1975). “Corrigendum to Document NPG/D(73)12,”")
+    
+    bibtex = format_bibtex_citation(metadata)
+    assert "author = {Nuclear Planning Group}" in bibtex
