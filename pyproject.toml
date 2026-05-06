@@ -13,6 +13,12 @@ dependencies = [
     "XlsxWriter",
 ]
 
+[project.scripts]
+ocrpolish = "ocrpolish.cli:main"
+
+[tool.setuptools]
+packages = ["ocrpolish"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
