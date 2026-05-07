@@ -94,7 +94,7 @@ def test_obsidian_metadata_entities(tmp_path: Path) -> None:
         assert "mentioned_cities" not in metadata
         
         # Present in body callout
-        assert "## Mentioned Entities" in body
+        assert "## Entities" in body
         assert "- #State/United-Kingdom" in body
         assert "- #State/United-States" in body
         assert "- #Org/NATO" in body

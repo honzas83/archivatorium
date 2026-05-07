@@ -273,7 +273,7 @@ class MetadataProcessor:
 
             # Step 2: Precision Tagging Pass
             topic_list_items = []
-            entity_list_items = []
+            entity_tags = []
             tag_list_items = []
 
             if self.tagging_service:
@@ -285,10 +285,7 @@ class MetadataProcessor:
                         topic_list_items.append(f"- {tag_prefix} — {norm_reason}")
 
                 if tagging_result.entity_tags:
-                    entity_list_items = [
-                        f"- #{t}" if not t.startswith("#") else f"- {t}"
-                        for t in tagging_result.entity_tags
-                    ]
+                    entity_tags = tagging_result.entity_tags
                 if tagging_result.conceptual_tags:
                     tag_list_items = [
                         f"#{t}" if not t.startswith("#") else t
@@ -299,24 +296,41 @@ class MetadataProcessor:
                 state_fallback = states_list[0] if states_list else "Unknown"
                 default_state = metadata_dict.get("location_state") or state_fallback
                 for s in states_list:
-                    entity_list_items.append(f"- {format_hierarchical_tag('State', s)}")
+                    entity_tags.append(format_hierarchical_tag("State", s))
                 for o in orgs_list:
-                    entity_list_items.append(f"- {format_hierarchical_tag('Org', o)}")
+                    entity_tags.append(format_hierarchical_tag("Org", o))
                 for c_item in cities_list:
                     if "," in c_item:
                         city, state = [part.strip() for part in c_item.split(",", 1)]
                     else:
                         city = c_item
                         state = default_state
-                    entity_list_items.append(
-                        f"- {format_hierarchical_tag('City', state, city)}"
-                    )
+                    entity_tags.append(format_hierarchical_tag("City", state, city))
 
                 flat_tags = metadata_dict.get("tags", [])
                 if flat_tags:
                     tag_list_items = [
                         f"#{t}" if not t.startswith("#") else t for t in flat_tags
                     ]
+            
+            # Group entities by type for the callout
+            entity_section_body = ""
+            if entity_tags:
+                grouped_entities = {}
+                for t in sorted(entity_tags):
+                    tag = f"#{t}" if not t.startswith("#") else t
+                    # Extract type: #Type/Name -> Type
+                    parts = tag.lstrip("#").split("/", 1)
+                    etype = parts[0] if len(parts) > 1 else "Other"
+                    if etype not in grouped_entities:
+                        grouped_entities[etype] = []
+                    grouped_entities[etype].append(f"- {tag}")
+                
+                # Sort group keys and join with empty line
+                entity_groups = []
+                for etype in sorted(grouped_entities.keys()):
+                    entity_groups.append("\n".join(grouped_entities[etype]))
+                entity_section_body = "\n\n".join(entity_groups)
             
             # US3: Remove tags from frontmatter property
             metadata_dict.pop("tags", [])
@@ -331,7 +345,7 @@ class MetadataProcessor:
 
             # Build the callout block with dedicated sections for topics and tags
             body_prefix = ""
-            if title or abstract or topic_list_items or tag_list_items or entity_list_items:
+            if title or abstract or topic_list_items or tag_list_items or entity_section_body:
                 sections = []
                 if title:
                     sections.append(f"# {title}")
@@ -342,8 +356,8 @@ class MetadataProcessor:
                     topic_section = "## Categories/Topics\n\n" + "\n".join(topic_list_items)
                     sections.append(topic_section)
 
-                if entity_list_items:
-                    entity_section = "## Mentioned Entities\n\n" + "\n".join(entity_list_items)
+                if entity_section_body:
+                    entity_section = "## Entities\n\n" + entity_section_body
                     sections.append(entity_section)
                 
                 if tag_list_items:

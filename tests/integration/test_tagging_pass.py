@@ -64,7 +64,7 @@ def test_two_pass_tagging_output(tmp_path, mock_ollama, mock_tagging_service):
     assert "## Categories/Topics" in content
     assert "- #Category/Military/Training — Training exercises mentioned" in content
 
-    assert "## Mentioned Entities" in content
+    assert "## Entities" in content
     assert "- #State/UK" in content
     assert "- #Org/NATO" in content
     

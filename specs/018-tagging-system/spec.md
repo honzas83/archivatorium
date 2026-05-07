@@ -105,7 +105,7 @@ As a system, I want to ensure conceptual tags do not duplicate information alrea
         1. `# Title`
         2. `Abstract text`
         3. `## Categories/Topics` (Bullet list: `- #[Topic] — [Reason]`)
-        4. `## Mentioned Entities` (Bullet list: `- #[Entity]`)
+        4. `## Entities` (Grouped by type, each group separated by an empty line)
         5. `## Tags` (Flat list of hashtags)
 
 - **FR-009: Entity Context (Feedback Loop)**:
