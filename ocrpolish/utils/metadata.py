@@ -336,7 +336,7 @@ def format_metadata_table(metadata: dict[str, Any]) -> str:
         ("≡&nbsp;author_institution:", metadata.get("author_institution", "")),
         ("🗓&nbsp;**date**:", metadata.get("date", "")),
         ("≡&nbsp;archive_code:", metadata.get("archive_code", "")),
-        ("≡&nbsp;language:", metadata.get("language", "")),
+        ("≡&nbsp;**language**:", metadata.get("language", "")),
         ("≡&nbsp;location_city:", metadata.get("location_city", "")),
         ("≡&nbsp;location_state:", metadata.get("location_state", "")),
         ("☰&nbsp;references:", metadata.get("references", "")),
