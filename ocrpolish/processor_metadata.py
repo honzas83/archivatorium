@@ -192,9 +192,13 @@ class MetadataProcessor:
                 f"Source Filename: {input_file.name}\n\n"
                 f"Document Content (First Part):\n\n{first_chunk}\n\n"
                 "Please extract metadata following these strict rules:\n"
-                "1. 'title' must be extracted carefully. It is usually on the first page, "
-                "but could also be part of the second page. The title should make sense "
-                "in the context of the summary and abstract.\n"
+                "1. 'title' must be extracted carefully in its ORIGINAL LANGUAGE. "
+                "DO NOT use ALL UPPERCASE even if the source text does. You MUST use natural "
+                "casing appropriate for the language: for English titles, use Title Case "
+                "(e.g., 'Summary Record of a Meeting'); for French titles, use Sentence case "
+                "(e.g., 'Compte rendu sommaire d'une réunion'). It is usually on the first "
+                "page, but could also be part of the second page. The title should make "
+                "sense in the context of the summary and abstract.\n"
                 "2. 'summary' must be exactly one sentence. It must be an independent entity.\n"
                 "3. 'abstract' must be a detailed overview, limited to at most 20 sentences. "
                 "It must be a superset of the summary.\n"
@@ -207,8 +211,8 @@ class MetadataProcessor:
                 "9. If the document is a letter, describe 'sender', 'recipient', "
                 "and 'intent' (the specific action/request).\n"
                 "10. 'references' should contain a list of any other reference codes.\n"
-                "11. IMPORTANT: Use English for all metadata values, regardless of "
-                "the source language.\n"
+                "11. IMPORTANT: Use English for all metadata values EXCEPT 'title', "
+                "which must remain in the original language.\n"
                 "12. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
                 "Preserve uppercase for acronyms.\n"
                 "13. Ensure 'location_state' is filled if 'location_city' is identified.\n"
@@ -446,27 +450,29 @@ class MetadataProcessor:
             return False
 
     def get_files(
-        self, input_dir: Path, recursive: bool = True, all_files: bool = False
+        self, input_dir: Path, mask: str = "*.md", recursive: bool = True, all_files: bool = False
     ) -> list[Path]:
         """
         Returns a list of files to be processed.
         If all_files is True, returns all files for mirroring.
-        Otherwise returns only .md files, excluding sidecar .filtered.md files.
+        Otherwise returns only files matching the mask, excluding sidecar .filtered.md files.
         """
         if all_files:
             pattern = "**/*" if recursive else "*"
             return [f for f in input_dir.glob(pattern) if f.is_file()]
 
-        pattern = "**/*.md" if recursive else "*.md"
+        pattern = f"**/{mask}" if recursive else mask
         all_files_list = input_dir.glob(pattern)
         return [f for f in all_files_list if not f.name.endswith(".filtered.md")]
 
-    def process_directory(self, input_dir: Path, recursive: bool = True) -> None:
+    def process_directory(
+        self, input_dir: Path, mask: str = "*.md", recursive: bool = True
+    ) -> None:
         """
         Traverses directory and processes all files.
         Markdown files are enriched, others are mirrored via hardlink.
         """
-        files = sorted(self.get_files(input_dir, recursive, all_files=True))
+        files = sorted(self.get_files(input_dir, mask=mask, recursive=recursive, all_files=True))
         logger.info(f"Found {len(files)} files to process in {input_dir}")
 
         for input_file in files:

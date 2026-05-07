@@ -13,9 +13,11 @@ class MetadataSchema(BaseModel):
     title: str = Field(
         "",
         description=(
-            "The formal title of the document. Extract it carefully, looking at the first "
-            "two pages if necessary (e.g., in correspondence). The title must be "
-            "contextually consistent with the summary and abstract."
+            "The formal title of the document. MANDATORY: Extract it in its ORIGINAL LANGUAGE. "
+            "DO NOT use ALL UPPERCASE. Use natural casing appropriate for the language: "
+            "for English, you MUST use Title Case (e.g., 'Meeting of the Planning Group'); "
+            "for French, you MUST use Sentence case (e.g., 'Réunion du groupe'). "
+            "Extract carefully from first two pages."
         ),
     )
     summary: str = Field(

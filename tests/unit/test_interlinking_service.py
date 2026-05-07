@@ -38,6 +38,41 @@ def test_resolve_link_priority():
     # Missing code
     assert service.resolve_link("MISSING", "English") is None
 
+def test_discover_filenames_only(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    subdir = vault / "subdir"
+    subdir.mkdir()
+    
+    doc = subdir / "doc.md"
+    doc.write_text("""---
+archive_code: CODE1
+language: English
+---
+""", encoding="utf-8")
+    
+    service = InterlinkingService(vault)
+    service.discover()
+    
+    # Should contain filename, not relative path
+    assert service.code_map["CODE1"]["English"] == "doc.md"
+
+def test_interlink_body_protection():
+    service = InterlinkingService(Path("/tmp"))
+    service.code_map = {"CODE1": {"English": "doc1.md"}}
+    
+    content = """
+archive_code: CODE1
+> | ≡&nbsp;archive_code: | CODE1 |
+See CODE1.
+"""
+    # interlink_body should skip lines with 'archive_code:'
+    new_content = service.interlink_body(content, "English")
+    
+    assert "archive_code: CODE1" in new_content
+    assert "≡&nbsp;archive_code: | CODE1 |" in new_content
+    assert "See [CODE1](doc1.md)." in new_content
+
 def test_interlink_metadata():
     service = InterlinkingService(Path("/tmp"))
     service.code_map = {

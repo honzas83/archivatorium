@@ -74,6 +74,7 @@ As a researcher, I want keywords identified in the document to be available as O
 - **FR-006**: System MUST operate on a single-file processing level.
 - FR-007: System MUST handle the flattening of nested structures by joining keys with underscores (e.g., `author_name`).
 - FR-008: System MUST place the PDF attachment link as a property in the YAML frontmatter (e.g., `source: "[[path/to/filename.pdf]]"`).
+- FR-009: System MUST recursively copy ALL files from the `obsidian_template` directory (if it exists) to the output vault root during initialization, excluding system files like `.DS_Store`.
 
 ### Key Entities *(include if feature involves data)*
 

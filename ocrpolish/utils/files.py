@@ -12,25 +12,24 @@ FREQUENCY_THRESHOLD = 5
 
 def initialize_vault_from_template(template_dir: Path, output_dir: Path) -> None:
     """
-    Initializes an Obsidian vault in output_dir by copying configuration
+    Initializes an Obsidian vault in output_dir by copying all
     files from template_dir.
     """
     if not template_dir.exists():
         return
 
-    # Files to copy
-    to_copy = [
-        Path(".obsidian/app.json"),
-        Path(".obsidian/appearance.json"),
-        Path("CONTENT.base"),
-    ]
-
-    for rel_path in to_copy:
-        src = template_dir / rel_path
-        if src.exists():
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    for item in template_dir.rglob("*"):
+        if item.is_file():
+            # Skip common OS junk
+            if item.name == ".DS_Store":
+                continue
+                
+            rel_path = item.relative_to(template_dir)
             dst = output_dir / rel_path
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+            shutil.copy2(item, dst)
 
 
 def scan_files(input_dir: Path, mask: str = "*.md") -> Iterator[Path]:

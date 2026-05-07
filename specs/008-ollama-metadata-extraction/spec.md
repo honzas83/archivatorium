@@ -48,6 +48,11 @@ As a historian, I need the extracted data to be clean, normalized, and accurate 
 - **FR-005**: System MUST accumulate run-wide tag frequency to ensure cross-document consistency.
 - **FR-006**: System MUST normalize casing while preserving specific NATO/archival acronyms.
 - **FR-007**: System MUST process files in strict alphabetical order.
+- **FR-008**: System MUST extract the `title` in its **ORIGINAL LANGUAGE**.
+- **FR-009**: System MUST enforce **natural casing** for titles: **Title Case** for English, **Sentence case** for French. Strictly no ALL UPPERCASE.
+- FR-010: System MUST show a visual progress bar during batch processing.
+- FR-011: System MUST recursively copy ALL files from the `obsidian_template` directory (if it exists) to the output vault root during initialization.
+
 
 ### Non-Functional Requirements
 - **NFR-001**: LLM prompts MUST be optimized for `gemma4:26b` to avoid Status 500 errors (flattened schema, required fields with defaults).

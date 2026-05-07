@@ -20,7 +20,6 @@ Auto-generated from all feature plans. Last updated: 2026-02-12
 - Python 3.12 + `click`, `ollama` (Python library), `pydantic`, `pyyaml` (008-ollama-metadata-extraction)
 - Filesystem (recursive input/output directory mirroring) (008-ollama-metadata-extraction)
 - Python 3.12 + `PyYAML`, `re` (stdlib) (020-obsidian-interlink-vault)
-
 - Python 3.12 + `click` (CLI), `pathlib` (filesystem), `typing` (type hints) (001-ocr-post-processing)
 
 ## Project Structure
@@ -52,8 +51,21 @@ Python 3.12: Follow standard conventions.
     - **Consistency**: Taxonomy categories/topics and useful tags are preprocessed using the same normalization.
 - **Acronym Preservation**: Generic acronyms (all-caps) must be preserved during Title Case conversion.
 - **Two-pass Architecture**: Pass 1 for metadata, Pass 2 for tagging.
+- **Title Extraction**:
+    - **Language**: Titles MUST be extracted in their ORIGINAL LANGUAGE.
+    - **Casing**: Titles MUST use natural casing (English: Title Case, French: Sentence case).
+    - **Prohibition**: Strictly NO ALL UPPERCASE for titles.
+- **Interlinking**:
+    - **Idempotency**: Single-pass regex replacement to avoid link nesting.
+    - **Self-Linking**: Documents MUST NOT link to themselves.
+    - **Flexible Matching**: Archive codes treat `/` and `-` as equivalent separators (OCR mitigation).
+    - **Sync & Sort**: References metadata is synchronized with body occurrences and sorted by order of appearance.
+    - **Formatting**: Use `<br>` as separator for vertical lists in metadata callouts.
+- **Vault Initialization**:
+    - **Template**: System MUST recursively copy ALL files from `obsidian_template` to the output directory (e.g., `index.md`, `.obsidian/` configs).
 
 ## Recent Changes
+- 020-obsidian-interlink-vault: Implemented idempotent interlinking with flexible code matching and reference synchronization.
 - 018-tagging-system: Implemented three-tiered precision tagging (Conceptual, Entity, Topic) using a dynamic two-pass architecture.
 - 008-ollama-metadata-extraction: Added Python 3.12 + `click`, `ollama` (Python library), `pydantic`, `pyyaml`
 - 007-docx-header-footer-enhancement: Added Python 3.12 + `python-docx`, `click`, `re`
@@ -66,6 +78,5 @@ Python 3.12: Follow standard conventions.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-[specs/020-obsidian-interlink-vault/plan.md](specs/020-obsidian-interlink-vault/plan.md)
+shell commands, and other important information, read the current plan
 <!-- SPECKIT END -->
