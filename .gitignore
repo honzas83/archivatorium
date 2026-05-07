@@ -232,3 +232,4 @@ NATO_NPG_source
 *.xlsx
 *.freq.txt
 
+NATO_NPG_*/\nNATO_NPG_*.bak/\nNATO_NPG_*.old/
