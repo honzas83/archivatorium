@@ -67,7 +67,7 @@ As a system, I want to ensure conceptual tags do not duplicate information alrea
 - **FR-002: Output Formats**:
     - **Conceptual Tags**: Flat tags (e.g., `#Tag`). Count is determined by the LLM (suggested limit 15 in prompt, but flexible). MUST include all all-caps abbreviations (e.g., `SACEUR`, `SACLANT`).
     - **Entity Tags**: Hierarchical (e.g., `State/Name`, `Org/Name`, `City/State/City`, `Person/Name`).
-    - **Topic Tags**: Hierarchical (e.g., `Category/CategoryName/TopicName`). Max 5 (prompt-enforced). Each topic MUST include a brief 'reason' for its assignment, which is displayed in the final document callout.
+    - **Topic Tags**: Hierarchical (e.g., `Category/CategoryName/TopicName`). Max 10 (prompt-enforced). Each topic MUST include a brief 'reason' for its assignment, which is displayed in the final document callout.
 
 - **FR-003: Conceptual Tag Inclusion Criteria**:
     - Must represent archivally substantive concepts.
@@ -108,13 +108,14 @@ As a system, I want to ensure conceptual tags do not duplicate information alrea
         4. `## Mentioned Entities` (Bullet list: `- #[Entity]`)
         5. `## Tags` (Flat list of hashtags)
 
+- **FR-009: Entity Context (Feedback Loop)**:
+    - The system MUST maintain counters for mentioned states, organisations, and cities across processed documents.
+    - The top 20 most frequent entities in each category MUST be injected into the tagging prompt for subsequent documents to ensure naming consistency.
+
 ## Success Criteria
 
-- **SC-001**: Tag explosion is controlled (conceptual count is determined by LLM relevance, topics < 5).
+- **SC-001**: Tag explosion is controlled (conceptual count is determined by LLM relevance, topics < 10).
 - **SC-002**: 100% of entity tags follow the `Type/Name` or `City/State/City` hierarchy.
 - **SC-003**: 0% overlap between conceptual tags and entity/topic tags in a sample set.
 - **SC-004**: WINTEX/FALLEX exercises are correctly normalized into the hierarchical year form.
 - **SC-005**: 100% of tags are Obsidian-safe (no spaces or illegal characters).
-ierarchy.
-- **SC-003**: 0% overlap between conceptual tags and entity/topic tags in a sample set.
-- **SC-004**: WINTEX/FALLEX exercises are correctly normalized into the hierarchical year form.

@@ -17,7 +17,7 @@
     "topic_tags": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Hierarchical taxonomy tags (e.g., 'Category/Doctrine and Strategy/Nuclear Deterrence'). Max 5 recommended."
+      "description": "Hierarchical taxonomy tags (e.g., 'Category/Doctrine and Strategy/Nuclear Deterrence'). Max 10 recommended."
     }
   },
   "required": ["conceptual_tags", "entity_tags", "topic_tags"]

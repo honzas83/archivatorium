@@ -7,7 +7,7 @@ This structure represents the raw output from the LLM for a single chunk or the 
 class WindowTaggingResult(BaseModel):
     conceptual_tags: List[str]  # Raw list from LLM
     entity_tags: List[str]      # Hierarchical tags: State/X, Org/X, etc.
-    topic_tags: List[str]       # Hierarchical tags: Category/X/Y
+    topic_tags: List[TopicResult] # Hierarchical tags with reasons
 ```
 
 ## Aggregated Tagging Result (Full Document)
@@ -15,9 +15,9 @@ This structure represents the final, deduplicated, and suppressed result for the
 
 ```python
 class AggregatedTaggingResult(BaseModel):
-    conceptual_tags: List[str]  # Top 10 frequency-weighted, suppressed
+    conceptual_tags: List[str]  # Top 15 frequency-weighted, suppressed
     entity_tags: List[str]      # Set union of all extracted entities
-    topic_tags: List[str]       # Set union of all extracted topics
+    topic_tags: List[TopicResult] # Set union of all extracted topics
 ```
 
 ## Entity Tag Formats

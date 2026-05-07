@@ -119,3 +119,60 @@ def test_process_file_english_consistency(processor: Any, tmp_path: Path) -> Non
     assert metadata["language"] == "English"
     # Tag should use "City" (English) and "France" (English)
     assert "#City/France/Paris" in body
+
+
+def test_process_file_callout_presence_and_normalization(processor: Any, tmp_path: Path) -> None:
+    input_file = tmp_path / "test_callouts.md"
+    input_file.write_text("This is the main body of the document.")
+    output_file = tmp_path / "output_callouts.md"
+
+    # Mock Ollama response
+    mock_metadata = MagicMock()
+    mock_metadata.title = "Callout Test"
+    mock_metadata.summary = "A document testing callouts."
+    mock_metadata.abstract = "This is a detailed abstract."
+    mock_metadata.date = "2026-05-07"
+    mock_metadata.archive_code = "ABC-123"
+    mock_metadata.tags = ["tag1"]
+    mock_metadata.model_dump.return_value = {
+        "title": "Callout Test",
+        "summary": "A document testing callouts.",
+        "abstract": "This is a detailed abstract.",
+        "date": "2026-05-07",
+        "archive_code": "ABC-123",
+        "tags": ["tag1"],
+    }
+    processor.client.extract_structured.return_value = mock_metadata
+    processor._get_pdf_link = MagicMock(return_value="[[test.pdf]]")
+
+    # Mock tagging service
+    mock_tagging_result = MagicMock()
+    mock_topic = MagicMock()
+    mock_topic.topic = "TestTopic"
+    mock_topic.reason = "Justified by 'direct citation' from text."
+    mock_tagging_result.topic_tags = [mock_topic]
+    mock_tagging_result.entity_tags = ["Entity1"]
+    mock_tagging_result.conceptual_tags = ["Concept1"]
+    
+    processor.tagging_service = MagicMock()
+    processor.tagging_service.extract_tags.return_value = mock_tagging_result
+
+    processor.process_file(input_file, output_file)
+
+    content = output_file.read_text()
+    
+    # Check for Metadata callout
+    assert "> [!info] Metadata" in content
+    assert "≡&nbsp;title:" in content
+    
+    # Check for Abstract callout
+    assert "> [!abstract]" in content
+    assert "This is a detailed abstract." in content
+    
+    # Check for normalized citation in topic reason
+    # 'direct citation' should become _"direct citation"_
+    assert '#TestTopic — Justified by _"direct citation"_ from text.' in content
+    
+    # Check for Citing callout
+    assert "> [!citing this document]" in content
+    assert "date = {2026-05-07}" in content

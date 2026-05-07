@@ -1,3 +1,4 @@
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,6 +8,29 @@ if TYPE_CHECKING:
 
 
 FREQUENCY_THRESHOLD = 5
+
+
+def initialize_vault_from_template(template_dir: Path, output_dir: Path) -> None:
+    """
+    Initializes an Obsidian vault in output_dir by copying configuration
+    files from template_dir.
+    """
+    if not template_dir.exists():
+        return
+
+    # Files to copy
+    to_copy = [
+        Path(".obsidian/app.json"),
+        Path(".obsidian/appearance.json"),
+        Path("CONTENT.base"),
+    ]
+
+    for rel_path in to_copy:
+        src = template_dir / rel_path
+        if src.exists():
+            dst = output_dir / rel_path
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
 
 
 def scan_files(input_dir: Path, mask: str = "*.md") -> Iterator[Path]:

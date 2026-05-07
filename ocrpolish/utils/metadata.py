@@ -318,10 +318,60 @@ def safe_identifier(key: str) -> str:
     return re.sub(r"-+", "-", safe_key).strip("-")
 
 
+def format_metadata_table(metadata: dict[str, Any]) -> str:
+    """
+    Formats key metadata fields into a markdown table with specific icons.
+    Icons: ≡&nbsp; (text), №&nbsp; (pages), 🗓&nbsp; (date), 🔗&nbsp; (source), ☰&nbsp; (references)
+    """
+    # Mapping based on MUSTR_metadata_table2.md
+    mapping = [
+        ("≡&nbsp;**title**:", metadata.get("title", "Untitled")),
+        ("≡&nbsp;summary:", metadata.get("summary", "") or metadata.get("abstract", "")),
+        ("№&nbsp;**pages**:", str(metadata.get("pages", ""))),
+        ("🔗&nbsp;source:", metadata.get("source", "")),
+        ("≡&nbsp;sender:", metadata.get("sender", "")),
+        ("≡&nbsp;recipient:", metadata.get("recipient", "")),
+        ("≡&nbsp;intent:", metadata.get("intent", "")),
+        ("≡&nbsp;author_name:", metadata.get("author_name", "")),
+        ("≡&nbsp;author_institution:", metadata.get("author_institution", "")),
+        ("🗓&nbsp;**date**:", metadata.get("date", "")),
+        ("≡&nbsp;archive_code:", metadata.get("archive_code", "")),
+        ("≡&nbsp;language:", metadata.get("language", "")),
+        ("≡&nbsp;location_city:", metadata.get("location_city", "")),
+        ("≡&nbsp;location_state:", metadata.get("location_state", "")),
+        ("☰&nbsp;references:", metadata.get("references", "")),
+    ]
+
+    table_lines = []
+    first = True
+    for field, value in mapping:
+        if value and str(value).strip() and value != "[]":
+            # Format list values as separate lines using <br> for table cells
+            if isinstance(value, list):
+                value = "<br>".join([str(v) for v in value])
+
+            # Ensure value is single-line for table compatibility
+            clean_value = str(value).replace("\n", " ").strip()
+            
+            # Bold the value only if the field label is bolded
+            if "**" in field:
+                clean_value = f"**{clean_value}**"
+                
+            table_lines.append(f"| {field} | {clean_value} |")
+            if first:
+                table_lines.append("| --- | --- |")
+                first = False
+
+    if not table_lines:
+        return ""
+
+    return "\n".join(table_lines)
+
+
 def format_bibtex_citation(data: dict[str, Any]) -> str:
     """Formats metadata into BibTeX citation style."""
     author_info = _parse_author(data.get("author_name", ""))
-    _, year, month, day = _parse_date(data.get("date", ""))
+    date = data.get("date", "")
 
     inst = data.get("author_institution", "")
     if author_info:
@@ -341,16 +391,11 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
     note_parts = [p for p in [inst, code, platform] if p]
     note = ", ".join(note_parts)
 
-    safe_id = safe_identifier(code)
     lines = [f"@misc{{{safe_id},"]
     lines.append(f"  author = {{{author_str}}},")
     lines.append(f"  title = {{{title}}},")
-    if year:
-        lines.append(f"  year = {{{year}}},")
-    if month:
-        lines.append(f"  month = {{{month}}},")
-    if day:
-        lines.append(f"  day = {{{day}}},")
+    if date:
+        lines.append(f"  date = {{{date}}},")
     if note:
         lines.append(f"  note = {{{note}}},")
     if url:
@@ -358,7 +403,7 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
     if urldate:
         lines.append(f"  urldate = {{{urldate}}}")
 
-    return "\n".join(lines) + "\n}"
+    return "\n".join(lines).rstrip(",") + "\n}"
 
 
 def generate_citation_callout(data: dict[str, Any]) -> str:

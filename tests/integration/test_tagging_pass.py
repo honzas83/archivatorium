@@ -69,6 +69,7 @@ def test_two_pass_tagging_output(tmp_path, mock_ollama, mock_tagging_service):
     assert "- #Org/NATO" in content
     
     assert "## Tags" in content
-    assert "#NATO #Exercise" in content
+    assert "- #NATO" in content
+    assert "- #Exercise" in content
     
     mock_tagging_service.extract_tags.assert_called_once()
