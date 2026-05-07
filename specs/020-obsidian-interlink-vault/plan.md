@@ -17,6 +17,7 @@ Implement a new `interlink` subcommand for `ocrpolish` to post-process Obsidian 
 **Performance Goals**: Process thousands of files within seconds (linear time complexity relative to file count).
 **Constraints**: 
 - Non-destructive: MUST NOT modify YAML frontmatter.
+- Idempotent: MUST NOT nest links; replace existing ones instead.
 - Target-specific: ONLY modify the "Metadata" callout table and the body text.
 - Match Accuracy: Prefix-boundary matching with longest-match priority.
 
