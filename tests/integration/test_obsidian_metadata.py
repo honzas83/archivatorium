@@ -95,8 +95,11 @@ def test_obsidian_metadata_entities(tmp_path: Path) -> None:
         
         # Present in body callout
         assert "## Entities" in body
-        assert "- #State/United-Kingdom" in body
-        assert "- #State/United-States" in body
-        assert "- #Org/NATO" in body
-        assert "- #City/United-Kingdom/London" in body
-        assert "- #City/United-States/Washington" in body
+        assert "* States" in body
+        assert "  - #State/United-Kingdom" in body
+        assert "  - #State/United-States" in body
+        assert "* Organisations" in body
+        assert "  - #Org/NATO" in body
+        assert "* Cities" in body
+        assert "  - #City/United-Kingdom/London" in body
+        assert "  - #City/United-States/Washington" in body

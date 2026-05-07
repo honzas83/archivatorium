@@ -316,21 +316,34 @@ class MetadataProcessor:
             # Group entities by type for the callout
             entity_section_body = ""
             if entity_tags:
+                # Map internal types to plural display labels
+                type_labels = {
+                    "City": "Cities",
+                    "Org": "Organisations",
+                    "Person": "Persons",
+                    "State": "States"
+                }
+                
                 grouped_entities = {}
                 for t in sorted(entity_tags):
                     tag = f"#{t}" if not t.startswith("#") else t
                     # Extract type: #Type/Name -> Type
                     parts = tag.lstrip("#").split("/", 1)
                     etype = parts[0] if len(parts) > 1 else "Other"
-                    if etype not in grouped_entities:
-                        grouped_entities[etype] = []
-                    grouped_entities[etype].append(f"- {tag}")
+                    
+                    label = type_labels.get(etype, etype)
+                    if label not in grouped_entities:
+                        grouped_entities[label] = []
+                    grouped_entities[label].append(f"  - {tag}")
                 
-                # Sort group keys and join with empty line
+                # Sort group keys and join with nested structure
                 entity_groups = []
-                for etype in sorted(grouped_entities.keys()):
-                    entity_groups.append("\n".join(grouped_entities[etype]))
-                entity_section_body = "\n\n".join(entity_groups)
+                for label in sorted(grouped_entities.keys()):
+                    group_lines = [f"* {label}"]
+                    group_lines.extend(grouped_entities[label])
+                    entity_groups.append("\n".join(group_lines))
+                
+                entity_section_body = "\n".join(entity_groups)
             
             # US3: Remove tags from frontmatter property
             metadata_dict.pop("tags", [])
