@@ -67,9 +67,13 @@ class InterlinkingService:
             
         # 5 & 6: Any other language
         if exact_variants:
-            return next(iter(exact_variants.values()))
+            # Sort for stable selection
+            best_lang = sorted(exact_variants.keys())[0]
+            return exact_variants[best_lang]
         if bib_variants:
-            return next(iter(bib_variants.values()))
+            # Sort for stable selection
+            best_lang = sorted(bib_variants.keys())[0]
+            return bib_variants[best_lang]
             
         return None
 
@@ -77,7 +81,11 @@ class InterlinkingService:
         """First pass: build the archive code maps by scanning all Markdown files."""
         self.code_map = {}
         self.bibtex_map = {}
-        for md_file in self.vault_dir.rglob("*.md"):
+        
+        # Sort files for deterministic behavior (handles duplicate codes consistently)
+        files = sorted(list(self.vault_dir.rglob("*.md")))
+        
+        for md_file in files:
             try:
                 content = md_file.read_text(encoding="utf-8")
                 # Simple frontmatter extraction
@@ -325,15 +333,14 @@ class InterlinkingService:
 
             def replace_match(m):
                 if m.group(1):
-                    # Existing link
+                    # Existing link (Wikilink [[...]] or Markdown link [...](...))
                     link_text = m.group(1)
                     
                     if force:
-                        # If force is on, try to 're-resolve' the link if it looks like one of our codes
-                        # This handles [Code](path.md) format
-                        link_match = re.match(r"^\[(.*?)\]\((.*?)\)$", link_text)
-                        if link_match:
-                            text, existing_path = link_match.groups()
+                        # 1. Try Markdown link format: [text](path)
+                        md_link_match = re.match(r"^\[(.*?)\]\((.*?)\)$", link_text)
+                        if md_link_match:
+                            text, existing_path = md_link_match.groups()
                             # Check if text matches any of our codes (fuzzy)
                             for c in sorted_codes:
                                 if safe_identifier(text) == safe_identifier(c):
@@ -345,6 +352,25 @@ class InterlinkingService:
                                         return f"[{text}]({new_path})"
                                     else:
                                         # If it shouldn't be linked (e.g. self-link), strip the link
+                                        return text
+
+                        # 2. Try Wikilink format: [[text]] or [[path|text]]
+                        wiki_link_match = re.match(r"^\[\[(.*?)(?:\|(.*?))?\]\]$", link_text)
+                        if wiki_link_match:
+                            target, display = wiki_link_match.groups()
+                            text = display if display else target
+                            # Check if text or target matches any of our codes
+                            for c in sorted_codes:
+                                if safe_identifier(text) == safe_identifier(c) or safe_identifier(target) == safe_identifier(c):
+                                    if c not in found_codes:
+                                        found_codes.append(c)
+                                    
+                                    new_path = self.resolve_link(text, source_lang)
+                                    if new_path and new_path != current_filename:
+                                        # Convert to our standard Markdown link format on force
+                                        return f"[{text}]({new_path})"
+                                    else:
+                                        # Strip the link if it shouldn't be linked
                                         return text
                     
                     # Normal (non-force) or fallthrough: preserve existing link
