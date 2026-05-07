@@ -5,6 +5,15 @@
 **Status**: Draft  
 **Input**: User description: "Implement feature - new subcommand - for postprocessing the generated Obsidian vault inplace. The goal of the postprocessing should be to interlink the documents. In the first version, we will use the archive_code and language fields. At first, create a mapping from archive_code + language to filename. Then, convert the references: field to hyperlinks as well as all occurrences of references in the body. Reference to a document in the same language if you have many variants. If the archive_code exists, but not in the current language, refer to English by default or other languages. Use matching on prefix-boundary, i.e. DPC/D(69)58 matches DPC/D(69)58(Revised) but DPC/D(69)5 doesn't match it. Add another field under the language: named language_versions: and crosslink the different language versions of the same archive_code. Normalize archive_code to not contain spaces for matching purposes Use links like: Markdown: [Three laws of motion](Three laws of motion.md)"
 
+## Clarifications
+
+### Session 2026-05-07
+- Q: Should the subcommand provide a report or log of archive codes that were referenced but could not be resolved to a file? → A: Ignore unresolved codes silently (Option C), as the archive may be partially processed or references may point outside the collection.
+- Q: If an archive_code exists in only one language, should the language_versions: field still be added or omitted? → A: Add language_versions: only if at least one other version exists (Option B).
+- Q: When multiple documents match a reference in the body text (one being a prefix of others), which one should be prioritized? → A: Prioritize the longest matching archive_code (Option A).
+
+- Q: Should the system preserve the original (non-linked) references: in a separate field or is a permanent replacement sufficient? → A: Replace references: with links and put language_versions: ONLY into the table in the "Metadata" callout block in the body; do NOT modify the YAML frontmatter (Option C).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Interlink References in Metadata (Priority: P1)
@@ -63,13 +72,15 @@ As a reader, I want occurrences of archive codes within the text of a document t
 
 - **FR-001**: System MUST create a global mapping of `(normalized_archive_code, language)` to `filename` for all documents in the target directory.
 - **FR-002**: System MUST normalize `archive_code` by removing all whitespace characters for matching purposes.
-- **FR-003**: System MUST identify references in the `references:` frontmatter field and convert them to Markdown links `[Title](Filename.md)`.
+- **FR-003**: System MUST identify the "Metadata" callout table in the document body and convert the `references` values to Markdown links using the full vault path: `[Title](folder/subfolder/Filename.md)`.
 - **FR-004**: System MUST identify occurrences of known `archive_code` patterns in the Markdown body and convert them to links.
-- **FR-005**: System MUST use a prefix-boundary matching strategy for `archive_code` (e.g., `A/B` matches `A/B(rev)` but not `A/BC`).
+- **FR-005**: System MUST use a prefix-boundary matching strategy for `archive_code` (e.g., `A/B` matches `A/B(rev)` but not `A/BC`). In case of multiple matches, the longest matching `archive_code` MUST be prioritized.
 - **FR-006**: System MUST link to the version of the document in the same language as the source document if available.
 - **FR-007**: System MUST use English as the default fallback language if the target is not available in the source language.
-- **FR-008**: System MUST add a `language_versions:` field under the `language:` key in the frontmatter, containing links to other language versions of the same document.
-- **FR-009**: System MUST perform all modifications "inplace" on the existing Markdown files.
+- **FR-008**: System MUST add a `language_versions` row to the "Metadata" callout table in the body, containing links (full vault path) to other language versions of the same document, ONLY if other versions exist.
+- **FR-009**: System MUST NOT modify the YAML frontmatter of the documents.
+- **FR-010**: System MUST perform all modifications "inplace" on the existing Markdown files.
+- **FR-011**: System MUST silently ignore archive codes that cannot be resolved to any file in the vault (no error reporting for dangling references).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -84,7 +95,9 @@ As a reader, I want occurrences of archive codes within the text of a document t
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of valid `references:` entries that have a corresponding target in the vault are converted to clickable links.
-- **SC-002**: 100% of documents with multiple language versions have the `language_versions:` field correctly populated with cross-links.
+- **SC-001**: 100% of valid `references` entries in the Metadata callout that have a corresponding target in the vault are converted to clickable links.
+- **SC-002**: 100% of documents with multiple language versions have the `language_versions` row in the Metadata callout correctly populated with cross-links.
 - **SC-003**: No broken links are generated (all generated links MUST point to an existing file in the vault).
+- **SC-004**: Archive code matching avoids false positives by adhering to prefix-boundary rules (0% incorrect partial matches).
+lt).
 - **SC-004**: Archive code matching avoids false positives by adhering to prefix-boundary rules (0% incorrect partial matches).
