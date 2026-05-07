@@ -59,5 +59,5 @@ Python 3.12: Follow standard conventions.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-[specs/018-tagging-system/plan.md](specs/018-tagging-system/plan.md)
+[specs/019-obsidian-presentation-enhancement/plan.md](specs/019-obsidian-presentation-enhancement/plan.md)
 <!-- SPECKIT END -->

@@ -103,7 +103,7 @@ class WindowTaggingResult(BaseModel):
     )
     topic_tags: list[TopicResult] = Field(
         default_factory=list,
-        description="List of hierarchical taxonomy topics with their reasons. Max 5.",
+        description="List of hierarchical taxonomy topics with their reasons. Max 10.",
     )
 
 
@@ -115,5 +115,5 @@ class AggregatedTaggingResult(BaseModel):
     )
     entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
     topic_tags: list[TopicResult] = Field(
-        default_factory=list, description="Set union of all topics with best available reasons."
+        default_factory=list, description="Set union of all topics (max 10) with best available reasons."
     )

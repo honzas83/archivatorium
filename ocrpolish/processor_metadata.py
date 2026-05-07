@@ -13,6 +13,7 @@ from ocrpolish.utils.metadata import (
     flatten_metadata,
     format_as_callout,
     format_hierarchical_tag,
+    format_metadata_table,
     generate_citation_callout,
     mirror_file,
     normalize_obsidian_tags,
@@ -47,6 +48,9 @@ class MetadataProcessor:
         self.tagging_service = tagging_service
         self.input_dir = input_dir
         self.tag_counts: Counter[str] = Counter()
+        self.state_counts: Counter[str] = Counter()
+        self.org_counts: Counter[str] = Counter()
+        self.city_counts: Counter[str] = Counter()
 
     def _get_pdf_link(self, input_file: Path) -> str:
         """Calculates the Obsidian-style link to the source PDF."""
@@ -129,6 +133,17 @@ class MetadataProcessor:
                 metadata_dict[k] = v
         return metadata_dict
 
+    def _normalize_topic_citations(self, text: str) -> str:
+        """
+        Normalizes citations in text: replacements of 'quote' or "quote" with _"quote"_.
+        Avoids matching single quotes used as apostrophes by checking word boundaries.
+        """
+        if not text:
+            return ""
+        # Replace single or double quotes with italicized double quotes,
+        # ensuring the closing quote matches the opening one and is not followed by a word character.
+        return re.sub(r"(?<!\w)(['\"])(.*?)\1(?!\w)", r'_"\2"_', text)
+
     def process_file(
         self, input_file: Path, output_file: Path, frequent_tags: list[str] | None = None
     ) -> bool:
@@ -145,7 +160,7 @@ class MetadataProcessor:
             # 1. Separate existing frontmatter from body
             existing_metadata, original_body = parse_frontmatter(content)
 
-            # Prepare tag context if available
+            # Prepare tag and entity context if available
             tag_context = ""
             if frequent_tags:
                 tag_context = (
@@ -153,6 +168,23 @@ class MetadataProcessor:
                     f"{', '.join(frequent_tags)}. "
                     "Only create new tags if the current list is not sufficient."
                 )
+
+            entity_context = ""
+            top_states = [s for s, _ in self.state_counts.most_common(20)]
+            top_orgs = [o for o, _ in self.org_counts.most_common(20)]
+            top_cities = [c for c, _ in self.city_counts.most_common(20)]
+
+            if top_states or top_orgs or top_cities:
+                entity_context = (
+                    "\nIMPORTANT: Prioritize using these existing entities for "
+                    "consistency:\n"
+                )
+                if top_states:
+                    entity_context += f"- States: {', '.join(top_states)}\n"
+                if top_orgs:
+                    entity_context += f"- Organisations: {', '.join(top_orgs)}\n"
+                if top_cities:
+                    entity_context += f"- Cities: {', '.join(top_cities)}\n"
 
             # Phase 1: Primary Extraction (First chunk)
             first_chunk = content[:CHUNK_SIZE]
@@ -168,26 +200,35 @@ class MetadataProcessor:
                 "It must be a superset of the summary.\n"
                 "4. 'mentioned_states' must only contain full names of nation states.\n"
                 "5. 'mentioned_organisations' should include international bodies.\n"
-                "6. 'mentioned_cities' MUST be a list of strings in 'City, State' format (e.g., ['London, United Kingdom', 'Washington, United States']).\n"
+                "6. 'mentioned_cities' MUST be a list of strings in 'City, State' format "
+                "(e.g., ['London, United Kingdom', 'Washington, United States']).\n"
                 "7. 'date' must be the complete official document date (YYYY-MM-DD).\n"
                 "8. 'archive_code' should be derived using both the text and the filename.\n"
                 "9. If the document is a letter, describe 'sender', 'recipient', "
                 "and 'intent' (the specific action/request).\n"
                 "10. 'references' should contain a list of any other reference codes.\n"
-                "11. IMPORTANT: Use English for all metadata values, regardless of the source language.\n"
+                "11. IMPORTANT: Use English for all metadata values, regardless of "
+                "the source language.\n"
                 "12. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
                 "Preserve uppercase for acronyms.\n"
                 "13. Ensure 'location_state' is filled if 'location_city' is identified.\n"
                 "14. Generate between 3 and 8 'tags'. No spaces.\n"
                 "15. Interpret and correct OCR errors using context."
                 f"{tag_context}"
+                f"{entity_context}"
             )
 
             metadata_obj = self.client.extract_structured(prompt, MetadataSchema)
 
-            # Update tag counts for future consistency
+            # Update counters for future consistency
             if metadata_obj.tags:
                 self.tag_counts.update(metadata_obj.tags)
+            if metadata_obj.mentioned_states:
+                self.state_counts.update(metadata_obj.mentioned_states)
+            if metadata_obj.mentioned_organisations:
+                self.org_counts.update(metadata_obj.mentioned_organisations)
+            if metadata_obj.mentioned_cities:
+                self.city_counts.update(metadata_obj.mentioned_cities)
 
             # Convert to dict.
             raw_dict = metadata_obj.model_dump()
@@ -233,25 +274,30 @@ class MetadataProcessor:
             # Step 2: Precision Tagging Pass
             topic_list_items = []
             entity_list_items = []
-            flat_tags_str = ""
+            tag_list_items = []
 
             if self.tagging_service:
                 tagging_result = self.tagging_service.extract_tags(content)
                 if tagging_result.topic_tags:
-                    topic_list_items = [
-                        f"- #{t.topic} — {t.reason}" if not t.topic.startswith("#") else f"- {t.topic} — {t.reason}"
-                        for t in tagging_result.topic_tags
-                    ]
+                    for t in tagging_result.topic_tags:
+                        norm_reason = self._normalize_topic_citations(t.reason)
+                        tag_prefix = f"#{t.topic}" if not t.topic.startswith("#") else t.topic
+                        topic_list_items.append(f"- {tag_prefix} — {norm_reason}")
+
                 if tagging_result.entity_tags:
                     entity_list_items = [
                         f"- #{t}" if not t.startswith("#") else f"- {t}"
                         for t in tagging_result.entity_tags
                     ]
                 if tagging_result.conceptual_tags:
-                    flat_tags_str = " ".join([f"#{t}" if not t.startswith("#") else t for t in tagging_result.conceptual_tags])
+                    tag_list_items = [
+                        f"#{t}" if not t.startswith("#") else t
+                        for t in tagging_result.conceptual_tags
+                    ]
             else:
                 # Fallback to Step 1 extraction if no tagging service
-                default_state = metadata_dict.get("location_state") or (states_list[0] if states_list else "Unknown")
+                state_fallback = states_list[0] if states_list else "Unknown"
+                default_state = metadata_dict.get("location_state") or state_fallback
                 for s in states_list:
                     entity_list_items.append(f"- {format_hierarchical_tag('State', s)}")
                 for o in orgs_list:
@@ -262,18 +308,30 @@ class MetadataProcessor:
                     else:
                         city = c_item
                         state = default_state
-                    entity_list_items.append(f"- {format_hierarchical_tag('City', state, city)}")
+                    entity_list_items.append(
+                        f"- {format_hierarchical_tag('City', state, city)}"
+                    )
 
                 flat_tags = metadata_dict.get("tags", [])
                 if flat_tags:
-                    flat_tags_str = " ".join([f"#{t}" if not t.startswith("#") else t for t in flat_tags])
+                    tag_list_items = [
+                        f"#{t}" if not t.startswith("#") else t for t in flat_tags
+                    ]
             
             # US3: Remove tags from frontmatter property
             metadata_dict.pop("tags", [])
 
+            # Generate visual metadata table
+            # We use metadata_dict because it contains the prepared 'source' link
+            # and renamed correspondence fields.
+            metadata_table = format_metadata_table(metadata_dict)
+            metadata_callout = format_as_callout(
+                metadata_table, title="Metadata", callout_type="info"
+            )
+
             # Build the callout block with dedicated sections for topics and tags
             body_prefix = ""
-            if title or abstract or topic_list_items or flat_tags_str or entity_list_items:
+            if title or abstract or topic_list_items or tag_list_items or entity_list_items:
                 sections = []
                 if title:
                     sections.append(f"# {title}")
@@ -288,8 +346,9 @@ class MetadataProcessor:
                     entity_section = "## Mentioned Entities\n\n" + "\n".join(entity_list_items)
                     sections.append(entity_section)
                 
-                if flat_tags_str:
-                    sections.append(f"## Tags\n\n{flat_tags_str}")
+                if tag_list_items:
+                    tag_section = "## Tags\n\n" + " ".join(tag_list_items)
+                    sections.append(tag_section)
 
                 callout_body = "\n\n".join(sections)
 
@@ -330,10 +389,13 @@ class MetadataProcessor:
 
             # Construct final content with proper spacing
             # frontmatter_str ends with \n, so we add another \n if both exist
-            if frontmatter_str and body_prefix:
-                new_content = frontmatter_str + "\n" + body_prefix + original_body
-            else:
-                new_content = frontmatter_str + body_prefix + original_body
+            new_content = frontmatter_str
+            if metadata_callout:
+                new_content += "\n" + metadata_callout
+            if body_prefix:
+                new_content += "\n" + body_prefix
+            
+            new_content += "\n" + original_body
 
             # Append citation callout at the end
             combined_raw["url_date"] = date.today().strftime("%Y-%m-%d")

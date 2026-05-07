@@ -10,6 +10,7 @@ from ocrpolish.services.indexing_service import IndexingService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.tagging_service import TaggingService
 from ocrpolish.services.windowing_service import SlidingWindowService
+from ocrpolish.utils.files import initialize_vault_from_template
 from ocrpolish.utils.logging import setup_logging
 from ocrpolish.utils.metadata import mirror_file
 
@@ -166,6 +167,10 @@ def metadata(  # noqa: PLR0913
     flat_topics: bool,
 ) -> None:
     """Extracts metadata from Markdown files using a local Ollama instance."""
+    template_dir = Path("obsidian_template")
+    if template_dir.exists() and not dry_run:
+        initialize_vault_from_template(template_dir, output_dir)
+
     client = OllamaClient(model=model, host=ollama_url)
     
     tagging_service = None

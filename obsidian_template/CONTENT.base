@@ -1,0 +1,29 @@
+formulas:
+  linked_title: link(file.path, title)
+properties:
+  formula.linked_title:
+    displayName: Title
+views:
+  - type: table
+    name: Table
+    filters:
+      and:
+        - file.path.endsWith(".md")
+    order:
+      - archive_code
+      - formula.linked_title
+      - summary
+      - author_institution
+      - author_name
+      - pages
+      - date
+      - sender
+      - recipient
+      - intent
+    sort: []
+    columnSize:
+      note.summary: 378
+      note.author_institution: 202
+      note.pages: 82
+      note.sender: 220
+      note.recipient: 255
