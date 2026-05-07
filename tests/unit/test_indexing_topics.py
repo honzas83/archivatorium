@@ -24,7 +24,7 @@ categories:
 
     indexer = IndexingService(vault_dir, topics_yaml=topics_yaml)
 
-    # Mock entries with legacy style tags
+    # Mock entries with hyphenated tags
     indexer.entries = [
         IndexEntry(
             doc_path=Path("doc1.md"),
@@ -48,6 +48,7 @@ categories:
     assert "# Index of Categories/Topics" in content
     # Header should be normalized
     assert "## #Category/Doctrine-and-Strategy" in content
+
     assert "Military doctrines." in content
     # Topic should be normalized and matched
     assert (

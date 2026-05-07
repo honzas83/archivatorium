@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagging Pass Contract",
+  "description": "JSON schema for the LLM output in the second pass tagging.",
+  "type": "object",
+  "properties": {
+    "conceptual_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of flat tags (e.g., '#NuclearDeterrence'). Max 10 recommended."
+    },
+    "entity_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Hierarchical tags (e.g., 'State/USA', 'Org/NATO', 'City/State/City', 'Person/Name')."
+    },
+    "topic_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Hierarchical taxonomy tags (e.g., 'Category/Doctrine and Strategy/Nuclear Deterrence'). Max 5 recommended."
+    }
+  },
+  "required": ["conceptual_tags", "entity_tags", "topic_tags"]
+}

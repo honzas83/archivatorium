@@ -11,13 +11,17 @@ dependencies = [
     "pyyaml",
     "click",
     "XlsxWriter",
+    "tiktoken",
+    "pytest",
+    "pytest-cov",
 ]
 
 [project.scripts]
 ocrpolish = "ocrpolish.cli:main"
 
-[tool.setuptools]
-packages = ["ocrpolish"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ocrpolish*"]
 
 [tool.ruff]
 line-length = 100
@@ -33,6 +37,11 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

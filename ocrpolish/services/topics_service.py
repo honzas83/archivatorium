@@ -33,7 +33,8 @@ class TopicExtractor:
         """Loads the topic hierarchy from the YAML file."""
         try:
             with open(self.hierarchy_path, encoding="utf-8") as f:
-                return yaml.safe_load(f)
+                data = yaml.safe_load(f)
+                return data if isinstance(data, dict) else {}
         except Exception as e:
             logger.error(f"Failed to load topic hierarchy from {self.hierarchy_path}: {e}")
             raise
@@ -102,7 +103,7 @@ class TopicExtractor:
             "concrete facts in the text.\n"
             "2. DO NOT provide generic, circular, or obvious reasons (e.g., "
             "'the meeting was in 1974', "
-            "'it involves strategic relationships', or 'the context involves NATO').\n"
+            "'it involves strategic relationships', or 'it involves the main organization').\n"
             "3. Identify unique elements, specific named entities, or particular policy shifts "
             "that justify the assignment.\n\n"
             f"{topics_list}\n\n"
@@ -182,7 +183,7 @@ class TopicExtractor:
             return []
 
         if not selected_cats:
-            logger.info("No categories selected by the LLM.")
+            logger.debug("No categories selected by the LLM.")
             return []
 
         # Step 2: Topic Selection

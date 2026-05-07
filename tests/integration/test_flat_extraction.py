@@ -4,6 +4,7 @@ import pytest
 from click.testing import CliRunner
 
 from ocrpolish.cli import cli
+from ocrpolish.models.metadata import MetadataSchema, WindowTaggingResult
 
 
 @pytest.fixture
@@ -32,28 +33,22 @@ categories:
 def test_cli_flat_topics_integration(mock_extract, input_dir, hierarchy_file, tmp_path):
     output_dir = tmp_path / "output"
     
-    # Mock responses for MetadataSchema and FlatTopicSelectionSchema
-    # First call is for MetadataSchema (Pass 1)
-    # Second call is for FlatTopicSelectionSchema (Topic Extraction)
+    # Mock responses for MetadataSchema and WindowTaggingResult
     
-    mock_metadata = MagicMock()
-    mock_metadata.title = "Test Title"
-    mock_metadata.abstract = "Test Abstract"
-    mock_metadata.tags = ["test"]
-    mock_metadata.model_dump.return_value = {
-        "title": "Test Title",
-        "abstract": "Test Abstract",
-        "tags": ["test"]
-    }
+    mock_metadata = MetadataSchema(
+        title="Test Title",
+        abstract="Test Abstract",
+        tags=["test"]
+    )
     
-    mock_topic_assignment = MagicMock()
-    mock_topic_assignment.topic_id = "Doctrine and Strategy/Nuclear Deterrence"
-    mock_topic_assignment.reason = "Matches nuclear deterrence context."
+    from ocrpolish.models.metadata import TopicResult
+    mock_tagging_result = WindowTaggingResult(
+        topic_tags=[TopicResult(topic="Doctrine and Strategy/Nuclear Deterrence", reason="Mention of nuclear strategy")],
+        conceptual_tags=["#NuclearDeterrence"],
+        entity_tags=["Org/NATO"]
+    )
     
-    mock_topic_selection = MagicMock()
-    mock_topic_selection.assignments = [mock_topic_assignment]
-    
-    mock_extract.side_effect = [mock_metadata, mock_topic_selection]
+    mock_extract.side_effect = [mock_metadata, mock_tagging_result]
     
     runner = CliRunner()
     result = runner.invoke(cli, [
@@ -70,6 +65,5 @@ def test_cli_flat_topics_integration(mock_extract, input_dir, hierarchy_file, tm
     assert output_file.exists()
     content = output_file.read_text()
     
-    # Verify hierarchical tag and reason are present in the output
-    assert "#Doctrine-and-Strategy/Nuclear-Deterrence" in content
-    assert "Matches nuclear deterrence context." in content
+    # Verify hierarchical tag is present in the output with reasoning
+    assert "- #Doctrine-and-Strategy/Nuclear-Deterrence — Mention of nuclear strategy" in content

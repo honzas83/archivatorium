@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from ollama import Client
 from pydantic import BaseModel, ValidationError
@@ -16,7 +16,9 @@ class OllamaClient:
         self.model = model
         self.client = Client(host=host)
 
-    def extract_structured(self, prompt: str, schema: type[T], retries: int = 3) -> T:
+    def extract_structured(
+        self, prompt: str, schema: type[T], retries: int = 3, model: str | None = None, **kwargs: Any
+    ) -> T:
         """
         Sends a prompt to Ollama and returns a validated Pydantic model.
         Includes retry logic for validation errors.
@@ -27,7 +29,7 @@ class OllamaClient:
         while attempt <= retries:
             try:
                 response = self.client.chat(
-                    model=self.model,
+                    model=model or self.model,
                     messages=[
                         {
                             "role": "system",
@@ -47,6 +49,7 @@ class OllamaClient:
                     ],
                     format=schema.model_json_schema(),
                     options={"temperature": 0},
+                    **kwargs,
                 )
 
                 content = response["message"]["content"].strip()

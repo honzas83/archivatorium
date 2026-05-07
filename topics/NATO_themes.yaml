@@ -9,6 +9,7 @@ categories:
           Strategic balance of terror
           Mutually assured destruction as a broad concept
           Credibility of the deterrent
+          Nuclear brinkmanship	 
         negative_samples: |
           Specific tactical deployments (see Extended Deterrence)
           Formal arms limitation talks (see General Arms Control)
@@ -19,6 +20,7 @@ categories:
         positive_samples: |
           Discussions on forward-based systems
           Gravity bombs in Europe
+          Discussions of nuclear sharing
           Nuclear umbrella protecting non-nuclear allies
           Consultation on nuclear use in Europe
         negative_samples: |
@@ -28,19 +30,17 @@ categories:
       - topic: "Massive Retaliation"
         description: "The 1950s military doctrine (MC 14/2) threatening a full-scale nuclear response to any attack."
         positive_samples: |
-          References to Eisenhower
-          John Foster Dulles
           MC 14/2
           Tripwire strategies guaranteeing total strategic response
+          Existential deterrence
         negative_samples: |
-          Discussions of tailored, graded, or conventional responses (see Flexible Response)
+          Discussions of tailored, graded, limited, or conventional responses (see Flexible Response)
           MC 14/3
 
       - topic: "Flexible Response"
         description: "The strategy adopted in 1967 (MC 14/3) allowing for tailored, escalating force rather than immediate total nuclear war."
         positive_samples: |
           References to MC 14/3
-          Conventional buildup
           Raising the nuclear threshold
           Deliberate escalation
         negative_samples: |
@@ -50,11 +50,15 @@ categories:
       - topic: "Mutually Assured Destruction"
         description: "The doctrine where full-scale use of nuclear weapons causes the complete annihilation of both sides."
         positive_samples: |
-          Discussions of counter-value targeting
+          Discussions of countervalue targeting
           Second-strike capability
           Unacceptable damage
+          Existential deterrence
+          Mutual assured destruction
+          MAD
         negative_samples: |
           Strategies to minimize incoming damage or fight a limited nuclear war (see Damage Limitation)
+          Flexible Response	
 
       - topic: "Damage Limitation"
         description: "Strategies and targeting doctrines designed to minimize the impact of an enemy nuclear attack."
@@ -62,8 +66,10 @@ categories:
           Counterforce targeting (striking silos)
           Pre-emptive strike planning
           Active defense interception
+          Splendid first strike (a disabling first strike that would limit the adversary's ability to retaliate with nuclear forces) 
         negative_samples: |
-          Retaliatory punishment strategies targeting cities (see Mutually Assured Destruction)
+          Retaliatory punishment strategies (see Mutually Assured Destruction)
+          Countervalue targeting 
 
       - topic: "Nuclear Strategy and Strike Planning"
         description: "Internal mechanisms for developing war plans, target selection, and execution consultation."
@@ -83,9 +89,10 @@ categories:
         positive_samples: |
           Mentions of Force de dissuasion
           Charles de Gaulle's independence strategy
-          Withdrawal from NATO command
+          French withdrawal from NATO command
         negative_samples: |
-          Integration of weapons into the broader NATO command structure
+          Discussions of UK nuclear strategy that do not involve France
+          Discussions of US nuclear strategy that do not involve France
 
       - topic: "British Nuclear Policy"
         description: "Covers the UK's independent deterrent and its integration into NATO."
@@ -146,13 +153,17 @@ categories:
           Specific bilateral nuclear treaties like SALT or INF
 
       - topic: "Nuclear Proliferation"
-        description: "The spread of nuclear weapons and fissile material to unrecognised nations."
+        description: "The spread of nuclear weapons and fissile material."
         positive_samples: |
           Concerns about third-party states acquiring bombs
           Fissile material smuggling
           Covert nuclear programs
+          Discussions of new nuclear states
+          Discussions of new nuclear weapons programmes	
         negative_samples: |
           Legal frameworks designed to stop this (see Non-Proliferation Treaty)
+          Extended deterrence
+          Nuclear sharing, where forward-deployed nuclear weapons are owned by an acknowledged nuclear power such as the US or USSR
 
       - topic: "Chemical Weapons"
         description: "Deployment, deterrence, and arms control surrounding toxic chemical munitions."
@@ -160,6 +171,7 @@ categories:
           Nerve gas
           Mustard gas
           Chemical stockpiles
+          Chemical warfare
           The Chemical Weapons Convention
         negative_samples: |
           Pathogens (see Biological Weapons)
@@ -170,6 +182,7 @@ categories:
         positive_samples: |
           Weaponized anthrax
           Biological warfare
+          Biological stockpiles
           The Biological Weapons Convention
         negative_samples: |
           Toxic but non-living agents (see Chemical Weapons)
@@ -184,8 +197,7 @@ categories:
           General diplomatic cables with Moscow
           Broad Cold War tension assessments
         negative_samples: |
-          Specific localized flashpoints (like the Berlin Crisis)
-          Specific eras (like Detente)
+          Intra-alliance relations within NATO
 
       - topic: "Warsaw Pact"
         description: "The Soviet-led military alliance, its structure, and internal dynamics."
@@ -223,6 +235,7 @@ categories:
           Pershing II
           GLCMs
           Massive European anti-nuclear protests
+          Euromissile or Euromissiles
         negative_samples: |
           The diplomatic resolution and treaty signing (see Intermediate-Range Nuclear Forces)
 
@@ -253,6 +266,7 @@ categories:
         positive_samples: |
           Helsinki Accords
           Peaceful coexistence
+          Mentions of detente 
           The general thawing of Cold War relations in the 70s
         negative_samples: |
           Specific technical agreements (see Crisis Management and Confidence Building)
@@ -265,6 +279,7 @@ categories:
           Friction between Athens and Ankara
         negative_samples: |
           General alliance burden-sharing disputes involving multiple nations
+          General alliance planning discussions involving multiple nations
 
       - topic: "US and NATO Relations"
         description: "Dynamics, leadership roles, and friction between Washington and European allies."
@@ -281,6 +296,7 @@ categories:
           SEATO ties
           Korean War impacts on Europe
           South Asian security assessments
+          Discussions of North or South Korea, Japan, Vietnam, Laos, Cambodia, Australia, New Zealand, Indonesia, Singapore, Philippines, or other Southeast or Northeast Asian nations aside from China
         negative_samples: |
           Direct assessments of the PRC (see China)
 
@@ -290,18 +306,20 @@ categories:
           Sino-Soviet split
           Maoist foreign policy
           Recognizing the PRC
+          Discussions of China's nuclear weapons programme or military strategy
         negative_samples: |
-          General Asian security dynamics not involving Beijing
+          General Asian security dynamics not directly involving Beijing
 
       - topic: "Neutral and Non-Aligned Nations"
         new_addition: true
         description: "Diplomatic relations and strategic considerations regarding European neutrals or the Non-Aligned Movement."
         positive_samples: |
-          Policies toward Sweden
+          Sweden
+          Norway
+          Finland
           Switzerland
           Austria
           Finlandization
-          Relations with Yugoslavia/India
         negative_samples: |
           Internal dynamics of official Warsaw Pact or NATO members
 
@@ -327,6 +345,7 @@ categories:
         negative_samples: |
           Invoking treaty guarantees due to a threat (see Article 4 Consultations).
           Routine administrative notices of next meetings (e.g., NPG Staff Group notices).
+          Scheduling or logistics for meetings
           Document is a short formal note or procedural announcement.
           Meeting agendas or scheduling correspondence without policy substance.
           Standard distribution lists or transmittal letters.
@@ -338,6 +357,7 @@ categories:
           Territorial integrity threats not yet reaching armed attack
         negative_samples: |
           Routine political meetings or full mutual defense responses (see Article 5)
+          Consultations about any topic other than threats in the context of Article 4
 
       - topic: "Command and Control Authority"
         description: "Mechanisms for ordering military action, particularly 'dual-key' nuclear release."
@@ -345,7 +365,7 @@ categories:
           Dual-key arrangements
           PALs (Permissive Action Links)
           Release authority
-          The chain of command
+          The chain of command, particularly for nuclear weapons 
         negative_samples: |
           The specific target lists or strike plans (see Nuclear Strategy and Strike Planning)
 
@@ -391,6 +411,8 @@ categories:
         description: "Discussions explicitly focused on SACEUR, SACLANT, or physical infrastructure projects."
         positive_samples: |
           Appointments of SACEUR
+          Mentions of SACEUR
+          Mentions of SACLANT
           NATO pipelines (CEPS)
           NADGE radar sites
           Commonly funded infrastructure
@@ -419,16 +441,19 @@ categories:
           Debates on casus belli
         negative_samples: |
           Pre-conflict consultations regarding a potential threat (see Article 4 Consultations)
+          Discussions of UN-mandated instances of collective defense rather than NATO-mandated instances of collective defense
 
       - topic: "Multilateral Military Exercises"
         description: "Planning and execution of simulated military operations by NATO forces."
         positive_samples: |
           REFORGER
           Autumn Forge
-          Joint naval maneuvers
+          Joint military (army or naval) maneuvers
+          Field exercises
+          Command post exercises
           Interoperability testing in the field
         negative_samples: |
-          The specific 1983 exercise that caused a massive war scare (see Able Archer Exercise)
+          General discussions of interoperability or warplanning that do not involve the actual practice of military movements or command-post (simulated) exercises
 
       - topic: "Military Interoperability"
         description: "Technical and logistical standardization of military equipment among allied nations."
@@ -437,8 +462,11 @@ categories:
           Standardizing 5.56mm rounds
           Compatible communications gear
           Cross-servicing agreements
+          Discussions on the compatibility of military technology (hardware) across allies within NATO
+          Discussions on the compatibility of military intelligence, command, communications, and other 'software' of military alliances within NATO
         negative_samples: |
           Sharing underlying intellectual property or classified tech (see Technology Transfers)
+          Technology Study
 
       - topic: "Conventional Deterrence"
         description: "Preventing aggression through the threat of a robust, non-nuclear military defense."
@@ -448,13 +476,14 @@ categories:
           Fighting a symmetrical war without crossing the nuclear threshold
         negative_samples: |
           Relying on small forces meant only to trigger a nuclear response (see Tripwire Forces)
+          Deterrence that relies on nuclear weapons (see Nuclear Deterrence)
 
       - topic: "Tripwire Forces"
         description: "Small, forward-deployed forces guaranteeing the political trigger of a larger response."
         positive_samples: |
           Berlin Brigade
           Small border detachments meant to die to trigger Article 5
-          Lack of operational depth
+          Discussions of troops with a lack of operational depth
         negative_samples: |
           Forces designed to actually halt and defeat a Soviet invasion conventionally
 
@@ -462,11 +491,13 @@ categories:
         description: "Exchange of classified information, espionage data, and strategic warnings."
         positive_samples: |
           Sharing satellite imagery
-          Spy networks
+          Spy networks within NATO states 
           Early warning data
           Managing intelligence leaks
         negative_samples: |
           Public information or propaganda campaigns
+          Discussions of Soviet, Russian, or Chinese spy networks
+          Discussions of Soviet, Russian, or Chinese intelligence capabilities
 
       - topic: "Air and Missile Defense"
         description: "Systems designed to intercept incoming enemy bombers or ballistic missiles."
@@ -475,6 +506,9 @@ categories:
           Patriot systems
           Strategic Defense Initiative (SDI)
           Early warning radar networks
+          THAAD
+          Star Wars
+          SDI
         negative_samples: |
           Civil defense shelters (see Civil Emergency Planning)
 
@@ -483,9 +517,10 @@ categories:
         positive_samples: |
           Neutron bomb
           Minimizing blast damage while maximizing lethal radiation
-          The Carter administration controversy
+          The Carter administration controversy over enhanced radiation weapons
         negative_samples: |
           Standard tactical nuclear gravity bombs
+          Standard nuclear hydrogen bombs (h-bombs or thermonuclear weapons)
 
       - topic: "Defense Industry"
         description: "The commercial and manufacturing base that produces military hardware."
@@ -511,6 +546,7 @@ categories:
           1973 oil crisis impact on NATO
           Soviet-European gas pipelines
           Securing sea lanes for oil
+          Nuclear energy
         negative_samples: |
           Internal domestic economic issues unrelated to strategic fuel supplies
 

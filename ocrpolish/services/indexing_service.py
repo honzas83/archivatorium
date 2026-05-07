@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Any
 
 import xlsxwriter  # type: ignore
-import yaml  # type: ignore
+import yaml
 
 from ocrpolish.models.metadata import MetadataSchema
 from ocrpolish.utils.metadata import (
     extract_abstract_tags,
-    normalize_tag_component,
     parse_frontmatter,
 )
+from ocrpolish.utils.nlp import normalize_tag_component
 
 logger = logging.getLogger(__name__)
 
