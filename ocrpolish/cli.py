@@ -7,6 +7,7 @@ from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
 from ocrpolish.processor_metadata import MetadataProcessor
 from ocrpolish.services.indexing_service import IndexingService
+from ocrpolish.services.interlinking_service import InterlinkingService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.tagging_service import TaggingService
 from ocrpolish.services.windowing_service import SlidingWindowService
@@ -48,25 +49,6 @@ def cli(verbose: bool) -> None:
     default=Path("frequency.txt"),
     help="Path for the consolidated frequency report (within output_dir).",
 )
-@click.option(
-    "--filter-file",
-    type=click.Path(exists=True, path_type=Path),
-    default=None,
-    help="Path to a file containing patterns to exclude.",
-)
-@click.option(
-    "--docx",
-    "docx_output_dir",
-    type=click.Path(path_type=Path),
-    default=None,
-    help="Generate DOCX files in the specified directory.",
-)
-@click.option(
-    "--scan-paragraphs",
-    default=3,
-    type=int,
-    help="Number of paragraphs at top/bottom to scan for headers/footers (default: 3).",
-)
 def clean(
     input_dir: Path,
     output_dir: Path,
@@ -75,199 +57,81 @@ def clean(
     dry_run: bool,
     save_filtered: bool,
     frequency_file: Path,
-    filter_file: Path,
-    docx_output_dir: Path,
-    scan_paragraphs: int,
 ) -> None:
-    """Clean LLM-OCR output by removing headers/footers and reformatting paragraphs."""
+    """Post-process OCR Markdown files (wrapping, filtering boilerplate)."""
     config = ProcessingConfig(
         input_dir=input_dir,
         output_dir=output_dir,
-        input_mask=mask,
-        typewriter_width=width,
+        mask=mask,
+        width=width,
         dry_run=dry_run,
         save_filtered=save_filtered,
-        frequency_file_path=frequency_file,
-        filter_file_path=filter_file,
-        docx_output_dir=docx_output_dir,
-        scan_paragraphs=scan_paragraphs,
+        frequency_file=frequency_file,
     )
-    try:
-        run_processing(config)
-    except Exception as e:
-        click.echo(f"Error during cleaning: {e}", err=True)
-        sys.exit(1)
+    run_processing(config)
 
 
 @cli.command()
 @click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("output_dir", type=click.Path(path_type=Path))
-@click.option(
-    "--model", default="gemma4:26b", help="The Ollama model to use. (Default: gemma4:26b)"
-)
-@click.option(
-    "--recursive/--no-recursive",
-    default=True,
-    help="Whether to process subdirectories. (Default: recursive)",
-)
-@click.option(
-    "--ollama-url",
-    default="http://localhost:11434",
-    help="The URL of the Ollama server. (Default: http://localhost:11434)",
-)
-@click.option(
-    "--overwrite/--no-overwrite",
-    default=False,
-    help="Whether to overwrite existing files in the output directory. (Default: no-overwrite)",
-)
-@click.option("--dry-run", is_flag=True, help="If set, logs the metadata without writing files.")
-@click.option(
-    "--vault-root",
-    type=click.Path(path_type=Path),
-    default=None,
-    help="Root directory of the Obsidian vault for relative link calculation.",
-)
-@click.option(
-    "--pdf-dir",
-    type=click.Path(path_type=Path),
-    default=None,
-    help="Directory containing source PDF files (if different from input_dir).",
-)
-@click.option(
-    "--hierarchy-file",
-    "-h",
-    type=click.Path(exists=True, path_type=Path),
-    default=None,
-    help="Optional path to a YAML topic hierarchy for topic extraction.",
-)
-@click.option(
-    "--tags-file",
-    "-t",
-    type=click.Path(exists=True, path_type=Path),
-    default=None,
-    help="Optional path to a YAML file containing useful tags.",
-)
-@click.option(
-    "--flat-topics/--hierarchical-topics",
-    default=False,
-    help="Whether to use flat topic extraction. (Default: hierarchical)",
-)
-def metadata(  # noqa: PLR0913
-    input_dir: Path,
-    output_dir: Path,
-    model: str,
-    recursive: bool,
-    ollama_url: str,
-    overwrite: bool,
-    dry_run: bool,
-    vault_root: Path | None,
-    pdf_dir: Path | None,
-    hierarchy_file: Path | None,
-    tags_file: Path | None,
-    flat_topics: bool,
-) -> None:
-    """Extracts metadata from Markdown files using a local Ollama instance."""
-    template_dir = Path("obsidian_template")
-    if template_dir.exists() and not dry_run:
-        initialize_vault_from_template(template_dir, output_dir)
-
-    client = OllamaClient(model=model, host=ollama_url)
-    
-    tagging_service = None
-    if hierarchy_file:
-        windowing_service = SlidingWindowService()
-        tagging_service = TaggingService(
-            ollama_client=client,
-            windowing_service=windowing_service,
-            themes_path=hierarchy_file,
-            useful_tags_path=tags_file,
-            flat_mode=flat_topics,
-        )
-
-    processor = MetadataProcessor(
-        client, 
-        output_dir, 
-        overwrite=overwrite, 
-        vault_root=vault_root, 
-        pdf_dir=pdf_dir,
-        tagging_service=tagging_service,
-        input_dir=input_dir
-    )
-
-    files = sorted(processor.get_files(input_dir, recursive=recursive, all_files=True))
-    if not files:
-        click.echo("No files found to process.")
-        return
-
-    with click.progressbar(files, label="Processing files") as bar:
-        for input_file in bar:
-            relative_path = input_file.relative_to(input_dir)
-            output_file = output_dir / relative_path
-
-            try:
-                is_md = input_file.suffix.lower() == ".md"
-                is_filtered = input_file.name.endswith(".filtered.md")
-                is_pdf = input_file.suffix.lower() == ".pdf"
-
-                if is_md and not is_filtered:
-                    processor.process_file(input_file, output_file)
-                elif is_pdf:
-                    # Place PDFs in a 'pdf' subdirectory
-                    pdf_output_file = output_file.parent / "pdf" / output_file.name
-                    mirror_file(input_file, pdf_output_file)
-                else:
-                    mirror_file(input_file, output_file)
-            except Exception as e:
-                click.echo(f"\nError processing {relative_path}: {e}", err=True)
+@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
+def metadata(input_dir: Path, output_dir: Path, mask: str) -> None:
+    """Extract metadata using Ollama and generate sidecar YAML files."""
+    processor = MetadataProcessor(OllamaClient())
+    processor.process_directory(input_dir, output_dir, mask)
 
 
 @cli.command()
 @click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
-@click.option(
-    "--output-xlsx",
-    "-o",
-    type=click.Path(path_type=Path),
-    help="Path to save the XLSX metadata index.",
-)
-@click.option(
-    "--topics-yaml",
-    "-t",
-    type=click.Path(exists=True, path_type=Path),
-    help="Path to the YAML file defining topic hierarchy.",
-)
-@click.option(
-    "--recursive/--no-recursive",
-    default=True,
-    help="Whether to scan subdirectories. (Default: recursive)",
-)
-def index(
-    input_dir: Path,
-    output_xlsx: Path | None,
-    topics_yaml: Path | None,
-    recursive: bool,
-) -> None:
-    """Generates Obsidian index pages and an optional XLSX index from vault metadata."""
-    indexer = IndexingService(input_dir, topics_yaml=topics_yaml)
+@click.argument("output_dir", type=click.Path(path_type=Path))
+@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
+@click.option("--template-dir", type=click.Path(exists=True, path_type=Path), required=True)
+def obsidian(input_dir: Path, output_dir: Path, mask: str, template_dir: Path) -> None:
+    """Generate an Obsidian vault from processed Markdown and metadata."""
+    initialize_vault_from_template(template_dir, output_dir)
+    for md_file in input_dir.rglob(mask):
+        yaml_file = md_file.with_suffix(".yaml")
+        if yaml_file.exists():
+            mirror_file(md_file, yaml_file, output_dir, input_dir)
 
-    click.echo(f"Scanning vault: {input_dir}")
-    # Get file list for progress bar
-    pattern = "**/*.md" if recursive else "*.md"
-    files = [f for f in input_dir.glob(pattern) if not f.name.startswith("Index - ")]
+
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("output_dir", type=click.Path(path_type=Path))
+@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
+def index(input_dir: Path, output_dir: Path, mask: str) -> None:
+    """Index metadata and generate citations."""
+    service = IndexingService()
+    service.index_directory(input_dir, mask)
+    service.generate_citations(output_dir)
+
+
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("output_dir", type=click.Path(path_type=Path))
+@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
+@click.option("--taxonomy", type=click.Path(exists=True, path_type=Path), required=True)
+@click.option("--tags", type=click.Path(exists=True, path_type=Path), required=True)
+def tag(input_dir: Path, output_dir: Path, mask: str, taxonomy: Path, tags: Path) -> None:
+    """Apply tiered tagging system to Obsidian vault."""
+    service = TaggingService(taxonomy_path=taxonomy, tags_path=tags)
+    service.tag_vault(input_dir, output_dir, mask)
+
+
+@cli.command()
+@click.argument("vault_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--dry-run", is_flag=True, help="If set, logs changes without writing to files.")
+@click.option("--verbose", is_flag=True, help="Show detailed matching logs.")
+def interlink(vault_dir: Path, dry_run: bool, verbose: bool):
+    """Post-processes a generated Obsidian vault in-place to interlink documents."""
+    service = InterlinkingService(vault_dir)
     
-    if not files:
-        click.echo("No markdown files found to index.")
-        return
-
-    with click.progressbar(files, label="Indexing documents") as bar:
-        for file_path in bar:
-            indexer.process_file(file_path)
-
-    if output_xlsx:
-        click.echo(f"Generating XLSX index: {output_xlsx}")
-        indexer.generate_xlsx(output_xlsx)
-
-    click.echo("Generating Markdown indices...")
-    indexer.generate_markdown_indices()
+    click.echo(f"Scanning vault: {vault_dir}")
+    service.discover()
+    
+    click.echo(f"Interlinking {len(service.code_map)} unique archive codes...")
+    service.interlink_all(dry_run=dry_run, verbose=verbose)
+    
     click.echo("Done.")
 
 

@@ -15,9 +15,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize `ocrpolish/services/interlinking_service.py` with `InterlinkingService` class stub
-- [ ] T002 Create integration test file `tests/integration/test_interlink_cli.py`
-- [ ] T003 Create unit test file `tests/unit/test_interlinking_service.py`
+- [x] T001 Initialize `ocrpolish/services/interlinking_service.py` with `InterlinkingService` class stub
+- [x] T002 Create integration test file `tests/integration/test_interlink_cli.py`
+- [x] T003 Create unit test file `tests/unit/test_interlinking_service.py`
 
 ---
 
@@ -27,11 +27,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement `VaultDocument` and `ArchiveCodeMap` data structures in `ocrpolish/services/interlinking_service.py`
-- [ ] T005 Implement archive code normalization (whitespace removal) in `ocrpolish/services/interlinking_service.py`
-- [ ] T006 Implement prefix-boundary matching logic for archive codes in `ocrpolish/services/interlinking_service.py`
-- [ ] T007 Implement the first-pass discovery logic to populate `ArchiveCodeMap` from a directory in `ocrpolish/services/interlinking_service.py`
-- [ ] T008 [P] Implement link path resolution utility (Full vault path) in `ocrpolish/services/interlinking_service.py`
+- [x] T004 Implement `VaultDocument` and `ArchiveCodeMap` data structures in `ocrpolish/services/interlinking_service.py`
+- [x] T005 Implement archive code normalization (whitespace removal) in `ocrpolish/services/interlinking_service.py`
+- [x] T006 Implement prefix-boundary matching logic for archive codes in `ocrpolish/services/interlinking_service.py`
+- [x] T007 Implement the first-pass discovery logic to populate `ArchiveCodeMap` from a directory in `ocrpolish/services/interlinking_service.py`
+- [x] T008 [P] Implement link path resolution utility (Full vault path) in `ocrpolish/services/interlinking_service.py`
 
 **Checkpoint**: Foundation ready - the system can now map archive codes to files.
 
@@ -45,17 +45,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Unit test for reference resolution with language fallback in `tests/unit/test_interlinking_service.py`
-- [ ] T010 [P] [US1] Unit test for metadata callout table modification in `tests/unit/test_interlinking_service.py`
+- [x] T009 [P] [US1] Unit test for reference resolution with language fallback in `tests/unit/test_interlinking_service.py`
+- [x] T010 [P] [US1] Unit test for metadata callout table modification in `tests/unit/test_interlinking_service.py`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement regex for identifying and extracting the `[!info] Metadata` callout in `ocrpolish/services/interlinking_service.py`
-- [ ] T012 [US1] Implement reference resolution logic (Current -> English -> Any) in `InterlinkingService`
-- [ ] T013 [US1] Implement idempotency for metadata links (replace existing links instead of nesting) in `ocrpolish/services/interlinking_service.py`
-- [ ] T014 [US1] Implement in-place file update logic for the metadata callout in `ocrpolish/services/interlinking_service.py`
-- [ ] T015 [US1] Add the `interlink` command to `ocrpolish/cli.py` and integrate it with `InterlinkingService`
-- [ ] T016 [US1] Implement silent ignoring of dangling references (FR-011) in `ocrpolish/services/interlinking_service.py`
+- [x] T011 [US1] Implement regex for identifying and extracting the `[!info] Metadata` callout in `ocrpolish/services/interlinking_service.py`
+- [x] T012 [US1] Implement reference resolution logic (Current -> English -> Any) in `InterlinkingService`
+- [x] T013 [US1] Implement idempotency for metadata links (replace existing links instead of nesting) in `ocrpolish/services/interlinking_service.py`
+- [x] T014 [US1] Implement in-place file update logic for the metadata callout in `ocrpolish/services/interlinking_service.py`
+- [x] T015 [US1] Add the `interlink` command to `ocrpolish/cli.py` and integrate it with `InterlinkingService`
+- [x] T016 [US1] Implement silent ignoring of dangling references (FR-011) in `ocrpolish/services/interlinking_service.py`
 
 **Checkpoint**: User Story 1 (MVP) is functional. Vault documents now have clickable metadata references.
 
@@ -69,14 +69,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Unit test for longest-match priority in body text in `tests/unit/test_interlinking_service.py`
-- [ ] T018 [P] [US2] Unit test for prefix-boundary matching in body text in `tests/unit/test_interlinking_service.py`
+- [x] T017 [P] [US2] Unit test for longest-match priority in body text in `tests/unit/test_interlinking_service.py`
+- [x] T018 [P] [US2] Unit test for prefix-boundary matching in body text in `tests/unit/test_interlinking_service.py`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement body text scanning logic using sorted (by length) known archive codes in `ocrpolish/services/interlinking_service.py`
-- [ ] T020 [US2] Implement link replacement for body text with idempotency (no nesting) in `ocrpolish/services/interlinking_service.py`
-- [ ] T021 [US2] Ensure link resolution in body uses the same fallback logic as metadata in `ocrpolish/services/interlinking_service.py`
+- [x] T019 [US2] Implement body text scanning logic using sorted (by length) known archive codes in `ocrpolish/services/interlinking_service.py`
+- [x] T020 [US2] Implement link replacement for body text with idempotency (no nesting) in `ocrpolish/services/interlinking_service.py`
+- [x] T021 [US2] Ensure link resolution in body uses the same fallback logic as metadata in `ocrpolish/services/interlinking_service.py`
 
 **Checkpoint**: User Story 2 is functional. "Deep" interlinking within the document text is active.
 
@@ -90,12 +90,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T022 [P] [US3] Unit test for `language_versions` row insertion and conditional omission in `tests/unit/test_interlinking_service.py`
+- [x] T022 [P] [US3] Unit test for `language_versions` row insertion and conditional omission in `tests/unit/test_interlinking_service.py`
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Implement `language_versions` data retrieval from `ArchiveCodeMap` in `InterlinkingService`
-- [ ] T024 [US3] Implement logic to insert the `language_versions` row into the Metadata table (FR-008) in `ocrpolish/services/interlinking_service.py`
+- [x] T023 [US3] Implement `language_versions` data retrieval from `ArchiveCodeMap` in `InterlinkingService`
+- [x] T024 [US3] Implement logic to insert the `language_versions` row into the Metadata table (FR-008) in `ocrpolish/services/interlinking_service.py`
 
 **Checkpoint**: User Story 3 is functional. Multilingual documents are now cross-linked.
 
@@ -105,12 +105,12 @@
 
 **Purpose**: Final verification, documentation, and refinement.
 
-- [ ] T025 [P] Add integration test in `tests/integration/test_interlink_cli.py` covering a full vault processing scenario
-- [ ] T026 Implement `dry-run` support to log changes without writing in `ocrpolish/cli.py` and `InterlinkingService`
-- [ ] T027 [P] Implement `verbose` logging for mapping and matching in `ocrpolish/services/interlinking_service.py`
-- [ ] T028 Final code cleanup and `ruff` linting across `ocrpolish/services/interlinking_service.py`
-- [ ] T029 Update `GEMINI.md` to include `interlink` in the Tech/Commands sections
-- [ ] T030 Validate full implementation against `specs/020-obsidian-interlink-vault/quickstart.md`
+- [x] T025 [P] Add integration test in `tests/integration/test_interlink_cli.py` covering a full vault processing scenario
+- [x] T026 Implement `dry-run` support to log changes without writing in `ocrpolish/cli.py` and `InterlinkingService`
+- [x] T027 [P] Implement `verbose` logging for mapping and matching in `ocrpolish/services/interlinking_service.py`
+- [x] T028 Final code cleanup and `ruff` linting across `ocrpolish/services/interlinking_service.py`
+- [x] T029 Update `GEMINI.md` to include `interlink` in the Tech/Commands sections
+- [x] T030 Validate full implementation against `specs/020-obsidian-interlink-vault/quickstart.md`
 
 ---
 

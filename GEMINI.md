@@ -19,6 +19,7 @@ Auto-generated from all feature plans. Last updated: 2026-02-12
 - Python 3.12 + `python-docx`, `click`, `re` (007-docx-header-footer-enhancement)
 - Python 3.12 + `click`, `ollama` (Python library), `pydantic`, `pyyaml` (008-ollama-metadata-extraction)
 - Filesystem (recursive input/output directory mirroring) (008-ollama-metadata-extraction)
+- Python 3.12 + `PyYAML`, `re` (stdlib) (020-obsidian-interlink-vault)
 
 - Python 3.12 + `click` (CLI), `pathlib` (filesystem), `typing` (type hints) (001-ocr-post-processing)
 
@@ -32,6 +33,13 @@ tests/
 ## Commands
 
 cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+
+- `ocrpolish clean <input_dir> <output_dir>`: Wrap and filter OCR files.
+- `ocrpolish metadata <input_dir> <output_dir>`: Extract metadata using LLM.
+- `ocrpolish obsidian <input_dir> <output_dir> --template-dir <template_dir>`: Generate Obsidian vault.
+- `ocrpolish index <input_dir> <output_dir>`: Index metadata and generate citations.
+- `ocrpolish tag <input_dir> <output_dir> --taxonomy <taxonomy_yaml> --tags <tags_yaml>`: Apply tagging system.
+- `ocrpolish interlink <vault_dir>`: Post-process vault for cross-linking (020).
 
 ## Code Style
 
