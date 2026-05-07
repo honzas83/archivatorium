@@ -1,11 +1,12 @@
-import os
-from pathlib import Path
-from click.testing import CliRunner
-from ocrpolish.cli import cli
-from ocrpolish.utils.metadata import parse_frontmatter
 from unittest.mock import patch
+
+from click.testing import CliRunner
+
+from ocrpolish.cli import cli
 from ocrpolish.models.metadata import MetadataSchema
+from ocrpolish.utils.metadata import parse_frontmatter
 from tests.unit.test_ollama_client import create_mock_ollama_response
+
 
 def test_mirroring_pdf_subdirectory(tmp_path):
     input_dir = tmp_path / "input"

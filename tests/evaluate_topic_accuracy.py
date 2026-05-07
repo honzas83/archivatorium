@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @click.argument("input_file", type=click.Path(exists=True, path_type=Path))
 @click.option("-h", "--hierarchy-file", required=True, type=click.Path(exists=True, path_type=Path))
 @click.option("--model", default="gemma4:26b")
-def evaluate(input_file: Path, hierarchy_file: Path, model: str):
+def evaluate(input_file: Path, hierarchy_file: Path, model: str) -> None:
     """Simple evaluation script to compare extraction methods."""
     client = OllamaClient(model=model)
     content = input_file.read_text(encoding="utf-8")

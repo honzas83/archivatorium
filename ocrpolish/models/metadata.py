@@ -82,3 +82,38 @@ class MetadataSchema(BaseModel):
 
 class LastDateSchema(BaseModel):
     date: str = Field("", description="The document date in ISO 8601 format (YYYY-MM-DD).")
+
+
+class TopicResult(BaseModel):
+    """A topic assignment with its reasoning."""
+    topic: str = Field(..., description="The hierarchical topic tag (e.g., 'Category/Topic').")
+    reason: str = Field(..., description="Brief reason for assigning this topic.")
+
+
+class WindowTaggingResult(BaseModel):
+    """Raw output from the LLM for a single chunk or entire document pass."""
+
+    conceptual_tags: list[str] = Field(
+        default_factory=list,
+        description="Flat tags from USEFUL_TAGS.yaml or new canonical forms. Max 10.",
+    )
+    entity_tags: list[str] = Field(
+        default_factory=list,
+        description="Hierarchical tags: State/X, Org/X, City/State/City, Person/X.",
+    )
+    topic_tags: list[TopicResult] = Field(
+        default_factory=list,
+        description="List of hierarchical taxonomy topics with their reasons. Max 5.",
+    )
+
+
+class AggregatedTaggingResult(BaseModel):
+    """Final deduplicated and suppressed result for the entire document."""
+
+    conceptual_tags: list[str] = Field(
+        default_factory=list, description="Top 15 frequency-weighted, suppressed flat tags."
+    )
+    entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
+    topic_tags: list[TopicResult] = Field(
+        default_factory=list, description="Set union of all topics with best available reasons."
+    )

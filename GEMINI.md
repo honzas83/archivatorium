@@ -35,9 +35,18 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 
 ## Code Style
 
-Python 3.12: Follow standard conventions
+Python 3.12: Follow standard conventions.
+
+### Metadata & Tagging Constraints
+- **Obsidian Compatibility**: All generated tags (Conceptual, Entity, Topic) MUST be Obsidian-safe.
+    - **Hyphenation**: Spaces and non-alphanumeric characters are replaced with hyphens (e.g., `Nuclear-Deterrence`).
+    - **Casing**: Original casing is preserved.
+    - **Consistency**: Taxonomy categories/topics and useful tags are preprocessed using the same normalization.
+- **Acronym Preservation**: Generic acronyms (all-caps) must be preserved during Title Case conversion.
+- **Two-pass Architecture**: Pass 1 for metadata, Pass 2 for tagging.
 
 ## Recent Changes
+- 018-tagging-system: Implemented three-tiered precision tagging (Conceptual, Entity, Topic) using a dynamic two-pass architecture.
 - 008-ollama-metadata-extraction: Added Python 3.12 + `click`, `ollama` (Python library), `pydantic`, `pyyaml`
 - 007-docx-header-footer-enhancement: Added Python 3.12 + `python-docx`, `click`, `re`
 - 006-docx-header-footer: Added Python 3.12 + `python-docx`, `re`, `collections.Counter`
@@ -49,6 +58,6 @@ Python 3.12: Follow standard conventions
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
-at specs/017-preserve-metadata-structure/plan.md
+shell commands, and other important information, read the current plan:
+[specs/018-tagging-system/plan.md](specs/018-tagging-system/plan.md)
 <!-- SPECKIT END -->

@@ -15,7 +15,7 @@ class TestMetadataUtils(unittest.TestCase):
             (
                 "Complex Name (With Parens)",
                 "Topic!",
-                "#Complex-Name-(With-Parens)/Topic!",
+                "#Complex-Name-With-Parens/Topic",
             ),
         ]
         for cat, topic, expected in cases:

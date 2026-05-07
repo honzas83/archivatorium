@@ -8,7 +8,8 @@ from ocrpolish.data_model import ProcessingConfig
 from ocrpolish.processor_metadata import MetadataProcessor
 from ocrpolish.services.indexing_service import IndexingService
 from ocrpolish.services.ollama_client import OllamaClient
-from ocrpolish.services.topics_service import TopicExtractor
+from ocrpolish.services.tagging_service import TaggingService
+from ocrpolish.services.windowing_service import SlidingWindowService
 from ocrpolish.utils.logging import setup_logging
 from ocrpolish.utils.metadata import mirror_file
 
@@ -139,9 +140,16 @@ def clean(
     help="Optional path to a YAML topic hierarchy for topic extraction.",
 )
 @click.option(
-    "--flat-topics",
-    is_flag=True,
-    help="Perform single-step flat topic extraction instead of two-step.",
+    "--tags-file",
+    "-t",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Optional path to a YAML file containing useful tags.",
+)
+@click.option(
+    "--flat-topics/--hierarchical-topics",
+    default=False,
+    help="Whether to use flat topic extraction. (Default: hierarchical)",
 )
 def metadata(  # noqa: PLR0913
     input_dir: Path,
@@ -154,17 +162,21 @@ def metadata(  # noqa: PLR0913
     vault_root: Path | None,
     pdf_dir: Path | None,
     hierarchy_file: Path | None,
+    tags_file: Path | None,
     flat_topics: bool,
 ) -> None:
     """Extracts metadata from Markdown files using a local Ollama instance."""
     client = OllamaClient(model=model, host=ollama_url)
     
-    topic_extractor = None
+    tagging_service = None
     if hierarchy_file:
-        topic_extractor = TopicExtractor(
-            client, 
-            hierarchy_file, 
-            flat_mode=flat_topics
+        windowing_service = SlidingWindowService()
+        tagging_service = TaggingService(
+            ollama_client=client,
+            windowing_service=windowing_service,
+            themes_path=hierarchy_file,
+            useful_tags_path=tags_file,
+            flat_mode=flat_topics,
         )
 
     processor = MetadataProcessor(
@@ -173,7 +185,7 @@ def metadata(  # noqa: PLR0913
         overwrite=overwrite, 
         vault_root=vault_root, 
         pdf_dir=pdf_dir,
-        topic_extractor=topic_extractor,
+        tagging_service=tagging_service,
         input_dir=input_dir
     )
 

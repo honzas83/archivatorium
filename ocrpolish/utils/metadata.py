@@ -6,9 +6,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore
+import yaml
 
 from ocrpolish.data_model import PageMetadata
+from ocrpolish.utils.nlp import normalize_tag_component
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
@@ -107,13 +108,6 @@ def normalize_obsidian_tags(tags: list[str]) -> list[str]:
         if clean_tag:
             normalized.append(clean_tag)
     return normalized
-
-
-def normalize_tag_component(component: str) -> str:
-    """
-    Normalizes a tag component by stripping whitespace and replacing spaces with hyphens.
-    """
-    return component.strip().replace(" ", "-")
 
 
 def format_hierarchical_tag(category: str, *topics: str) -> str:
