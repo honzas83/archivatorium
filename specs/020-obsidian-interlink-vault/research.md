@@ -29,6 +29,14 @@
 - **Language Versions**: Insert a new row `| ≡&nbsp;language_versions: | ... |` immediately after the `language:` row.
 - **Rationale**: Complies with the requirement to NOT modify YAML frontmatter.
 
+### 5. Idempotency & Link Replacement
+- **Decision**: Use regex that accounts for existing Markdown links when matching archive codes in the body and callout table.
+- **Logic**:
+    - Before wrapping an archive code in a link, check if it's already part of a Markdown link `[Title](Path)`.
+    - If it is, replace the entire link structure with the new resolved link.
+    - Specifically for the "Metadata" callout table, the replacement should be surgical within the cell content.
+- **Rationale**: Prevents link nesting and ensures that if a document's path or language fallback changes, the vault can be updated by re-running the command.
+
 ## Technical Details
 
 - **Regex for Metadata Callout**: `^> \[!info\] Metadata.*?(?=\n\n|\n[^>])` (multi-line, dotall).

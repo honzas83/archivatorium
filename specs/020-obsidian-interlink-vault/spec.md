@@ -11,8 +11,9 @@
 - Q: Should the subcommand provide a report or log of archive codes that were referenced but could not be resolved to a file? → A: Ignore unresolved codes silently (Option C), as the archive may be partially processed or references may point outside the collection.
 - Q: If an archive_code exists in only one language, should the language_versions: field still be added or omitted? → A: Add language_versions: only if at least one other version exists (Option B).
 - Q: When multiple documents match a reference in the body text (one being a prefix of others), which one should be prioritized? → A: Prioritize the longest matching archive_code (Option A).
-
 - Q: Should the system preserve the original (non-linked) references: in a separate field or is a permanent replacement sufficient? → A: Replace references: with links and put language_versions: ONLY into the table in the "Metadata" callout block in the body; do NOT modify the YAML frontmatter (Option C).
+- Q: Should the links be generated as simple filenames or should they include the relative path from the current file? → A: Full vault path: `[Title](folder/subfolder/Filename.md)` (Option C).
+- Q: How should the system handle repeated executions on the same vault? → A: The command MUST be idempotent. It MUST NOT nest links (e.g., `[[Code](path)](path)`). Instead, it MUST detect and replace existing links to known archive codes with fresh links based on the current mapping.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -63,7 +64,7 @@ As a reader, I want occurrences of archive codes within the text of a document t
 
 - **Multiple Language Fallback**: If a reference target exists in multiple languages but not the current document's language, the system MUST prioritize English, then any other available language.
 - **Prefix Collision**: `DPC/D(69)5` should NOT match `DPC/D(69)58` (prefix must end at a boundary).
-- **Inplace Safety**: Ensure that if the command is run multiple times, it doesn't double-link or corrupt the files.
+- **Idempotency (Repeated Runs)**: The system MUST NOT create nested links (e.g., `[[CODE](path)](path)`) if run multiple times. It MUST replace existing archive code links with updated ones.
 - **Spaces in Archive Codes**: Archive codes in files might have spaces, but matching must use a normalized version (no spaces).
 
 ## Requirements *(mandatory)*
@@ -81,6 +82,7 @@ As a reader, I want occurrences of archive codes within the text of a document t
 - **FR-009**: System MUST NOT modify the YAML frontmatter of the documents.
 - **FR-010**: System MUST perform all modifications "inplace" on the existing Markdown files.
 - **FR-011**: System MUST silently ignore archive codes that cannot be resolved to any file in the vault (no error reporting for dangling references).
+- **FR-012**: System MUST be idempotent. It MUST detect existing Markdown links to archive codes and replace them rather than nesting new links within them.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -99,5 +101,4 @@ As a reader, I want occurrences of archive codes within the text of a document t
 - **SC-002**: 100% of documents with multiple language versions have the `language_versions` row in the Metadata callout correctly populated with cross-links.
 - **SC-003**: No broken links are generated (all generated links MUST point to an existing file in the vault).
 - **SC-004**: Archive code matching avoids false positives by adhering to prefix-boundary rules (0% incorrect partial matches).
-lt).
-- **SC-004**: Archive code matching avoids false positives by adhering to prefix-boundary rules (0% incorrect partial matches).
+- **SC-005**: Repeated execution results in 0% nested links.
