@@ -10,11 +10,13 @@ T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
+OLLAMA_TIMEOUT = 300.0
+
 
 class OllamaClient:
     def __init__(self, model: str = "gemma4:26b", host: str = "http://localhost:11434"):
         self.model = model
-        self.client = Client(host=host)
+        self.client = Client(host=host, timeout=OLLAMA_TIMEOUT)
 
     def extract_structured(
         self, prompt: str, schema: type[T], retries: int = 3, model: str | None = None, **kwargs: Any

@@ -216,9 +216,16 @@ def tag(input_dir: Path, output_dir: Path, mask: str, taxonomy: Path, tags: Path
 @click.option("--dry-run", is_flag=True, help="If set, logs changes without writing to files.")
 @click.option("--verbose", is_flag=True, help="Show detailed matching logs.")
 @click.option("--force", is_flag=True, help="Regenerate all links, even if they already exist.")
-def interlink(vault_dir: Path, dry_run: bool, verbose: bool, force: bool) -> None:
+@click.option(
+    "--unifications",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to custom unification rules YAML.",
+)
+def interlink(
+    vault_dir: Path, dry_run: bool, verbose: bool, force: bool, unifications: Path | None
+) -> None:
     """Post-processes a generated Obsidian vault in-place to interlink documents."""
-    service = InterlinkingService(vault_dir)
+    service = InterlinkingService(vault_dir, unifications_path=unifications)
     
     click.echo(f"Scanning vault: {vault_dir}")
     service.discover()

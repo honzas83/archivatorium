@@ -10,10 +10,11 @@ def test_service_initialization() -> None:
     assert service.code_map == {}
     assert service.bibtex_map == {}
 
-def test_normalize_code() -> None:
-    assert InterlinkingService.normalize_code("DPC / D (69) 58") == "DPC/D(69)58"
-    assert InterlinkingService.normalize_code("CODE-123") == "CODE/123"
-    assert InterlinkingService.normalize_code("") == ""
+def test_normalize_code(tmp_path) -> None:
+    service = InterlinkingService(tmp_path)
+    assert service.normalize_code("DPC / D (69) 58") == "DPC/D(69)58"
+    assert service.normalize_code("CODE-123") == "CODE/123"
+    assert service.normalize_code("") == ""
 
 def test_resolve_link_priority():
     service = InterlinkingService(Path("/tmp"))

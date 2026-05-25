@@ -9,7 +9,6 @@ from ocrpolish.data_model import (
     TAG_PREFIX_ENTITY,
     TAG_PREFIX_TAG,
     TAG_PREFIX_TOPIC,
-    PageMetadata,
 )
 from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
 from ocrpolish.services.ollama_client import OllamaClient

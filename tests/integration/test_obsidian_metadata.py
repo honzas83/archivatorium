@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ocrpolish.data_model import TAG_PREFIX_ENTITY
 from ocrpolish.cli import cli
+from ocrpolish.data_model import TAG_PREFIX_ENTITY
 from ocrpolish.models.metadata import MetadataSchema
 from ocrpolish.utils.metadata import parse_frontmatter
 

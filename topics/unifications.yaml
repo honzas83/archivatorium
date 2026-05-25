@@ -1,0 +1,38 @@
+# ARCHIVE CODE UNIFICATION RULES
+# ------------------------------
+# This file defines rules to normalize archive codes across the vault.
+# These rules are applied GLOBALLY to all archive code strings found in
+# both frontmatter and document bodies during the 'interlink' command.
+#
+# HOW TO ADD RULES:
+# 1. Add a new entry under the 'unifications' list.
+# 2. 'pattern': A Regular Expression (regex) matching the variant.
+#    - Escape backslashes for YAML (e.g., use '\\(' for a literal '(').
+#    - Rules are applied CASE-INSENSITIVELY automatically.
+# 3. 'replacement': The literal string that should replace the match.
+#
+# GUIDELINES:
+# - Precedence: Rules are applied in the order they appear in this file.
+# - Scope: Rules are applied BEFORE standard normalization (whitespace removal, 
+#   '/' vs '-' equivalence). Include spaces or separators in patterns if they 
+#   appear in the raw OCR text.
+# - Maintenance: Only add OCR typos (prefixes like 'NGP' or 'NFG') if they 
+#   occur 5 times or more in the actual dataset to avoid over-normalization.
+# - Testing: Use 'tests/unit/test_normalization_rules.py' to verify new logic.
+
+unifications:
+  # Staff Group unifications (handles variants like 'Staff-Group', 'ST ff Group', etc.)
+  - pattern: "\\(St[af\\.]*f[ -]?Group\\)"
+    replacement: "(SG)"
+  
+  # Study Group unifications (handles 'Study/', 'Study Group', and French 'Etude')
+  - pattern: "[/-]?(?:Study|Etude|Étude)(?:[ -]?Group)?(?=[(/ -]|$)"
+    replacement: "(STUDY)"
+    
+  # Prefix typos for NPG (Common OCR variations, >= 5 occurrences verified)
+  - pattern: "(?<![a-zA-Z0-9])(?:NGP|NPC|UPG|NFG|NCG|NEG|MFG|JPG|MPQ|MYC|NGF|NFC|PCN|NG|IPG)(?=[(/ -])"
+    replacement: "NPG"
+
+  # Series typos (unifies Working Paper / Working File variants into standard WP)
+  - pattern: "(?<=[(/ -])(?:VP|NP|WF|NT)(?=[(/ -]|$)"
+    replacement: "WP"

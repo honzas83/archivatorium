@@ -19,7 +19,8 @@ def test_format_hierarchical_tag() -> None:
 
 def test_extract_last_page_header() -> None:
     content = "# Page 1\nSome text\n# Page 5\nMore text"
-    assert extract_last_page_header(content) == 5
+    # New logic: count of headers, so 2
+    assert extract_last_page_header(content) == 2
     assert extract_last_page_header("No pages here") is None
 
 

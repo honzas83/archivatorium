@@ -20,22 +20,72 @@ class VaultDocument:
 
 class InterlinkingService:
     """Service for interlinking documents in an Obsidian vault."""
-    
-    def __init__(self, vault_dir: Path):
+
+    def __init__(self, vault_dir: Path, unifications_path: Path | None = None):
         self.vault_dir = vault_dir
         self.code_map: dict[str, dict[str, str]] = {} # normalized_code -> {lang: relative_path}
         self.bibtex_map: dict[str, dict[str, str]] = {} # bibtex_key -> {lang: filename}
         self.bib_to_norm: dict[str, str] = {} # bibtex_key -> normalized_code
+        self.unifications: list[dict[str, str]] = self._load_unifications(unifications_path)
+        self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
 
-    @staticmethod
-    def normalize_code(code: str) -> str:
-        """Removes all whitespace and treats / and - as equivalent."""
+    def _load_unifications(self, custom_path: Path | None = None) -> list[dict[str, str]]:
+        """Loads unification rules from topics/unifications.yaml or a custom path."""
+        unif_path = custom_path or Path("topics/unifications.yaml")
+        if not unif_path.exists():
+            if custom_path:
+                logger.warning(f"Custom unification rules not found at {unif_path}")
+            else:
+                logger.debug(f"Default unification rules not found at {unif_path}")
+            return []
+
+        try:
+            with open(unif_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                return data.get("unifications", [])
+        except Exception as e:
+            logger.warning(f"Could not load unification rules: {e}")
+            return []
+
+
+    def _build_expansion_map(self) -> dict[str, list[str]]:
+        """
+        Builds a map from canonical replacement to a list of variant patterns.
+        Used to expand search regexes in body text.
+        """
+        expansion: dict[str, list[str]] = {}
+        for rule in self.unifications:
+            replacement = rule.get("replacement")
+            pattern = rule.get("pattern")
+            if replacement and pattern:
+                if replacement not in expansion:
+                    expansion[replacement] = []
+                expansion[replacement].append(pattern)
+        return expansion
+
+    def normalize_code(self, code: str) -> str:
+        """
+        Removes all whitespace and treats / and - as equivalent.
+        Applies global unification rules first.
+        """
         if not code:
             return ""
-        # Remove whitespace
-        code = re.sub(r"\s+", "", str(code))
-        # Treat / and - as same for lookup
-        return code.replace("-", "/")
+            
+        # 1. Apply global unification rules (regex)
+        normalized = str(code)
+        for rule in self.unifications:
+            pattern = rule.get("pattern")
+            replacement = rule.get("replacement")
+            if pattern and replacement is not None:
+                try:
+                    normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+                except Exception as e:
+                    logger.warning(f"Failed to apply unification rule '{pattern}': {e}")
+
+        # 2. Standard normalization: Remove whitespace
+        normalized = re.sub(r"\s+", "", normalized)
+        # 3. Standard normalization: Treat / and - as same for lookup
+        return normalized.replace("-", "/")
 
     def resolve_link(self, target_code: str, source_lang: str) -> str | None:
         """
@@ -193,9 +243,9 @@ class InterlinkingService:
         lang_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language(?:\*\*)?: \|")
         lang_versions_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language_versions(?:\*\*)?: \|")
         refs_re = re.compile(r"^(\s*> \| ☰&nbsp;(?:\*\*)?references(?:\*\*)?: \| )(.*)( \|)$")
-        intent_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?intent(?:\*\*)?: \|")
 
         for row in rows:
+
             # Skip existing language_versions row if present (idempotency)
             if lang_versions_re.match(row):
                 continue
@@ -321,14 +371,38 @@ class InterlinkingService:
         # Build a single regex to match either any existing link or any archive code
         # For codes, we allow /, -, and spaces interchangeably and optionally
         def make_flexible(c: str) -> str:
-            # 1. re.escape handles parentheses and other special chars
-            escaped = re.escape(c)
-            # 2. Replace escaped or unescaped / and - with [/ \-]*
-            # Use raw strings and handle both escaped and unescaped versions
-            s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", escaped)
-            # 3. Add optional [/ \-]* around parentheses to handle "NPG/D(73)/15" or "NPG (73)"
+            # 1. Expand canonical parts to include variants from expansion_map
+            expanded = c
+            placeholders = {}
+            # Sort expansion map by key length descending to avoid partial matches
+            for canonical, variants in sorted(self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True):
+                if canonical in expanded:
+                    # Escape the canonical part for regex
+                    esc_canonical = re.escape(canonical)
+                    # Join with variants (which are already regex patterns)
+                    all_variants = [esc_canonical] + variants
+                    # Create a non-capturing group
+                    group = f"(?:{'|'.join(all_variants)})"
+                    
+                    # Use a placeholder to protect this group from further escaping
+                    ph = f"___GROUP{len(placeholders)}___"
+                    placeholders[ph] = group
+                    expanded = expanded.replace(canonical, ph)
+
+            # 2. re.escape handles parentheses and other special chars
+            s = re.escape(expanded)
+            
+            # 3. Replace escaped or unescaped / and - with [/ \-]*
+            s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", s)
+            # Add optional [/ \-]* around parentheses to handle "NPG/D(73)/15" or "NPG (73)"
             s = s.replace(r"\(", r"[/ \\-]*\(").replace(r"\)", r"\)[/ \\-]*")
-            # 4. Collapse multiple identical patterns to keep it clean
+            
+            # 4. Restore placeholders
+            for ph, group in placeholders.items():
+                # We need to escape the placeholder because re.escape was applied to it
+                s = s.replace(re.escape(ph), group)
+            
+            # 5. Collapse multiple identical patterns to keep it clean
             while "[/ \\-]*[/ \\-]*" in s:
                 s = s.replace("[/ \\-]*[/ \\-]*", "[/ \\-]*")
             return s

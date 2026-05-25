@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ocrpolish.data_model import TAG_PREFIX_TOPIC
 from ocrpolish.cli import cli
+from ocrpolish.data_model import TAG_PREFIX_TOPIC
 from ocrpolish.models.metadata import MetadataSchema, WindowTaggingResult
 
 

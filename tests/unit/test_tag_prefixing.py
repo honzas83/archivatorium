@@ -1,4 +1,4 @@
-from ocrpolish.data_model import TAG_PREFIX_TOPIC, TAG_PREFIX_ENTITY, TAG_PREFIX_TAG
+from ocrpolish.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
 from ocrpolish.utils.metadata import prefix_tag
 
 

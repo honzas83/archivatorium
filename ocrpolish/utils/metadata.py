@@ -198,12 +198,10 @@ def extract_page_number(line: str) -> int | None:
 
 def extract_last_page_header(content: str) -> int | None:
     """
-    Extracts the page number from the last header matching '# Page [Number]'.
+    Extracts the total page count by counting occurrences of '# Page [Number]'.
     """
-    matches = re.findall(r"^# Page (\d+)", content, re.MULTILINE)
-    if matches:
-        return int(matches[-1])
-    return None
+    matches = re.findall(r"^# Page \d+", content, re.MULTILINE)
+    return len(matches) if matches else None
 
 
 def extract_abstract_tags(content: str) -> list[str]:
