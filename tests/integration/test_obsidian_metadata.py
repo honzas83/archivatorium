@@ -164,8 +164,6 @@ def test_substantive_output_includes_tags_section(
             "Nuclear-Planning",
             "Consultation-Procedures",
             "Nuclear-Release",
-            "Deterrence-Strategy",
-            "Operational-Doctrine",
         ],
         entity_tags=["Org/NATO"],
         topic_tags=[],
@@ -192,7 +190,7 @@ def test_substantive_output_includes_tags_section(
     assert result.exit_code == 0
     body = parse_frontmatter((output_dir / "test.md").read_text())[1]
     assert "## Tags" in body
-    assert body.count("#Tags/") >= 5
+    assert body.count("#Tags/") >= 3
 
 
 @patch("ollama.Client.chat")

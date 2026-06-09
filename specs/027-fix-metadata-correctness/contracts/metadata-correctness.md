@@ -29,7 +29,7 @@ For each enriched Markdown source:
 - Generated summaries, abstracts, metadata tables, citation blocks, old frontmatter tags, and legacy mentioned fields are excluded from LLM prompt source text.
 - The initial tagging request extracts topics, entities, and conceptual tags together.
 - Conceptual tag requirements are visible in the prompt and structured output schema.
-- For substantive documents, the initial tagging result must include at least five conceptual tags.
+- For substantive documents, the initial tagging result must include at least three conceptual tags.
 - Conceptual tags may be hierarchical canonical paths under `#Tags/...`, including values such as `#Tags/WINTEX/73`.
 - Hierarchical conceptual tag paths must be parsed, counted, rendered, indexed, and exported with the full path preserved.
 - Empty conceptual tags are accepted only for deterministically non-substantive administrative stubs.

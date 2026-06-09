@@ -76,18 +76,18 @@
 
 **Goal**: The initial tagging pass requires conceptual tag paths for substantive documents, validates undersized results as quality failures, uses resume hints directly, preserves hierarchical `#Tags/...` values, and preserves useful conceptual vocabulary.
 
-**Independent Test**: Process substantive source fixtures and verify successful outputs include at least five justified conceptual tags; missing, omitted, empty, or undersized conceptual tags fail before incomplete output is accepted.
+**Independent Test**: Process substantive source fixtures and verify successful outputs include at least three justified conceptual tags; missing, omitted, empty, or undersized conceptual tags fail before incomplete output is accepted.
 
 ### Tests for User Story 2
 
-- [X] T025 [P] [US2] Add schema test proving substantive initial tagging requires explicit `conceptual_tags` with at least five items in `tests/unit/test_tagging_service.py`
+- [X] T025 [P] [US2] Add schema test proving substantive initial tagging requires explicit `conceptual_tags` with at least three items in `tests/unit/test_tagging_service.py`
 - [X] T026 [P] [US2] Add prompt test proving mandatory conceptual tag wording replaces permissive `Up to` wording in `tests/unit/test_tagging_service.py`
-- [X] T027 [P] [US2] Add validation tests for omitted, empty, and fewer-than-five conceptual tags on substantive text in `tests/unit/test_tagging_service.py`
+- [X] T027 [P] [US2] Add validation tests for omitted, empty, and fewer-than-three conceptual tags on substantive text in `tests/unit/test_tagging_service.py`
 - [X] T028 [P] [US2] Add tests for deterministic non-substantive administrative-stub classification in `tests/unit/test_tagging_service.py`
 - [X] T029 [P] [US2] Add tests proving short substantive policy, organizational, procedural, exercise, command, weapon, and reference texts are substantive in `tests/unit/test_tagging_service.py`
 - [X] T030 [P] [US2] Add tests proving resume conceptual counters, entity counters, and topic counters appear as category-specific tagging hints in `tests/unit/test_tagging_service.py`
 - [X] T031 [P] [US2] Add duplicate-suppression tests proving generic vocabulary-driven preservation of useful conceptual terms, acronyms, exercise names, and hierarchical conceptual paths in `tests/unit/test_nlp_normalization.py`
-- [X] T032 [P] [US2] Add integration test proving a substantive generated output includes a `## Tags` section with at least five `#Tags/...` values in `tests/integration/test_obsidian_metadata.py`
+- [X] T032 [P] [US2] Add integration test proving a substantive generated output includes a `## Tags` section with at least three `#Tags/...` values in `tests/integration/test_obsidian_metadata.py`
 - [X] T033 [P] [US2] Add integration test proving tagging-quality failures do not write incomplete outputs without a `## Tags` section in `tests/integration/test_obsidian_metadata.py`
 
 ### Implementation for User Story 2
@@ -227,9 +227,9 @@ Task: "T019 [P] [US1] Add regression test proving tags found only in generated i
 ### User Story 2
 
 ```text
-Task: "T025 [P] [US2] Add schema test proving substantive initial tagging requires explicit conceptual_tags with at least five items in tests/unit/test_tagging_service.py"
+Task: "T025 [P] [US2] Add schema test proving substantive initial tagging requires explicit conceptual_tags with at least three items in tests/unit/test_tagging_service.py"
 Task: "T031 [P] [US2] Add duplicate-suppression tests proving generic vocabulary-driven preservation of useful conceptual terms, acronyms, exercise names, and hierarchical conceptual paths in tests/unit/test_nlp_normalization.py"
-Task: "T032 [P] [US2] Add integration test proving a substantive generated output includes a ## Tags section with at least five #Tags/... values in tests/integration/test_obsidian_metadata.py"
+Task: "T032 [P] [US2] Add integration test proving a substantive generated output includes a ## Tags section with at least three #Tags/... values in tests/integration/test_obsidian_metadata.py"
 ```
 
 ### User Story 3
@@ -268,7 +268,7 @@ Task: "T060 [P] [US4] Add metadata dry-run integration test proving no vault tem
 ### Validation Gates
 
 1. US1 complete when mixed-vault fixtures show only eligible generated document outputs contribute exactly once.
-2. US2 complete when substantive documents cannot succeed without at least five conceptual tags and administrative stubs are detected deterministically.
+2. US2 complete when substantive documents cannot succeed without at least three conceptual tags and administrative stubs are detected deterministically.
 3. US3 complete when obsolete unprefixed tags populate zero canonical index or XLSX columns.
 4. US4 complete when mask limits enrichment and dry-run performs zero filesystem mutations.
 5. Feature complete when ruff, format check, flake8, mypy, pytest, and coverage gates pass.

@@ -32,11 +32,11 @@ An archivist processes substantive source documents and expects each generated o
 
 **Why this priority**: Outputs with topics and entities but no conceptual tags are incomplete and reduce search, browsing, and reuse value in the archive.
 
-**Independent Test**: Can be tested by processing substantive documents with policy, organizational, procedural, exercise, command, weapon, or reference content and verifying each successful output includes at least five justified conceptual tag paths.
+**Independent Test**: Can be tested by processing substantive documents with policy, organizational, procedural, exercise, command, weapon, or reference content and verifying each successful output includes at least three justified conceptual tag paths.
 
 **Acceptance Scenarios**:
 
-1. **Given** a substantive source document, **When** tagging succeeds, **Then** the generated output includes at least five justified conceptual tag paths and the `## Tags` section is present.
+1. **Given** a substantive source document, **When** tagging succeeds, **Then** the generated output includes at least three justified conceptual tag paths and the `## Tags` section is present.
 2. **Given** a substantive source document whose tagging result omits, empties, or undersizes conceptual tags, **When** processing validates the result, **Then** the document fails with an explicit tagging-quality error and no incomplete output is silently accepted.
 3. **Given** a genuinely non-substantive administrative stub containing only replacement, cancellation, incorporation, or equivalent bilingual boilerplate, **When** tagging validates the result, **Then** an empty conceptual tag list may be accepted.
 4. **Given** a short source that mentions substantive archival content, **When** non-substantive detection runs, **Then** short length alone does not allow empty conceptual tags.
@@ -103,11 +103,11 @@ An operator uses metadata command safety options and expects masks to limit enri
 - **FR-012**: Rebuilt topic counters MAY be passed into the tagging pass only as hints subordinate to the configured taxonomy.
 - **FR-013**: Generated summaries, abstracts, metadata tables, citation blocks, old frontmatter tags, and legacy mentioned fields MUST remain excluded from all enrichment prompts.
 - **FR-014**: Conceptual tag extraction MUST be an active required category of the initial tagging pass for substantive source documents, distinct from topic and entity extraction.
-- **FR-015**: The tagging request for substantive documents MUST make `conceptual_tags` explicit and require at least five conceptual tags.
+- **FR-015**: The tagging request for substantive documents MUST make `conceptual_tags` explicit and require at least three conceptual tags.
 - **FR-016**: The tagging request MUST NOT impose a hard maximum count for conceptual tags.
-- **FR-017**: The tagging prompt MUST state that substantive documents require at least five conceptual tags, should include every clearly justified useful conceptual tag, and may return an empty list only for non-substantive administrative stubs.
+- **FR-017**: The tagging prompt MUST state that substantive documents require at least three conceptual tags, should include every clearly justified useful conceptual tag, and may return an empty list only for non-substantive administrative stubs.
 - **FR-018**: The base tagging prompt MUST replace permissive conceptual-tag wording with mandatory substantive-document wording rather than appending a contradictory instruction.
-- **FR-019**: Parsed tagging results for substantive documents MUST fail validation when conceptual tags are omitted, empty, or fewer than five.
+- **FR-019**: Parsed tagging results for substantive documents MUST fail validation when conceptual tags are omitted, empty, or fewer than three.
 - **FR-020**: Processing MUST fail with an explicit tagging-quality error when a substantive document lacks enough conceptual tags from the initial tagging pass.
 - **FR-021**: Processing MUST NOT perform a separate conceptual-tag repair phase.
 - **FR-022**: Processing MUST NOT write or accept generated output that silently lacks the `## Tags` section for a substantive source.
@@ -151,7 +151,7 @@ An operator uses metadata command safety options and expects masks to limit enri
 
 - **SC-001**: In a mixed vault fixture, 100% of tags appearing only in generated index, template, support, hidden, spreadsheet, or sidecar files are absent from rebuilt resume counters.
 - **SC-002**: In resume fixtures with skipped outputs, every eligible generated output contributes to counters exactly once, with zero duplicate counts from preflight-plus-skip handling.
-- **SC-003**: In substantive document fixtures, 100% of successful outputs include a `## Tags` section with at least five justified canonical conceptual tag paths.
+- **SC-003**: In substantive document fixtures, 100% of successful outputs include a `## Tags` section with at least three justified canonical conceptual tag paths.
 - **SC-004**: In substantive document fixtures with missing, empty, or undersized conceptual tags, 100% of affected documents fail with an explicit tagging-quality error before incomplete output is accepted.
 - **SC-005**: In administrative-stub fixtures, 100% of empty conceptual tag acceptances are explained by deterministic non-substantive classification.
 - **SC-006**: In indexing and spreadsheet export fixtures, 0 obsolete unprefixed tags populate canonical production columns.

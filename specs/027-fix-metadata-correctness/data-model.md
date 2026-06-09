@@ -57,12 +57,12 @@ Rules that determine whether a parsed tagging result is acceptable.
 
 **Fields**:
 - `is_substantive`: Deterministic classification for the cleaned source.
-- `minimum_conceptual_tags`: Five for substantive documents.
+- `minimum_conceptual_tags`: Three for substantive documents.
 - `allow_empty_conceptual_tags`: True only for non-substantive administrative stubs.
 - `quality_error`: Explicit failure reason when the result is unacceptable.
 
 **Validation rules**:
-- Substantive documents require `conceptual_tags` to be present and contain at least five items before duplicate suppression can erase useful tags.
+- Substantive documents require `conceptual_tags` to be present and contain at least three items before duplicate suppression can erase useful tags.
 - Non-substantive classification must be deterministic and conservative.
 - Short length alone does not make a source non-substantive.
 - Uncertain sources are substantive.

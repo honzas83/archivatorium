@@ -38,8 +38,6 @@ def test_extract_tags_single_pass(mock_ollama, mock_windowing):
             "#Nuclear-Planning",
             "#Consultation-Procedures",
             "#Exercises",
-            "#Deterrence-Strategy",
-            "#Operational-Doctrine",
         ],
         entity_tags=["State/UK"],
         topic_tags=[TopicResult(topic="Category/Topic1", reason="Test reason")],
@@ -72,12 +70,12 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     # Mock results for each chunk
     mock_ollama.extract_structured.side_effect = [
         WindowTaggingResult(
-            conceptual_tags=["#T1", "#T2", "#T3", "#T4", "#T5"],
+            conceptual_tags=["#T1", "#T2", "#T3"],
             entity_tags=["E1"],
             topic_tags=[TopicResult(topic="Top1", reason="R1")],
         ),
         WindowTaggingResult(
-            conceptual_tags=["#T2", "#T6", "#T7", "#T8", "#T9"],
+            conceptual_tags=["#T2", "#T6", "#T7"],
             entity_tags=["E2"],
             topic_tags=[TopicResult(topic="Top2", reason="R2")],
         ),
@@ -221,12 +219,14 @@ def test_extract_tags_raises_quality_error_on_substantive_llm_failure(mock_ollam
     mock_ollama.extract_structured.assert_called_once()
 
 
-def test_substantive_schema_requires_five_conceptual_tags() -> None:
-    assert SubstantiveWindowTaggingResult(
-        conceptual_tags=["a", "b", "c", "d", "e"]
-    ).conceptual_tags == ["a", "b", "c", "d", "e"]
+def test_substantive_schema_requires_three_conceptual_tags() -> None:
+    assert SubstantiveWindowTaggingResult(conceptual_tags=["a", "b", "c"]).conceptual_tags == [
+        "a",
+        "b",
+        "c",
+    ]
     with pytest.raises(Exception):
-        SubstantiveWindowTaggingResult(conceptual_tags=["a", "b", "c", "d"])
+        SubstantiveWindowTaggingResult(conceptual_tags=["a", "b"])
 
 
 def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
@@ -237,12 +237,12 @@ def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
     )
     prompt = service._generate_tagging_prompt("NATO nuclear planning")
 
-    assert "Return at least 5 conceptual tags for substantive documents" in prompt
+    assert "Return at least 3 conceptual tags for substantive documents" in prompt
     assert "include every clearly justified useful conceptual tag" in prompt
     assert "Up to 15" not in prompt
 
 
-@pytest.mark.parametrize("conceptual_tags", [[], ["a"], ["a", "b", "c", "d"]])
+@pytest.mark.parametrize("conceptual_tags", [[], ["a"], ["a", "b"]])
 def test_substantive_validation_rejects_undersized_conceptual_tags(
     mock_ollama: MagicMock, mock_windowing: MagicMock, conceptual_tags: list[str]
 ) -> None:

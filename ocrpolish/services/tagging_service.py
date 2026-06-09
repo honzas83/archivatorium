@@ -8,6 +8,7 @@ import yaml
 
 from ocrpolish.models.metadata import (
     AggregatedTaggingResult,
+    MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
     SubstantiveWindowTaggingResult,
     TopicResult,
     WindowTaggingResult,
@@ -23,9 +24,6 @@ from ocrpolish.utils.nlp import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 5
 
 
 class TaggingQualityError(RuntimeError):
@@ -304,8 +302,9 @@ class TaggingService:
             "Use format: Category/Topic. Include a brief 'reason' for each. Max 10.\n"
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
-            "3. 'conceptual_tags': Required flat, canonical tags for archivally substantive "
-            "concepts. Return at least 5 conceptual tags for substantive documents; include "
+            "3. 'conceptual_tags': Required canonical tag paths for archivally substantive "
+            f"concepts. Return at least {MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tags "
+            "for substantive documents; include "
             "every clearly justified useful conceptual tag; return an empty list only for "
             "non-substantive administrative stubs. "
             "PRIORITIZE re-using tags from the vocabularies below. Normalize exercises as Name/YY. "

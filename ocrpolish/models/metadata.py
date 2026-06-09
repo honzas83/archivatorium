@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
 
 
+MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 3
+
+
 class CorrespondenceSchema(BaseModel):
     sender: str = Field("", description="The name and/or institution of the sender.")
     recipient: str = Field("", description="The name and/or institution of the recipient.")
@@ -80,7 +83,7 @@ class WindowTaggingResult(BaseModel):
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(
-            "Flat conceptual tags from USEFUL_TAGS.yaml, resumed #Tags counters, "
+            "Canonical conceptual tag paths from USEFUL_TAGS.yaml, resumed #Tags counters, "
             "or new canonical forms justified by the source text."
         ),
     )
@@ -99,10 +102,11 @@ class SubstantiveWindowTaggingResult(WindowTaggingResult):
 
     conceptual_tags: list[str] = Field(
         ...,
-        min_length=5,
+        min_length=MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
         description=(
-            "Required for substantive documents. Return at least 5 conceptual tags; "
-            "include every clearly justified useful conceptual tag. Do not impose a hard maximum."
+            "Required for substantive documents. Return at least "
+            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tags; include every clearly "
+            "justified useful conceptual tag. Do not impose a hard maximum."
         ),
     )
 
@@ -114,7 +118,8 @@ class AggregatedTaggingResult(BaseModel):
         default_factory=list,
         description=(
             "Frequency-weighted, normalized, duplicate-suppressed conceptual tags. "
-            "Substantive documents must retain at least 5 useful tags."
+            "Substantive documents must retain at least "
+            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} useful tags."
         ),
     )
     entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")

@@ -27,7 +27,7 @@ pytest tests/unit/test_tagging_service.py tests/unit/test_nlp_normalization.py t
 ```
 
 Expected outcomes:
-- Substantive documents require at least five conceptual tags in the initial tagging result.
+- Substantive documents require at least three conceptual tags in the initial tagging result.
 - Missing, omitted, empty, or undersized conceptual tags fail with an explicit tagging-quality error.
 - Administrative stubs may accept empty conceptual tags only after deterministic non-substantive classification.
 - Hierarchical conceptual tags such as `#Tags/WINTEX/73` are accepted without malformed-tag warnings and preserve their full path.

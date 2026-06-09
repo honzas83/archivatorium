@@ -26,7 +26,7 @@
 
 ## Decision: Enforce conceptual tag quality in the initial tagging call
 
-**Rationale**: The failure mode is an initial tagging response with topics/entities but no conceptual tags. The prompt, structured schema, and post-parse validation must all express the same requirement: substantive documents need at least five conceptual tags. No separate repair phase is needed because it would hide the quality failure and add another LLM path.
+**Rationale**: The failure mode is an initial tagging response with topics/entities but no conceptual tags. The prompt, structured schema, and post-parse validation must all express the same requirement: substantive documents need at least three conceptual tags. No separate repair phase is needed because it would hide the quality failure and add another LLM path.
 
 **Alternatives considered**:
 - Add a conceptual-tag repair call: rejected by the feature scope and because it would accept incomplete initial tagging.
