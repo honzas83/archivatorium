@@ -10,7 +10,7 @@ from ocrpolish.data_model import (
     TAG_PREFIX_TAG,
     TAG_PREFIX_TOPIC,
 )
-from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
+from ocrpolish.models.metadata import CanonicalTags, LastDateSchema, MetadataSchema
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.tagging_service import TaggingService
 from ocrpolish.utils.metadata import (
@@ -27,6 +27,7 @@ from ocrpolish.utils.metadata import (
     safe_read_text,
     stringify_frontmatter,
 )
+from ocrpolish.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +54,15 @@ class MetadataProcessor:
         self.pdf_dir = pdf_dir
         self.tagging_service = tagging_service
         self.input_dir = input_dir
-        self.tag_counts: Counter[str] = Counter()
-        self.state_counts: Counter[str] = Counter()
-        self.org_counts: Counter[str] = Counter()
-        self.city_counts: Counter[str] = Counter()
+        self.conceptual_tag_counts: Counter[str] = Counter()
+        self.topic_counts: Counter[str] = Counter()
+        self.entity_counts: dict[str, Counter[str]] = {
+            "State": Counter(),
+            "Org": Counter(),
+            "City": Counter(),
+            "Person": Counter(),
+        }
+        self.scanned_files_tags: dict[Path, CanonicalTags] = {}
 
     def _get_pdf_link(self, input_file: Path) -> str:
         """Calculates the Obsidian-style link to the source PDF."""
@@ -176,14 +182,13 @@ class MetadataProcessor:
                 )
 
             entity_context = ""
-            top_states = [s for s, _ in self.state_counts.most_common(20)]
-            top_orgs = [o for o, _ in self.org_counts.most_common(20)]
-            top_cities = [c for c, _ in self.city_counts.most_common(20)]
+            top_states = [s for s, _ in self.entity_counts["State"].most_common(20)]
+            top_orgs = [o for o, _ in self.entity_counts["Org"].most_common(20)]
+            top_cities = [c for c, _ in self.entity_counts["City"].most_common(20)]
 
             if top_states or top_orgs or top_cities:
                 entity_context = (
-                    "\nIMPORTANT: Prioritize using these existing entities for "
-                    "consistency:\n"
+                    "\nIMPORTANT: Prioritize using these existing entities for consistency:\n"
                 )
                 if top_states:
                     entity_context += f"- States: {', '.join(top_states)}\n"
@@ -230,15 +235,7 @@ class MetadataProcessor:
 
             metadata_obj = self.client.extract_structured(prompt, MetadataSchema)
 
-            # Update counters for future consistency
-            if metadata_obj.tags:
-                self.tag_counts.update(metadata_obj.tags)
-            if metadata_obj.mentioned_states:
-                self.state_counts.update(metadata_obj.mentioned_states)
-            if metadata_obj.mentioned_organisations:
-                self.org_counts.update(metadata_obj.mentioned_organisations)
-            if metadata_obj.mentioned_cities:
-                self.city_counts.update(metadata_obj.mentioned_cities)
+            # Counters are updated downstream after the output file is written.
 
             # Convert to dict.
             raw_dict = metadata_obj.model_dump()
@@ -276,7 +273,7 @@ class MetadataProcessor:
             metadata_dict = self._prepare_obsidian_metadata(combined_raw, input_file)
 
             # User Story 2: Move title and abstract to body callout
-            # We keep title in frontmatter for searchability (as requested), 
+            # We keep title in frontmatter for searchability (as requested),
             # but move abstract exclusively to the body.
             title = metadata_dict.get("title", "")
             abstract = metadata_dict.pop("abstract", "")
@@ -295,35 +292,40 @@ class MetadataProcessor:
                         topic_list_items.append(f"- {prefixed_tag} — {norm_reason}")
 
                 if tagging_result.entity_tags:
-                    entity_tags = [prefix_tag(e, TAG_PREFIX_ENTITY) for e in tagging_result.entity_tags]
+                    entity_tags = [
+                        prefix_tag(e, TAG_PREFIX_ENTITY) for e in tagging_result.entity_tags
+                    ]
                 if tagging_result.conceptual_tags:
                     tag_list_items = [
-                        prefix_tag(t, TAG_PREFIX_TAG)
-                        for t in tagging_result.conceptual_tags
+                        prefix_tag(t, TAG_PREFIX_TAG) for t in tagging_result.conceptual_tags
                     ]
             else:
                 # Fallback to Step 1 extraction if no tagging service
                 state_fallback = states_list[0] if states_list else "Unknown"
                 default_state = metadata_dict.get("location_state") or state_fallback
                 for s in states_list:
-                    entity_tags.append(prefix_tag(format_hierarchical_tag("State", s), TAG_PREFIX_ENTITY))
+                    entity_tags.append(
+                        prefix_tag(format_hierarchical_tag("State", s), TAG_PREFIX_ENTITY)
+                    )
                 for o in orgs_list:
-                    entity_tags.append(prefix_tag(format_hierarchical_tag("Org", o), TAG_PREFIX_ENTITY))
+                    entity_tags.append(
+                        prefix_tag(format_hierarchical_tag("Org", o), TAG_PREFIX_ENTITY)
+                    )
                 for c_item in cities_list:
                     if "," in c_item:
                         city, state = [part.strip() for part in c_item.split(",", 1)]
                     else:
                         city = c_item
                         state = default_state
-                    prefixed = prefix_tag(format_hierarchical_tag("City", state, city), TAG_PREFIX_ENTITY)
+                    prefixed = prefix_tag(
+                        format_hierarchical_tag("City", state, city), TAG_PREFIX_ENTITY
+                    )
                     entity_tags.append(prefixed)
 
                 flat_tags = metadata_dict.get("tags", [])
                 if flat_tags:
-                    tag_list_items = [
-                        prefix_tag(t, TAG_PREFIX_TAG) for t in flat_tags
-                    ]
-            
+                    tag_list_items = [prefix_tag(t, TAG_PREFIX_TAG) for t in flat_tags]
+
             # Group entities by type for the callout
             entity_section_body = ""
             if entity_tags:
@@ -332,43 +334,43 @@ class MetadataProcessor:
                     "City": "Cities",
                     "Org": "Organisations",
                     "Person": "Persons",
-                    "State": "States"
+                    "State": "States",
                 }
-                
+
                 grouped_entities: dict[str, list[str]] = {}
                 for e_tag in sorted(entity_tags):
                     tag = f"#{e_tag}" if not e_tag.startswith("#") else e_tag
-                    
+
                     # Extract type: #Prefix/Type/Name -> Type
                     full_tag = tag.lstrip("#")
                     etype = "Other"
-                    
+
                     if TAG_PREFIX_ENTITY:
                         prefix_with_slash = f"{TAG_PREFIX_ENTITY}/"
                         if full_tag.startswith(prefix_with_slash):
                             # Get component after Prefix/
-                            sub_tag = full_tag[len(prefix_with_slash):]
+                            sub_tag = full_tag[len(prefix_with_slash) :]
                             parts = sub_tag.split("/", 1)
                             etype = parts[0] if len(parts) > 0 else "Other"
                     else:
                         # No prefix, just Type/Name
                         parts = full_tag.split("/", 1)
                         etype = parts[0] if len(parts) > 1 else "Other"
-                    
+
                     label = type_labels.get(etype, etype)
                     if label not in grouped_entities:
                         grouped_entities[label] = []
                     grouped_entities[label].append(f"  - {tag}")
-                
+
                 # Sort group keys and join with nested structure
                 entity_groups = []
                 for label in sorted(grouped_entities.keys()):
                     group_lines = [f"* {label}"]
                     group_lines.extend(grouped_entities[label])
                     entity_groups.append("\n".join(group_lines))
-                
+
                 entity_section_body = "\n".join(entity_groups)
-            
+
             # US3: Remove tags from frontmatter property
             metadata_dict.pop("tags", [])
 
@@ -388,7 +390,7 @@ class MetadataProcessor:
                     sections.append(f"# {title}")
                 if abstract:
                     sections.append(abstract)
-                
+
                 if topic_list_items:
                     topic_section = "## Categories/Topics\n\n" + "\n".join(topic_list_items)
                     sections.append(topic_section)
@@ -396,7 +398,7 @@ class MetadataProcessor:
                 if entity_section_body:
                     entity_section = "## Entities\n\n" + entity_section_body
                     sections.append(entity_section)
-                
+
                 if tag_list_items:
                     tag_section = "## Tags\n\n" + " ".join(tag_list_items)
                     sections.append(tag_section)
@@ -445,25 +447,26 @@ class MetadataProcessor:
                 new_content += "\n" + metadata_callout
             if body_prefix:
                 new_content += "\n" + body_prefix
-            
+
             new_content += "\n" + original_body
 
             # Append citation callout at the end
             combined_raw["url_date"] = date.today().strftime("%Y-%m-%d")
             citation_callout = generate_citation_callout(combined_raw)
-            
+
             if not new_content.endswith("\n\n"):
                 if not new_content.endswith("\n"):
                     new_content += "\n\n"
                 else:
                     new_content += "\n"
-                    
+
             new_content += citation_callout
 
             # Ensure output is .md (Task T010)
             output_file = output_file.with_suffix(".md")
             output_file.parent.mkdir(parents=True, exist_ok=True)
             output_file.write_text(new_content, encoding="utf-8")
+            self._update_file_counters(output_file, new_content)
             return True
         except Exception as e:
             logger.error(f"Error processing {input_file}: {e}")
@@ -492,6 +495,7 @@ class MetadataProcessor:
         Traverses directory and processes all files.
         Markdown files are enriched, others are mirrored via hardlink.
         """
+        self.preflight_scan()
         files = sorted(self.get_files(input_dir, mask=mask, recursive=recursive, all_files=True))
         logger.info(f"Found {len(files)} files to process in {input_dir}")
 
@@ -501,7 +505,7 @@ class MetadataProcessor:
 
             if input_file.suffix.lower() == ".md" and not input_file.name.endswith(".filtered.md"):
                 # Get 50 most frequent tags
-                frequent_tags = [tag for tag, _ in self.tag_counts.most_common(50)]
+                frequent_tags = [tag for tag, _ in self.conceptual_tag_counts.most_common(50)]
                 self.process_file(input_file, output_file, frequent_tags)
             elif input_file.suffix.lower() == ".pdf":
                 # Mirror PDFs to 'pdf' subdirectory
@@ -511,3 +515,59 @@ class MetadataProcessor:
                 # Mirror other non-markdown files (or filtered md files)
                 mirror_file(input_file, output_file)
 
+    def preflight_scan(self) -> None:
+        """Scans the output directory and populates the registry and global counters with existing tags."""
+        self.scanned_files_tags.clear()
+        self.conceptual_tag_counts = Counter()
+        self.topic_counts = Counter()
+        self.entity_counts = {
+            "State": Counter(),
+            "Org": Counter(),
+            "City": Counter(),
+            "Person": Counter(),
+        }
+
+        if not self.output_dir.exists():
+            return
+
+        parser = CanonicalTagParser()
+        for md_file in self.output_dir.rglob("*.md"):
+            if md_file.is_file() and not md_file.name.endswith(".filtered.md"):
+                try:
+                    content = safe_read_text(md_file)
+                    tags = parser.parse_text(content, file_path=md_file)
+                    self.scanned_files_tags[md_file] = tags
+                    self._add_tags_to_counters(tags)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to parse existing file {md_file} during preflight scan: {e}"
+                    )
+
+    def _add_tags_to_counters(self, tags: CanonicalTags) -> None:
+        if tags.conceptual_tags:
+            self.conceptual_tag_counts.update(tags.conceptual_tags)
+        if tags.topics:
+            self.topic_counts.update(tags.topics)
+        for etype, values in tags.entities.items():
+            if etype in self.entity_counts and values:
+                self.entity_counts[etype].update(values)
+
+    def _subtract_tags_from_counters(self, tags: CanonicalTags) -> None:
+        if tags.conceptual_tags:
+            self.conceptual_tag_counts.subtract(tags.conceptual_tags)
+        if tags.topics:
+            self.topic_counts.subtract(tags.topics)
+        for etype, values in tags.entities.items():
+            if etype in self.entity_counts and values:
+                self.entity_counts[etype].subtract(values)
+
+    def _update_file_counters(self, file_path: Path, new_content: str) -> None:
+        """Subtracts old tags for a file and adds new tags to the global counters."""
+        if file_path in self.scanned_files_tags:
+            old_tags = self.scanned_files_tags[file_path]
+            self._subtract_tags_from_counters(old_tags)
+
+        parser = CanonicalTagParser()
+        new_tags = parser.parse_text(new_content, file_path=file_path)
+        self._add_tags_to_counters(new_tags)
+        self.scanned_files_tags[file_path] = new_tags

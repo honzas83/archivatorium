@@ -232,4 +232,9 @@ NATO_NPG_source
 *.xlsx
 *.freq.txt
 
-NATO_NPG_*/\nNATO_NPG_*.bak/\nNATO_NPG_*.old/
+NATO_NPG_*/
+NATO_NPG_*.bak/
+NATO_NPG_*.old/
+NATO_NPG_metadata.*/
+NATO_NPG_metadata.v*
+.agents/

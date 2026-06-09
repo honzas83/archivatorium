@@ -43,6 +43,13 @@ module = "tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = true
 
+[[tool.mypy.overrides]]
+module = [
+    "yaml",
+    "docx",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

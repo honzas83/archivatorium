@@ -144,6 +144,7 @@ def metadata(
         tagging_service=tagging_service,
         input_dir=input_dir,
     )
+    processor.preflight_scan()
 
     files = sorted(processor.get_files(input_dir, mask=mask, all_files=True))
     if not files:
@@ -162,7 +163,9 @@ def metadata(
 
                 if is_md and not is_filtered:
                     # Get 50 most frequent tags
-                    frequent_tags = [tag for tag, _ in processor.tag_counts.most_common(50)]
+                    frequent_tags = [
+                        tag for tag, _ in processor.conceptual_tag_counts.most_common(50)
+                    ]
                     processor.process_file(input_file, output_file, frequent_tags)
                 elif is_pdf:
                     # Mirror PDFs to 'pdf' subdirectory
@@ -226,13 +229,13 @@ def interlink(
 ) -> None:
     """Post-processes a generated Obsidian vault in-place to interlink documents."""
     service = InterlinkingService(vault_dir, unifications_path=unifications)
-    
+
     click.echo(f"Scanning vault: {vault_dir}")
     service.discover()
-    
+
     click.echo(f"Interlinking {len(service.code_map)} unique archive codes...")
     service.interlink_all(dry_run=dry_run, verbose=verbose, force=force)
-    
+
     click.echo("Done.")
 
 

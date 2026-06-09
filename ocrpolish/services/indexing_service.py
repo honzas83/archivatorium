@@ -7,12 +7,10 @@ from typing import Any
 import xlsxwriter  # type: ignore
 import yaml
 
-from ocrpolish.models.metadata import MetadataSchema
-from ocrpolish.utils.metadata import (
-    extract_abstract_tags,
-    parse_frontmatter,
-)
+from ocrpolish.models.metadata import CanonicalTags, MetadataSchema
+from ocrpolish.utils.metadata import parse_frontmatter
 from ocrpolish.utils.nlp import normalize_tag_component
+from ocrpolish.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +35,7 @@ class IndexEntry:
     date: str = ""
     entities: list[EntityReference] = field(default_factory=list)
     raw_metadata: dict[str, Any] = field(default_factory=dict)
+    canonical_tags: CanonicalTags = field(default_factory=CanonicalTags)
 
 
 class IndexingService:
@@ -61,9 +60,7 @@ class IndexingService:
                         if name:
                             self.index_prefixes.add(normalize_tag_component(name))
         except Exception as e:
-            logger.warning(
-                f"Could not load dynamic prefixes from {self.topics_yaml}: {e}"
-            )
+            logger.warning(f"Could not load dynamic prefixes from {self.topics_yaml}: {e}")
 
     def _parse_entity(self, tag: str) -> EntityReference | None:
         """Parses a hierarchical tag into an EntityReference."""
@@ -98,29 +95,20 @@ class IndexingService:
         except Exception as e:
             # T019: Graceful handling of malformed YAML
             logger.warning(f"Malformed frontmatter in {file_path}: {e}")
-            metadata, body = {}, content
+            metadata, _body = {}, content
 
-        raw_tags = metadata.get("tags", [])
-        if isinstance(raw_tags, str):
-            raw_tags = [raw_tags]
-        elif not isinstance(raw_tags, list):
-            raw_tags = []
-
-        abstract_tags = extract_abstract_tags(body)
-
-        all_raw_tags = set()
-        for t in raw_tags:
-            if not isinstance(t, str):
-                continue
-            tag = t if t.startswith("#") else f"#{t}"
-            all_raw_tags.add(tag)
-        all_raw_tags.update(abstract_tags)
+        parser = CanonicalTagParser()
+        canonical_tags = parser.parse_text(content, file_path=file_path)
 
         entities = []
-        for tag in all_raw_tags:
-            entity = self._parse_entity(tag)
-            if entity:
-                entities.append(entity)
+        for p in canonical_tags.raw_paths:
+            if p.startswith("Entities/"):
+                parts = p.split("/")
+                if len(parts) >= 2:
+                    etype = parts[1]
+                    label = parts[-1].replace("-", " ")
+                    tag = f"#{p}"
+                    entities.append(EntityReference(prefix=etype, value=tag, label=label))
 
         entry = IndexEntry(
             doc_path=file_path.relative_to(self.input_dir),
@@ -129,6 +117,7 @@ class IndexingService:
             date=metadata.get("date", ""),
             entities=entities,
             raw_metadata=metadata,
+            canonical_tags=canonical_tags,
         )
         self.entries.append(entry)
 
@@ -141,8 +130,16 @@ class IndexingService:
         workbook = xlsxwriter.Workbook(str(output_path))
         sheet = workbook.add_worksheet("Metadata Index")
 
-        schema_fields = MetadataSchema.model_fields.keys()
-        headers = ["File Path"] + list(schema_fields)
+        schema_fields = list(MetadataSchema.model_fields.keys())
+        tag_fields = [
+            "conceptual_tags",
+            "topic_tags",
+            "state_entities",
+            "org_entities",
+            "city_entities",
+            "person_entities",
+        ]
+        headers = ["File Path"] + schema_fields + tag_fields
 
         bold = workbook.add_format({"bold": True})
         for col_num, header in enumerate(headers):
@@ -150,13 +147,40 @@ class IndexingService:
 
         for row_num, entry in enumerate(self.entries, start=1):
             sheet.write(row_num, 0, str(entry.doc_path))
-            for col_num, field_name in enumerate(schema_fields, start=1):
+            col_num = 1
+            for field_name in schema_fields:
                 value = entry.raw_metadata.get(field_name, "")
                 if isinstance(value, list):
                     value = ", ".join(map(str, value))
                 elif value is None:
                     value = ""
                 sheet.write(row_num, col_num, str(value))
+                col_num += 1
+
+            raw_paths = entry.canonical_tags.raw_paths
+            tag_vals = {
+                "conceptual_tags": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Tags/")])
+                ),
+                "topic_tags": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Topics/")])
+                ),
+                "state_entities": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Entities/State/")])
+                ),
+                "org_entities": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Entities/Org/")])
+                ),
+                "city_entities": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Entities/City/")])
+                ),
+                "person_entities": ", ".join(
+                    sorted([f"#{p}" for p in raw_paths if p.startswith("Entities/Person/")])
+                ),
+            }
+            for field_name in tag_fields:
+                sheet.write(row_num, col_num, tag_vals[field_name])
+                col_num += 1
 
         sheet.set_column(0, 0, 30)
         sheet.set_column(1, len(headers) - 1, 20)
@@ -284,9 +308,7 @@ class IndexingService:
 
             # Check if category or any of its subtopics are used
             has_used_st = any(
-                is_topic_used(
-                    normalized_cat, normalize_tag_component(t.get("topic", ""))
-                )
+                is_topic_used(normalized_cat, normalize_tag_component(t.get("topic", "")))
                 for t in topics
             )
 

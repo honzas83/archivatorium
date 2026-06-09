@@ -88,6 +88,7 @@ class LastDateSchema(BaseModel):
 
 class TopicResult(BaseModel):
     """A topic assignment with its reasoning."""
+
     topic: str = Field(..., description="The hierarchical topic tag (e.g., 'Category/Topic').")
     reason: str = Field(..., description="Brief reason for assigning this topic.")
 
@@ -117,5 +118,22 @@ class AggregatedTaggingResult(BaseModel):
     )
     entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
     topic_tags: list[TopicResult] = Field(
-        default_factory=list, description="Set union of all topics (max 10) with best available reasons."
+        default_factory=list,
+        description="Set union of all topics (max 10) with best available reasons.",
     )
+
+
+class CanonicalTags(BaseModel):
+    """Structured, normalized canonical tags parsed from Markdown."""
+
+    conceptual_tags: set[str] = Field(default_factory=set)
+    topics: set[str] = Field(default_factory=set)
+    entities: dict[str, set[str]] = Field(
+        default_factory=lambda: {
+            "State": set[str](),
+            "Org": set[str](),
+            "City": set[str](),
+            "Person": set[str](),
+        }
+    )
+    raw_paths: set[str] = Field(default_factory=set)
