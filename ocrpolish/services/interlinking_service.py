@@ -170,7 +170,7 @@ class InterlinkingService:
                 content = md_file.read_text(encoding="utf-8")
                 # Parse frontmatter and body
                 metadata, body = parse_frontmatter(content)
-                
+
                 # Default values if missing
                 code = metadata.get("archive_code", "")
                 lang = metadata.get("language", "English")
@@ -193,7 +193,7 @@ class InterlinkingService:
                     archive_code=code,
                     language=lang,
                     raw_references=raw_refs,
-                    canonical_tags=canonical_tags
+                    canonical_tags=canonical_tags,
                 )
                 self.documents.append(doc)
 
@@ -574,7 +574,7 @@ class InterlinkingService:
 
                     if not dry_run:
                         md_file.write_text(new_content, encoding="utf-8")
-                        
+
                         # Reparse the document to update in-memory record
                         reparsed_content = new_content
                         metadata, body = parse_frontmatter(reparsed_content)
@@ -582,13 +582,15 @@ class InterlinkingService:
                         doc.frontmatter = metadata
                         doc.archive_code = metadata.get("archive_code", "")
                         doc.language = metadata.get("language", "English") or "English"
-                        
+
                         raw_refs = metadata.get("references", [])
                         if not isinstance(raw_refs, list):
                             raw_refs = [raw_refs] if raw_refs else []
                         doc.raw_references = raw_refs
-                        
-                        doc.canonical_tags = tag_parser.parse_text(reparsed_content, file_path=md_file)
+
+                        doc.canonical_tags = tag_parser.parse_text(
+                            reparsed_content, file_path=md_file
+                        )
 
                     updated_count += 1
 

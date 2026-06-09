@@ -51,7 +51,7 @@ class IndexingService:
             metadata, body = parse_frontmatter(content)
         except Exception as e:
             logger.warning(f"Malformed frontmatter in {file_path}: {e}")
-            metadata, body = {}, content
+            metadata = {}
 
         parser = CanonicalTagParser()
         canonical_tags = parser.parse_text(content, file_path=file_path)
@@ -149,7 +149,11 @@ class IndexingService:
                 raw_paths = set()
                 for ent in entry.entities:
                     clean = ent.value.lstrip("#")
-                    if clean.startswith("Entities/") or clean.startswith("Topics/") or clean.startswith("Tags/"):
+                    if (
+                        clean.startswith("Entities/")
+                        or clean.startswith("Topics/")
+                        or clean.startswith("Tags/")
+                    ):
                         raw_paths.add(clean)
                     # Map old unprefixed tags
                     elif ent.prefix in {"State", "Org", "Person"}:
@@ -208,13 +212,13 @@ class IndexingService:
         self._gen_cities_index()
         self._gen_alphabetical_index("Index - Organizations.md", "Organizations", "Entities/Org/")
         self._gen_alphabetical_index("Index - People.md", "People", "Entities/Person/")
-        
+
         # If topics_yaml exists, use the descriptive formatter for Topics. Otherwise, use alphabetical index.
         if self.topics_yaml and self.topics_yaml.exists():
             self._gen_topics_index_yaml()
         else:
             self._gen_alphabetical_index("Index - Topics.md", "Topics", "Topics/")
-            
+
         self._gen_alphabetical_index("Index - Tags.md", "Tags", "Tags/")
 
     def _gen_alphabetical_index(self, filename: str, title: str, prefix: str) -> None:
@@ -227,7 +231,7 @@ class IndexingService:
                     tag = f"#{p}"
                     tag_to_entries[tag].append(entry)
                     has_canonical = True
-            
+
             if not has_canonical:
                 for entity in entry.entities:
                     clean_prefix = prefix.strip("/").split("/")[-1]
@@ -264,7 +268,9 @@ class IndexingService:
 
     def _gen_cities_index(self) -> None:
         """Generates Index - Cities.md grouped by state, then city."""
-        state_to_cities: dict[str, dict[str, list[IndexEntry]]] = defaultdict(lambda: defaultdict(list))
+        state_to_cities: dict[str, dict[str, list[IndexEntry]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
         for entry in self.entries:
             has_canonical = False
             for p in entry.canonical_tags.raw_paths:
@@ -276,7 +282,7 @@ class IndexingService:
                         tag = f"#{p}"
                         state_to_cities[state_display][tag].append(entry)
                         has_canonical = True
-            
+
             if not has_canonical:
                 for entity in entry.entities:
                     if entity.prefix == "City":
@@ -294,10 +300,14 @@ class IndexingService:
         lines = ["# Index of Cities\n"]
         for state_display in sorted(state_to_cities.keys(), key=lambda s: s.lower()):
             lines.append(f"## {state_display}")
-            sorted_city_tags = sorted(state_to_cities[state_display].keys(), key=lambda t: t.lower())
+            sorted_city_tags = sorted(
+                state_to_cities[state_display].keys(), key=lambda t: t.lower()
+            )
             for tag in sorted_city_tags:
                 lines.append(f"### {tag}")
-                sorted_docs = sorted(state_to_cities[state_display][tag], key=lambda e: str(e.doc_path).lower())
+                sorted_docs = sorted(
+                    state_to_cities[state_display][tag], key=lambda e: str(e.doc_path).lower()
+                )
                 for doc in sorted_docs:
                     title_text = doc.title or doc.doc_path.stem
                     lines.append(f"- [[{doc.doc_path}|{title_text}]]")

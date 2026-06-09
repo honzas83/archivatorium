@@ -23,7 +23,31 @@ def temp_dirs(tmp_path: Path) -> tuple[Path, Path]:
     return input_dir, output_dir
 
 
-def test_metadata_command_basic(temp_dirs: tuple[Path, Path]) -> None:
+def test_metadata_command_requires_taxonomy_files(temp_dirs: tuple[Path, Path]) -> None:
+    input_dir, output_dir = temp_dirs
+    runner = CliRunner()
+
+    missing_hierarchy = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+    assert missing_hierarchy.exit_code != 0
+    assert "Missing option '--hierarchy-file'" in missing_hierarchy.output
+
+
+def test_metadata_command_requires_tags_file(
+    temp_dirs: tuple[Path, Path], hierarchy_file: Path
+) -> None:
+    input_dir, output_dir = temp_dirs
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli, ["metadata", str(input_dir), str(output_dir), "--hierarchy-file", str(hierarchy_file)]
+    )
+    assert result.exit_code != 0
+    assert "Missing option '--tags-file'" in result.output
+
+
+def test_metadata_command_basic(
+    temp_dirs: tuple[Path, Path], hierarchy_file: Path, useful_tags_file: Path
+) -> None:
     input_dir, output_dir = temp_dirs
     runner = CliRunner()
 
@@ -34,17 +58,41 @@ def test_metadata_command_basic(temp_dirs: tuple[Path, Path]) -> None:
         "date": "1981-11-19",
     }
 
-    with patch("ollama.Client.chat") as mock_chat:
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
         )
 
-        result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
 
         assert result.exit_code == 0
 
 
-def test_metadata_command_large_file_date_fallback(temp_dirs: tuple[Path, Path]) -> None:
+def test_metadata_command_no_non_flat_topic_mode() -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["metadata", "--help"])
+
+    assert result.exit_code == 0
+    assert "--flat-topics" not in result.output
+
+
+def test_metadata_command_large_file_date_fallback(
+    temp_dirs: tuple[Path, Path], hierarchy_file: Path, useful_tags_file: Path
+) -> None:
     input_dir, output_dir = temp_dirs
     runner = CliRunner()
 
@@ -57,7 +105,10 @@ def test_metadata_command_large_file_date_fallback(temp_dirs: tuple[Path, Path])
     )
     large_file.write_text(content)
 
-    with patch("ollama.Client.chat") as mock_chat:
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
         # Mock first pass (MetadataSchema) - missing date
         data1 = {"language": "English", "title": "Large Doc"}
         resp1 = create_mock_ollama_response(MetadataSchema(**data1).model_dump_json())
@@ -68,7 +119,18 @@ def test_metadata_command_large_file_date_fallback(temp_dirs: tuple[Path, Path])
 
         mock_chat.side_effect = [resp1, resp2]
 
-        result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
 
         assert result.exit_code == 0
 

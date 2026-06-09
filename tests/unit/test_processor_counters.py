@@ -73,3 +73,29 @@ title: Updated Document
     assert processor.entity_counts["State"]["france"] == 1
     assert processor.entity_counts["Org"]["nato"] == 0
     assert processor.conceptual_tag_counts["conceptual-tag"] == 1
+
+
+def test_ingest_generated_output_tags_updates_counters(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    output_file = output_dir / "doc.md"
+    content = """
+> [!abstract]
+> ## Entities
+> * Organisations
+>   - #Entities/Org/NATO
+>
+> ## Tags
+> #Tags/Nuclear-Planning
+"""
+
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=output_dir,
+        overwrite=True,
+    )
+
+    processor._ingest_generated_output_tags(output_file, content)
+
+    assert processor.entity_counts["Org"]["nato"] == 1
+    assert processor.conceptual_tag_counts["nuclear-planning"] == 1

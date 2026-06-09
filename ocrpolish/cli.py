@@ -5,7 +5,7 @@ import click
 from ocrpolish.core import run_processing
 from ocrpolish.data_model import ProcessingConfig
 from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.services.indexing_service import IndexingService
+from ocrpolish.services.indexing_service import IndexEntry, IndexingService
 from ocrpolish.services.interlinking_service import InterlinkingService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.tagging_service import TaggingService
@@ -58,7 +58,7 @@ def cli(verbose: bool) -> None:
     type=click.Path(path_type=Path),
     help="Path to a text file containing phrases to filter out.",
 )
-def clean(
+def clean(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
     mask: str,
@@ -96,12 +96,15 @@ def clean(
 @click.option(
     "--hierarchy-file",
     type=click.Path(exists=True, path_type=Path),
+    required=True,
     help="Path to themes/taxonomy YAML.",
 )
 @click.option(
-    "--tags-file", type=click.Path(exists=True, path_type=Path), help="Path to useful tags YAML."
+    "--tags-file",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="Path to useful tags YAML.",
 )
-@click.option("--flat-topics", is_flag=True, help="Use flat taxonomy instead of hierarchical.")
 @click.option(
     "--citekey-mode",
     type=click.Choice(["stem", "path"]),
@@ -111,44 +114,43 @@ def clean(
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite existing output files.")
 @click.option("--dry-run", is_flag=True, help="If set, logs metadata without writing files.")
-def metadata(
+def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
     mask: str,
     model: str,
     pdf_dir: Path | None,
     vault_root: Path | None,
-    hierarchy_file: Path | None,
-    tags_file: Path | None,
-    flat_topics: bool,
+    hierarchy_file: Path,
+    tags_file: Path,
     citekey_mode: str,
     overwrite: bool,
     dry_run: bool,
 ) -> None:
     """Extract metadata using Ollama and generate sidecar YAML files."""
+    effective_vault_root = vault_root or output_dir
+    effective_pdf_dir = pdf_dir or output_dir
+
     template_dir = Path("obsidian_template")
     if template_dir.exists() and not dry_run:
         initialize_vault_from_template(template_dir, output_dir)
 
     ollama_client = OllamaClient(model=model)
-    tagging_service = None
-    if hierarchy_file:
-        windowing_service = SlidingWindowService()
-        tagging_service = TaggingService(
-            ollama_client=ollama_client,
-            windowing_service=windowing_service,
-            themes_path=hierarchy_file,
-            useful_tags_path=tags_file,
-            model_name=model,
-            flat_mode=flat_topics,
-        )
+    windowing_service = SlidingWindowService()
+    tagging_service = TaggingService(
+        ollama_client=ollama_client,
+        windowing_service=windowing_service,
+        themes_path=hierarchy_file,
+        useful_tags_path=tags_file,
+        model_name=model,
+    )
 
     processor = MetadataProcessor(
         ollama_client=ollama_client,
         output_dir=output_dir,
         overwrite=overwrite,
-        vault_root=vault_root,
-        pdf_dir=pdf_dir,
+        vault_root=effective_vault_root,
+        pdf_dir=effective_pdf_dir,
         tagging_service=tagging_service,
         input_dir=input_dir,
         citekey_mode=citekey_mode,
@@ -177,8 +179,11 @@ def metadata(
                     ]
                     processor.process_file(input_file, output_file, frequent_tags)
                 elif is_pdf:
-                    # Mirror PDFs to 'pdf' subdirectory
-                    pdf_output_file = output_file.parent / "pdf" / output_file.name
+                    pdf_output_file = processor.get_mirrored_pdf_path(input_file)
+                    if pdf_output_file.exists() and not pdf_output_file.samefile(input_file):
+                        raise ValueError(
+                            f"Ambiguous mirrored PDF target already exists: {pdf_output_file}"
+                        )
                     mirror_file(input_file, pdf_output_file)
                 else:
                     mirror_file(input_file, output_file)
@@ -237,7 +242,6 @@ def interlink(
     vault_dir: Path, dry_run: bool, verbose: bool, force: bool, unifications: Path | None
 ) -> None:
     """Post-processes a generated Obsidian vault in-place to interlink documents, generate indices, and export metadata."""
-    from ocrpolish.services.indexing_service import IndexEntry, IndexingService
 
     service = InterlinkingService(vault_dir, unifications_path=unifications)
 

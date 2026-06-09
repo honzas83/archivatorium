@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from ocrpolish.data_model import TAG_PREFIX_TOPIC
+from ocrpolish.models.metadata import AggregatedTaggingResult, TopicResult
 from ocrpolish.processor_metadata import MetadataProcessor
 from ocrpolish.utils.metadata import parse_frontmatter
 
@@ -88,6 +89,82 @@ def test_prepare_obsidian_metadata_field_order_and_exclusion(processor: Any) -> 
     assert keys[3] == "sender"
     assert keys[4] == "recipient"
     assert keys[5] == "intent"
+
+
+def test_read_and_parse_source_stage(processor: Any, tmp_path: Path) -> None:
+    input_file = tmp_path / "source.md"
+    input_file.write_text(
+        """---
+title: Existing
+---
+> [!info] Metadata
+> old
+
+Clean body
+""",
+        encoding="utf-8",
+    )
+
+    raw = processor._read_source(input_file)
+    parsed = processor._parse_source_and_strip_generated_sections(raw)
+
+    assert parsed.raw_content == raw
+    assert parsed.existing_metadata["title"] == "Existing"
+    assert "Clean body" in parsed.cleaned_content
+    assert "[!info] Metadata" not in parsed.cleaned_content
+
+
+def test_extract_document_metadata_stage_adds_page_count(processor: Any) -> None:
+    mock_metadata = MagicMock()
+    mock_metadata.model_dump.return_value = {"title": "Doc", "date": "1981-01-01"}
+    processor.client.extract_structured.return_value = mock_metadata
+
+    extracted = processor._extract_document_metadata(Path("doc.md"), "# Page 1\nText\n# Page 2")
+
+    assert extracted.raw_dict["title"] == "Doc"
+    assert extracted.raw_dict["pages"] == 2
+
+
+def test_generated_tag_stage_formats_topics_entities_and_tags(processor: Any) -> None:
+    tagging_result = AggregatedTaggingResult(
+        conceptual_tags=["NATO"],
+        entity_tags=["Org/NATO"],
+        topic_tags=[TopicResult(topic="Cat/Top", reason="Because 'quote'.")],
+    )
+    processor.tagging_service = MagicMock()
+    processor.tagging_service.extract_tags.return_value = tagging_result
+
+    sections = processor._extract_generated_tags("document body")
+
+    assert sections.topic_items == [f'- #{TAG_PREFIX_TOPIC}/Cat/Top — Because _"quote"_.']
+    assert "#Entities/Org/NATO" in sections.entity_tags
+    assert "#Tags/NATO" in sections.conceptual_tags
+    assert "* Organisations" in sections.entity_section_body
+
+
+def test_render_frontmatter_and_callout_stages(processor: Any) -> None:
+    metadata = {
+        "title": "Doc Title",
+        "summary": "Summary.",
+        "abstract": "Abstract body.",
+        "date": "1981-01-01",
+    }
+    tag_sections = processor._format_generated_tags(
+        AggregatedTaggingResult(conceptual_tags=["NATO"], entity_tags=[], topic_tags=[])
+    )
+
+    frontmatter = processor._render_frontmatter(metadata)
+    callouts = processor._render_callouts(frontmatter, tag_sections, "# Doc Title\nBody")
+    output = processor._assemble_output(frontmatter, callouts)
+
+    assert "abstract" not in frontmatter.metadata
+    assert "title: Doc Title" in frontmatter.frontmatter
+    assert "> [!info] Metadata" in output
+    assert "> [!abstract]" in output
+    assert "Abstract body." in output
+    assert "> [!citing this document]" in output
+    assert output.index("> [!info] Metadata") < output.index("> [!abstract]")
+    assert output.index("> [!abstract]") < output.index("> [!citing this document]")
 
 
 def test_process_file_english_consistency(processor: Any, tmp_path: Path) -> None:

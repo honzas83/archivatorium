@@ -24,11 +24,26 @@ def test_vault_initialization_via_cli():
         (template_dir / "CONTENT.base").write_text("Base content template")
 
         output_dir = Path("output")
+        hierarchy_file = Path("hierarchy.yaml")
+        hierarchy_file.write_text("categories: []")
+        tags_file = Path("tags.yaml")
+        tags_file.write_text("useful_tags: []")
 
         # Mock the MetadataProcessor to avoid actual Ollama/processing overhead
         with patch("ocrpolish.processor_metadata.MetadataProcessor.process_file"):
             # We don't care about what process_file does, just that it's called (or not)
-            result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+            result = runner.invoke(
+                cli,
+                [
+                    "metadata",
+                    str(input_dir),
+                    str(output_dir),
+                    "--hierarchy-file",
+                    str(hierarchy_file),
+                    "--tags-file",
+                    str(tags_file),
+                ],
+            )
 
             assert result.exit_code == 0
 
@@ -56,9 +71,25 @@ def test_vault_initialization_skipped_in_dry_run():
         (template_dir / "CONTENT.base").write_text("base")
 
         output_dir = Path("output")
+        hierarchy_file = Path("hierarchy.yaml")
+        hierarchy_file.write_text("categories: []")
+        tags_file = Path("tags.yaml")
+        tags_file.write_text("useful_tags: []")
 
         with patch("ocrpolish.processor_metadata.MetadataProcessor.process_file"):
-            result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir), "--dry-run"])
+            result = runner.invoke(
+                cli,
+                [
+                    "metadata",
+                    str(input_dir),
+                    str(output_dir),
+                    "--hierarchy-file",
+                    str(hierarchy_file),
+                    "--tags-file",
+                    str(tags_file),
+                    "--dry-run",
+                ],
+            )
 
             assert result.exit_code == 0
             # Should NOT be initialized in dry-run

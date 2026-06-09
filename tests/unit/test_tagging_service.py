@@ -85,3 +85,82 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
 
     assert mock_ollama.extract_structured.call_count == 2
     mock_windowing.get_windows.assert_called_once_with(text)
+
+
+def test_static_prompt_sections_precomputed_once(
+    mock_ollama, mock_windowing, tmp_path, monkeypatch
+):
+    hierarchy_file = tmp_path / "hierarchy.yaml"
+    hierarchy_file.write_text(
+        """
+categories:
+  - category: Cat
+    topics:
+      - topic: Top
+        description: Desc
+""".lstrip()
+    )
+    tags_file = tmp_path / "tags.yaml"
+    tags_file.write_text("useful_tags:\n  - NATO\n")
+
+    dump_calls = 0
+
+    def fake_dump(data, sort_keys=False):
+        nonlocal dump_calls
+        dump_calls += 1
+        return "STATIC TAXONOMY"
+
+    monkeypatch.setattr("ocrpolish.services.tagging_service.yaml.dump", fake_dump)
+
+    service = TaggingService(mock_ollama, mock_windowing, hierarchy_file, tags_file)
+
+    first_prompt = service._generate_tagging_prompt("chunk one")
+    second_prompt = service._generate_tagging_prompt("chunk two")
+
+    assert dump_calls == 1
+    assert "STATIC TAXONOMY" in first_prompt
+    assert "STATIC TAXONOMY" in second_prompt
+    assert "chunk one" in first_prompt
+    assert "chunk two" in second_prompt
+
+
+def test_sliding_window_reuses_static_prompt_text(
+    mock_ollama, mock_windowing, tmp_path, monkeypatch
+):
+    hierarchy_file = tmp_path / "hierarchy.yaml"
+    hierarchy_file.write_text("categories: []")
+    tags_file = tmp_path / "tags.yaml"
+    tags_file.write_text("useful_tags:\n  - NATO\n")
+
+    dump_calls = 0
+
+    def fake_dump(data, sort_keys=False):
+        nonlocal dump_calls
+        dump_calls += 1
+        return "STATIC TAXONOMY"
+
+    monkeypatch.setattr("ocrpolish.services.tagging_service.yaml.dump", fake_dump)
+    service = TaggingService(
+        mock_ollama, mock_windowing, hierarchy_file, tags_file, context_limit=1
+    )
+    mock_windowing.get_windows.return_value = ["chunk1", "chunk2", "chunk3"]
+    mock_ollama.extract_structured.return_value = WindowTaggingResult()
+
+    service.extract_tags("long document")
+
+    assert dump_calls == 1
+    prompts = [call.args[0] for call in mock_ollama.extract_structured.call_args_list]
+    assert len(prompts) == 3
+    assert all(prompt.count("STATIC TAXONOMY") == 1 for prompt in prompts)
+    assert all("EXISTING VOCABULARY" in prompt for prompt in prompts)
+
+
+def test_prompt_uses_flat_category_topic_format(mock_ollama, mock_windowing):
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+
+    prompt = service._generate_tagging_prompt("Sample")
+
+    assert "Use format: Category/Topic" in prompt
+    assert "Category/<category>/<topic>" not in prompt
