@@ -164,3 +164,46 @@ def test_prompt_uses_flat_category_topic_format(mock_ollama, mock_windowing):
 
     assert "Use format: Category/Topic" in prompt
     assert "Category/<category>/<topic>" not in prompt
+
+
+def test_tagging_prompt_includes_flattened_taxonomy_details(
+    mock_ollama, mock_windowing, tmp_path
+):
+    hierarchy_file = tmp_path / "hierarchy.yaml"
+    hierarchy_file.write_text(
+        """
+categories:
+  - category: "Cat1"
+    topics:
+      - topic: "Top1"
+        description: "Desc1"
+        positive_samples: "Pos1"
+        negative_samples: "Neg1"
+""".lstrip()
+    )
+    tags_file = tmp_path / "tags.yaml"
+    tags_file.write_text("useful_tags:\n  - NATO\n")
+
+    service = TaggingService(mock_ollama, mock_windowing, hierarchy_file, tags_file)
+    prompt = service._generate_tagging_prompt("Sample text")
+
+    assert "Sample text" in prompt
+    assert "APPROVED TAXONOMY (YAML):" in prompt
+    assert "Cat1/Top1" in prompt
+    assert "Desc1" in prompt
+    assert "Pos1" in prompt
+    assert "Neg1" in prompt
+
+
+def test_extract_tags_returns_empty_result_on_llm_failure(mock_ollama, mock_windowing):
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    mock_ollama.extract_structured.side_effect = Exception("Ollama error")
+
+    result = service.extract_tags("Some text chunk")
+
+    assert result.conceptual_tags == []
+    assert result.entity_tags == []
+    assert result.topic_tags == []
+    mock_ollama.extract_structured.assert_called_once()
