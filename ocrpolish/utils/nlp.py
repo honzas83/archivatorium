@@ -42,20 +42,27 @@ def overlap_coefficient(set1: frozenset[str], set2: frozenset[str]) -> float:
     return intersection / min(len(set1), len(set2))
 
 
-def suppress_duplicates(conceptual: list[str], entities: list[str], topics: list[str]) -> list[str]:
+def suppress_duplicates(
+    conceptual: list[str],
+    entities: list[str],
+    topics: list[str],
+    protected_terms: set[str] | None = None,
+) -> list[str]:
     """
     Remove conceptual tags that are already represented as entities or topics.
     Comparison is case-insensitive and ignores the '#' prefix on conceptual tags.
+    Protected terms are preferred conceptual vocabulary and are preserved even
+    when they overlap with entity names or topic components.
     """
-    # Build set of "taken" concepts from entities and topics
+    protected = {term.lstrip("#").lower() for term in protected_terms or set()}
+
+    # Build set of exact "taken" concepts from entity names and topic components.
     taken = set()
     for e in entities:
-        # Entities are Hierarchical: Type/Name
         parts = e.split("/")
-        for part in parts:
-            taken.add(part.lower())
+        if parts:
+            taken.add(parts[-1].lower())
     for t in topics:
-        # Topics are Hierarchical: Category/Cat/Topic
         parts = t.split("/")
         for part in parts:
             taken.add(part.lower())
@@ -63,7 +70,7 @@ def suppress_duplicates(conceptual: list[str], entities: list[str], topics: list
     filtered = []
     for tag in conceptual:
         clean_tag = tag.lstrip("#").lower()
-        if clean_tag not in taken:
+        if clean_tag in protected or clean_tag not in taken:
             filtered.append(tag)
     return filtered
 

@@ -79,7 +79,10 @@ class WindowTaggingResult(BaseModel):
 
     conceptual_tags: list[str] = Field(
         default_factory=list,
-        description="Flat tags from USEFUL_TAGS.yaml or new canonical forms. Max 10.",
+        description=(
+            "Flat conceptual tags from USEFUL_TAGS.yaml, resumed #Tags counters, "
+            "or new canonical forms justified by the source text."
+        ),
     )
     entity_tags: list[str] = Field(
         default_factory=list,
@@ -91,11 +94,28 @@ class WindowTaggingResult(BaseModel):
     )
 
 
+class SubstantiveWindowTaggingResult(WindowTaggingResult):
+    """Raw tagging output required for substantive document text."""
+
+    conceptual_tags: list[str] = Field(
+        ...,
+        min_length=5,
+        description=(
+            "Required for substantive documents. Return at least 5 conceptual tags; "
+            "include every clearly justified useful conceptual tag. Do not impose a hard maximum."
+        ),
+    )
+
+
 class AggregatedTaggingResult(BaseModel):
     """Final deduplicated and suppressed result for the entire document."""
 
     conceptual_tags: list[str] = Field(
-        default_factory=list, description="Top 15 frequency-weighted, suppressed flat tags."
+        default_factory=list,
+        description=(
+            "Frequency-weighted, normalized, duplicate-suppressed conceptual tags. "
+            "Substantive documents must retain at least 5 useful tags."
+        ),
     )
     entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
     topic_tags: list[TopicResult] = Field(

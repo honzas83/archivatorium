@@ -49,17 +49,26 @@ python -m ocrpolish.cli metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NA
 
 #### Options
 - `--model TEXT`: The Ollama model to use (default: `gemma4:31b`).
-- `--mask TEXT`: Glob pattern for Markdown files to process (default: `*.md`).
+- `--mask TEXT`: Glob pattern for Markdown files to enrich (default: `*.md`). Non-matching Markdown files are not sent to metadata or tagging enrichment.
 - `--overwrite`: Overwrite existing files in output directory.
 - `--hierarchy-file`: Required path to a YAML topic hierarchy (e.g., `topics/NATO_themes.yaml`).
 - `--tags-file`: Required path to a YAML file containing useful tags (e.g., `topics/USEFUL_TAGS.yaml`).
 - `--vault-root PATH`: Optional Obsidian vault root; defaults to `OUTPUT_DIR`.
 - `--pdf-dir PATH`: Optional source PDF lookup directory; defaults to `OUTPUT_DIR`.
 - `--citekey-mode {stem,path}`: Deterministic citekey mode.
-- `--dry-run`: Skip writes where supported by the command.
+- `--dry-run`: Scan inputs and report planned metadata actions without initializing templates, writing Markdown, mirroring PDFs, copying/hardlinking files, or updating existing outputs.
 
-Generated PDFs are mirrored into `OUTPUT_DIR/pdf/`, and generated Markdown links
-to them as `[[pdf/<filename>.pdf]]`.
+Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown
+file, and generated Markdown links to them as `[[pdf/<filename>.pdf]]`. For
+example, `series/1973/doc.md` links to `series/1973/pdf/doc.pdf`.
+
+Resume counters are rebuilt only from generated document Markdown outputs. Index
+pages, vault support files, templates, hidden/system folders, `.filtered.md`
+sidecars, and metadata exports do not affect resumed tag counters.
+
+For substantive documents, metadata tagging requires conceptual `#Tags/...`
+values in the initial tagging pass. Empty conceptual tags are accepted only for
+deterministically non-substantive administrative stubs.
 
 ### Generating Indices
 Generates Obsidian index pages and an optional XLSX index from vault metadata.
@@ -72,6 +81,11 @@ ocrpolish index [OPTIONS] INPUT_DIR
 - `--output-xlsx, -o PATH`: Path to save the XLSX metadata index.
 - `--topics-yaml, -t PATH`: Path to the YAML file defining topic hierarchy.
 - `--recursive / --no-recursive`: Scan subdirectories (default: `recursive`).
+
+Index pages and XLSX exports use canonical `#Tags/...`, `#Topics/...`, and
+`#Entities/...` tags only. Obsolete unprefixed tags such as `#State/...`,
+`#Org/...`, `#City/...`, `#Person/...`, `#Category/...`, or `#Topic/...` are not
+migrated into canonical columns.
 
 
 ## Development

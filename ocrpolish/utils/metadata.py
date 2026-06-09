@@ -12,6 +12,16 @@ from ocrpolish.data_model import PageMetadata
 from ocrpolish.utils.nlp import normalize_tag_component
 
 
+GENERATED_SUPPORT_FILENAMES = {
+    "metadata_index.xlsx",
+}
+
+GENERATED_SUPPORT_DIR_PARTS = {
+    "templates",
+    "template",
+}
+
+
 def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     """
     Parses YAML frontmatter from a string.
@@ -618,6 +628,41 @@ def reconcile_metadata(
 def safe_read_text(path: Path) -> str:
     """Reads text from a file with UTF-8 encoding and error replacement."""
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def generated_document_exclusion_reason(path: Path, vault_root: Path | None = None) -> str | None:
+    """Return why a vault file is not an eligible generated document, or None."""
+    if path.suffix.lower() != ".md":
+        return "not-markdown"
+    if path.name.endswith(".filtered.md"):
+        return "filtered-sidecar"
+    if path.name.startswith("Index - "):
+        return "index-page"
+    if path.name.lower() == "index.md":
+        return "support-index"
+    if path.name in GENERATED_SUPPORT_FILENAMES:
+        return "support-file"
+
+    parts = path.parts
+    if vault_root is not None:
+        try:
+            parts = path.resolve().relative_to(vault_root.resolve()).parts
+        except ValueError:
+            parts = path.parts
+
+    for part in parts:
+        lower_part = part.lower()
+        if part.startswith("."):
+            return "hidden-system-folder"
+        if lower_part in GENERATED_SUPPORT_DIR_PARTS or "template" in lower_part:
+            return "template-path"
+
+    return None
+
+
+def is_generated_document_markdown(path: Path, vault_root: Path | None = None) -> bool:
+    """Return True when path is an eligible generated document Markdown output."""
+    return generated_document_exclusion_reason(path, vault_root=vault_root) is None
 
 
 def mirror_file(src: Path, dst: Path) -> None:

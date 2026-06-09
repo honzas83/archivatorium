@@ -49,7 +49,13 @@ def test_cli_flat_topics_integration(
                 reason="Mention of nuclear strategy",
             )
         ],
-        conceptual_tags=["#NuclearDeterrence"],
+        conceptual_tags=[
+            "#NuclearDeterrence",
+            "#NuclearPlanning",
+            "#NATOStrategy",
+            "#DeterrenceStrategy",
+            "#OperationalDoctrine",
+        ],
         entity_tags=["Org/NATO"],
     )
 

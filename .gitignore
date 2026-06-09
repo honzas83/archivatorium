@@ -223,6 +223,11 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
 NATO_NPG_metadata.v0/
 NATO_NPG_metadata.v1/
 NATO_NPG_metadata.v2/

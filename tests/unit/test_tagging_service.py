@@ -3,8 +3,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.models.metadata import TopicResult, WindowTaggingResult
-from ocrpolish.services.tagging_service import TaggingService
+from ocrpolish.models.metadata import (
+    SubstantiveWindowTaggingResult,
+    TopicResult,
+    WindowTaggingResult,
+)
+from ocrpolish.processor_metadata import TaggingReuseHints
+from ocrpolish.services.tagging_service import TaggingQualityError, TaggingService
 
 
 @pytest.fixture
@@ -22,11 +27,20 @@ def test_extract_tags_single_pass(mock_ollama, mock_windowing):
     service = TaggingService(
         mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
     )
-    text = "Short text"
+    text = (
+        "NATO nuclear planning consultation procedures require exercises, "
+        "deterrence strategy, and operational doctrine."
+    )
 
     # Mock single pass result
     mock_result = WindowTaggingResult(
-        conceptual_tags=["#Tag1"],
+        conceptual_tags=[
+            "#Nuclear-Planning",
+            "#Consultation-Procedures",
+            "#Exercises",
+            "#Deterrence-Strategy",
+            "#Operational-Doctrine",
+        ],
         entity_tags=["State/UK"],
         topic_tags=[TopicResult(topic="Category/Topic1", reason="Test reason")],
     )
@@ -37,7 +51,7 @@ def test_extract_tags_single_pass(mock_ollama, mock_windowing):
     result = service.extract_tags(text)
 
     # Conceptual tags are normalized (hyphenated, no #)
-    assert "Tag1" in result.conceptual_tags
+    assert "Nuclear-Planning" in result.conceptual_tags
     assert "State/UK" in result.entity_tags
     assert result.topic_tags[0].topic == "Category/Topic1"
     assert result.topic_tags[0].reason == "Test reason"
@@ -58,12 +72,12 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     # Mock results for each chunk
     mock_ollama.extract_structured.side_effect = [
         WindowTaggingResult(
-            conceptual_tags=["#T1"],
+            conceptual_tags=["#T1", "#T2", "#T3", "#T4", "#T5"],
             entity_tags=["E1"],
             topic_tags=[TopicResult(topic="Top1", reason="R1")],
         ),
         WindowTaggingResult(
-            conceptual_tags=["#T2"],
+            conceptual_tags=["#T2", "#T6", "#T7", "#T8", "#T9"],
             entity_tags=["E2"],
             topic_tags=[TopicResult(topic="Top2", reason="R2")],
         ),
@@ -144,9 +158,11 @@ def test_sliding_window_reuses_static_prompt_text(
         mock_ollama, mock_windowing, hierarchy_file, tags_file, context_limit=1
     )
     mock_windowing.get_windows.return_value = ["chunk1", "chunk2", "chunk3"]
-    mock_ollama.extract_structured.return_value = WindowTaggingResult()
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=["#Administrative-Stub"]
+    )
 
-    service.extract_tags("long document")
+    service.extract_tags("this document is incorporated into the initial document")
 
     assert dump_calls == 1
     prompts = [call.args[0] for call in mock_ollama.extract_structured.call_args_list]
@@ -166,9 +182,7 @@ def test_prompt_uses_flat_category_topic_format(mock_ollama, mock_windowing):
     assert "Category/<category>/<topic>" not in prompt
 
 
-def test_tagging_prompt_includes_flattened_taxonomy_details(
-    mock_ollama, mock_windowing, tmp_path
-):
+def test_tagging_prompt_includes_flattened_taxonomy_details(mock_ollama, mock_windowing, tmp_path):
     hierarchy_file = tmp_path / "hierarchy.yaml"
     hierarchy_file.write_text(
         """
@@ -195,15 +209,104 @@ categories:
     assert "Neg1" in prompt
 
 
-def test_extract_tags_returns_empty_result_on_llm_failure(mock_ollama, mock_windowing):
+def test_extract_tags_raises_quality_error_on_substantive_llm_failure(mock_ollama, mock_windowing):
     service = TaggingService(
         mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
     )
     mock_ollama.extract_structured.side_effect = Exception("Ollama error")
 
-    result = service.extract_tags("Some text chunk")
+    with pytest.raises(TaggingQualityError):
+        service.extract_tags("NATO nuclear planning consultation procedures")
+
+    mock_ollama.extract_structured.assert_called_once()
+
+
+def test_substantive_schema_requires_five_conceptual_tags() -> None:
+    assert SubstantiveWindowTaggingResult(
+        conceptual_tags=["a", "b", "c", "d", "e"]
+    ).conceptual_tags == ["a", "b", "c", "d", "e"]
+    with pytest.raises(Exception):
+        SubstantiveWindowTaggingResult(conceptual_tags=["a", "b", "c", "d"])
+
+
+def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    prompt = service._generate_tagging_prompt("NATO nuclear planning")
+
+    assert "Return at least 5 conceptual tags for substantive documents" in prompt
+    assert "include every clearly justified useful conceptual tag" in prompt
+    assert "Up to 15" not in prompt
+
+
+@pytest.mark.parametrize("conceptual_tags", [[], ["a"], ["a", "b", "c", "d"]])
+def test_substantive_validation_rejects_undersized_conceptual_tags(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, conceptual_tags: list[str]
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=conceptual_tags
+    )
+
+    with pytest.raises(TaggingQualityError):
+        service.extract_tags("NATO nuclear planning consultation procedures")
+
+
+def test_non_substantive_stub_allows_empty_conceptual_tags(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult()
+
+    result = service.extract_tags("This document is incorporated into the initial document")
 
     assert result.conceptual_tags == []
-    assert result.entity_tags == []
-    assert result.topic_tags == []
-    mock_ollama.extract_structured.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "NATO",
+        "nuclear policy",
+        "consultation",
+        "exercise",
+        "command",
+        "weapons",
+        "references",
+    ],
+)
+def test_short_substantive_text_is_substantive(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, text: str
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    assert service._is_substantive(text)
+
+
+def test_reuse_hints_are_category_specific_in_prompt(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    hints = TaggingReuseHints(
+        preferred_conceptual_tags=["nuclear-planning"],
+        preferred_entities={"Org": ["nato"], "State": ["belgium"]},
+        preferred_topics=["defence-policy/nuclear-planning"],
+    )
+
+    prompt = service._generate_tagging_prompt("NATO nuclear planning", reuse_hints=hints)
+
+    assert "RESUMED #Tags PREFERRED VOCABULARY" in prompt
+    assert "nuclear-planning" in prompt
+    assert "RESUMED #Entities PREFERRED VOCABULARY" in prompt
+    assert "- Org: nato" in prompt
+    assert "RESUMED #Topics HINTS (subordinate to taxonomy)" in prompt

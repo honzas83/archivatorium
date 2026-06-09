@@ -3,7 +3,7 @@ from pathlib import Path
 import openpyxl  # type: ignore
 
 from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.services.indexing_service import IndexEntry, IndexingService
+from ocrpolish.services.indexing_service import EntityReference, IndexEntry, IndexingService
 
 
 def test_xlsx_generation(tmp_path: Path) -> None:
@@ -73,3 +73,40 @@ def test_xlsx_generation(tmp_path: Path) -> None:
 
     org_col = headers.index("org_entities")
     assert row_values[org_col] == "#Entities/Org/NATO"
+
+
+def test_xlsx_export_does_not_migrate_legacy_tags(tmp_path: Path) -> None:
+    vault_dir = tmp_path / "vault"
+    vault_dir.mkdir()
+    service = IndexingService(vault_dir)
+    entry = IndexEntry(
+        doc_path=Path("legacy.md"),
+        title="Legacy",
+        canonical_tags=CanonicalTags(),
+    )
+    entry.entities = [
+        EntityReference("State", "#State/Belgium", "Belgium"),
+        EntityReference("Org", "#Org/NATO", "NATO"),
+        EntityReference("City", "#City/Belgium/Brussels", "Brussels"),
+        EntityReference("Person", "#Person/Smith", "Smith"),
+        EntityReference("Category", "#Category/Nuclear", "Nuclear"),
+    ]
+    service.entries = [entry]
+    xlsx_path = vault_dir / "metadata_index.xlsx"
+
+    service.generate_xlsx(xlsx_path)
+
+    wb = openpyxl.load_workbook(xlsx_path)
+    sheet = wb["Metadata Index"]
+    headers = [cell.value for cell in sheet[1]]
+    row_values = [cell.value for cell in sheet[2]]
+
+    for column in [
+        "conceptual_tags",
+        "topic_tags",
+        "state_entities",
+        "org_entities",
+        "city_entities",
+        "person_entities",
+    ]:
+        assert row_values[headers.index(column)] in (None, "")

@@ -7,7 +7,11 @@ from typing import Any
 import yaml
 
 from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.utils.metadata import parse_frontmatter, safe_identifier
+from ocrpolish.utils.metadata import (
+    is_generated_document_markdown,
+    parse_frontmatter,
+    safe_identifier,
+)
 from ocrpolish.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
@@ -151,19 +155,7 @@ class InterlinkingService:
         tag_parser = CanonicalTagParser()
 
         for md_file in files:
-            # Exclude logic
-            # 1. Exclude if file name starts with "Index - "
-            if md_file.name.startswith("Index - "):
-                continue
-            # 2. Exclude metadata_index.xlsx or other non-markdown
-            if md_file.name == "metadata_index.xlsx":
-                continue
-            # 3. Exclude hidden folders like .obsidian, .git, .venv
-            parts = md_file.parts
-            if any(p.startswith(".") for p in parts):
-                continue
-            # 4. Exclude templates folder/files or files with template in name
-            if any("template" in p.lower() for p in parts):
+            if not is_generated_document_markdown(md_file, vault_root=self.vault_dir):
                 continue
 
             try:

@@ -7,7 +7,7 @@ import pytest
 from ocrpolish.data_model import TAG_PREFIX_TOPIC
 from ocrpolish.models.metadata import AggregatedTaggingResult, TopicResult
 from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.utils.metadata import parse_frontmatter
+from ocrpolish.utils.metadata import is_generated_document_markdown, parse_frontmatter
 
 
 @pytest.fixture
@@ -112,6 +112,26 @@ Clean body
     assert parsed.existing_metadata["title"] == "Existing"
     assert "Clean body" in parsed.cleaned_content
     assert "[!info] Metadata" not in parsed.cleaned_content
+
+
+def test_generated_document_eligibility_excludes_support_files(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    eligible = vault / "document.md"
+    eligible.write_text("body")
+    excluded = [
+        vault / "Index - Tags.md",
+        vault / "index.md",
+        vault / "document.filtered.md",
+        vault / ".obsidian" / "support.md",
+        vault / "templates" / "template.md",
+    ]
+    for path in excluded:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("support")
+
+    assert is_generated_document_markdown(eligible, vault_root=vault)
+    assert all(not is_generated_document_markdown(path, vault_root=vault) for path in excluded)
 
 
 def test_extract_document_metadata_stage_adds_page_count(processor: Any) -> None:

@@ -157,6 +157,7 @@ def metadata(  # noqa: PLR0913
     )
     processor.preflight_scan()
 
+    matching_markdown = set(processor.get_files(input_dir, mask=mask, all_files=False))
     files = sorted(processor.get_files(input_dir, mask=mask, all_files=True))
     if not files:
         click.echo("No files found to process.")
@@ -172,12 +173,18 @@ def metadata(  # noqa: PLR0913
                 is_filtered = input_file.name.endswith(".filtered.md")
                 is_pdf = input_file.suffix.lower() == ".pdf"
 
-                if is_md and not is_filtered:
+                if dry_run:
+                    click.echo(f"\n[DRY-RUN] Would consider {relative_path}")
+                    continue
+
+                if is_md and not is_filtered and input_file in matching_markdown:
                     # Get 50 most frequent tags
                     frequent_tags = [
                         tag for tag, _ in processor.conceptual_tag_counts.most_common(50)
                     ]
                     processor.process_file(input_file, output_file, frequent_tags)
+                elif is_md and not is_filtered:
+                    mirror_file(input_file, output_file)
                 elif is_pdf:
                     pdf_output_file = processor.get_mirrored_pdf_path(input_file)
                     if pdf_output_file.exists() and not pdf_output_file.samefile(input_file):
