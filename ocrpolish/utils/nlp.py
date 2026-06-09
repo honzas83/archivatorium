@@ -42,9 +42,7 @@ def overlap_coefficient(set1: frozenset[str], set2: frozenset[str]) -> float:
     return intersection / min(len(set1), len(set2))
 
 
-def suppress_duplicates(
-    conceptual: list[str], entities: list[str], topics: list[str]
-) -> list[str]:
+def suppress_duplicates(conceptual: list[str], entities: list[str], topics: list[str]) -> list[str]:
     """
     Remove conceptual tags that are already represented as entities or topics.
     Comparison is case-insensitive and ignores the '#' prefix on conceptual tags.
@@ -100,7 +98,7 @@ def filter_low_value_tags(tags: list[str]) -> list[str]:
 
 def to_title_case_custom(text: str) -> str:
     """
-    Generic Title Case conversion. 
+    Generic Title Case conversion.
     Treats all-uppercase words as acronyms and preserves them.
     """
     words = text.split()
@@ -137,5 +135,5 @@ def normalize_tag_component(component: str) -> str:
         # b. Collapse multiple hyphens and strip from ends
         s = re.sub(r"-+", "-", s).strip("-")
         norm_parts.append(s)
-    
+
     return "/".join(norm_parts)

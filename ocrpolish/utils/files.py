@@ -19,13 +19,13 @@ def initialize_vault_from_template(template_dir: Path, output_dir: Path) -> None
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for item in template_dir.rglob("*"):
         if item.is_file():
             # Skip common OS junk
             if item.name == ".DS_Store":
                 continue
-                
+
             rel_path = item.relative_to(template_dir)
             dst = output_dir / rel_path
             dst.parent.mkdir(parents=True, exist_ok=True)

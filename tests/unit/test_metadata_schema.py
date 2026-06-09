@@ -7,7 +7,6 @@ def test_metadata_schema_defaults() -> None:
     assert schema.language == "English"
     assert schema.summary == ""
     assert schema.title == ""
-    assert schema.mentioned_states == []
     assert schema.sender == ""
 
 
@@ -20,7 +19,6 @@ def test_metadata_schema_valid_data() -> None:
         "summary": "First sentence. Second sentence.",
         "abstract": "First sentence. Second sentence. More detail.",
         "author_name": "D.A. NICHOLLS",
-        "mentioned_states": ["Greece"],
     }
     schema = MetadataSchema(**data)
     assert schema.title == "Test Title"
@@ -28,7 +26,6 @@ def test_metadata_schema_valid_data() -> None:
     assert schema.archive_code == "NPG/D(77)12"
     assert schema.summary == "First sentence. Second sentence."
     assert schema.abstract == "First sentence. Second sentence. More detail."
-    assert "Greece" in schema.mentioned_states
 
 
 def test_metadata_schema_flattened_correspondence() -> None:

@@ -19,14 +19,16 @@ def mock_windowing():
 
 def test_extract_tags_single_pass(mock_ollama, mock_windowing):
     # Set context limit high to force single pass
-    service = TaggingService(mock_ollama, mock_windowing, Path('dummy.yaml'), Path('dummy.yaml'), context_limit=1000)
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
     text = "Short text"
 
     # Mock single pass result
     mock_result = WindowTaggingResult(
-        conceptual_tags=["#Tag1"], 
-        entity_tags=["State/UK"], 
-        topic_tags=[TopicResult(topic="Category/Topic1", reason="Test reason")]
+        conceptual_tags=["#Tag1"],
+        entity_tags=["State/UK"],
+        topic_tags=[TopicResult(topic="Category/Topic1", reason="Test reason")],
     )
     mock_ollama.extract_structured.return_value = mock_result
 
@@ -45,7 +47,9 @@ def test_extract_tags_single_pass(mock_ollama, mock_windowing):
 
 def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     # Set context limit low to force sliding window
-    service = TaggingService(mock_ollama, mock_windowing, Path('dummy.yaml'), Path('dummy.yaml'), context_limit=5)
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=5
+    )
     text = "Very long text that exceeds limit"
 
     # Mock windowing
@@ -54,14 +58,14 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     # Mock results for each chunk
     mock_ollama.extract_structured.side_effect = [
         WindowTaggingResult(
-            conceptual_tags=["#T1"], 
-            entity_tags=["E1"], 
-            topic_tags=[TopicResult(topic="Top1", reason="R1")]
+            conceptual_tags=["#T1"],
+            entity_tags=["E1"],
+            topic_tags=[TopicResult(topic="Top1", reason="R1")],
         ),
         WindowTaggingResult(
-            conceptual_tags=["#T2"], 
-            entity_tags=["E2"], 
-            topic_tags=[TopicResult(topic="Top2", reason="R2")]
+            conceptual_tags=["#T2"],
+            entity_tags=["E2"],
+            topic_tags=[TopicResult(topic="Top2", reason="R2")],
         ),
     ]
 
@@ -72,12 +76,12 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     assert "T2" in result.conceptual_tags
     assert "E1" in result.entity_tags
     assert "E2" in result.entity_tags
-    
+
     topics = {t.topic: t.reason for t in result.topic_tags}
     assert "Top1" in topics
     assert topics["Top1"] == "R1"
     assert "Top2" in topics
     assert topics["Top2"] == "R2"
-    
+
     assert mock_ollama.extract_structured.call_count == 2
     mock_windowing.get_windows.assert_called_once_with(text)

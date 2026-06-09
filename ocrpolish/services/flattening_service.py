@@ -12,7 +12,7 @@ class FlatteningService:
             hierarchy: The nested hierarchy dictionary.
 
         Returns:
-            A list of flattened topic definitions with 'id', 'description', 
+            A list of flattened topic definitions with 'id', 'description',
             'positive_samples', and 'negative_samples'.
         """
         flat_topics = []

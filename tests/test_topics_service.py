@@ -43,7 +43,9 @@ categories:
         self.mock_client.extract_structured.side_effect = [
             CategorySelectionSchema(selected_categories=["Category A"]),
             TopicSelectionSchema(
-                assignments=[TopicAssignment(category="Category A", topic="Topic A1", reason="Strong match")]
+                assignments=[
+                    TopicAssignment(category="Category A", topic="Topic A1", reason="Strong match")
+                ]
             ),
         ]
 

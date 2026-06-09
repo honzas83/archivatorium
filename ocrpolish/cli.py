@@ -102,6 +102,13 @@ def clean(
     "--tags-file", type=click.Path(exists=True, path_type=Path), help="Path to useful tags YAML."
 )
 @click.option("--flat-topics", is_flag=True, help="Use flat taxonomy instead of hierarchical.")
+@click.option(
+    "--citekey-mode",
+    type=click.Choice(["stem", "path"]),
+    default="stem",
+    show_default=True,
+    help="Deterministic citekey generation mode.",
+)
 @click.option("--overwrite", is_flag=True, help="Overwrite existing output files.")
 @click.option("--dry-run", is_flag=True, help="If set, logs metadata without writing files.")
 def metadata(
@@ -114,6 +121,7 @@ def metadata(
     hierarchy_file: Path | None,
     tags_file: Path | None,
     flat_topics: bool,
+    citekey_mode: str,
     overwrite: bool,
     dry_run: bool,
 ) -> None:
@@ -143,6 +151,7 @@ def metadata(
         pdf_dir=pdf_dir,
         tagging_service=tagging_service,
         input_dir=input_dir,
+        citekey_mode=citekey_mode,
     )
     processor.preflight_scan()
 

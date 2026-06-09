@@ -267,8 +267,10 @@ def format_chicago_citation(data: dict[str, Any]) -> str:
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
 
-    safe_id = safe_identifier(code)
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
+    citekey = data.get("citekey")
+    if not citekey:
+        citekey = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{citekey}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str}, “{title},” {date_chicago}"
@@ -305,8 +307,10 @@ def format_harvard_citation(data: dict[str, Any]) -> str:
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
 
-    safe_id = safe_identifier(code)
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
+    citekey = data.get("citekey")
+    if not citekey:
+        citekey = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{citekey}")
     urldate = data.get("url_date", "")
 
     main_part = f"{author_str} ({year}). “{title},”"
@@ -348,7 +352,7 @@ def format_metadata_table(metadata: dict[str, Any]) -> str:
     # Mapping based on MUSTR_metadata_table2.md
     mapping = [
         ("≡&nbsp;**title**:", metadata.get("title", "Untitled")),
-        ("≡&nbsp;summary:", metadata.get("summary", "") or metadata.get("abstract", "")),
+        ("≡&nbsp;summary:", metadata.get("summary", "")),
         ("№&nbsp;**pages**:", str(metadata.get("pages", ""))),
         ("🔗&nbsp;source:", metadata.get("source", "")),
         ("≡&nbsp;sender:", metadata.get("sender", "")),
@@ -358,10 +362,13 @@ def format_metadata_table(metadata: dict[str, Any]) -> str:
         ("≡&nbsp;author_institution:", metadata.get("author_institution", "")),
         ("🗓&nbsp;**date**:", metadata.get("date", "")),
         ("≡&nbsp;archive_code:", metadata.get("archive_code", "")),
+        ("≡&nbsp;citekey:", metadata.get("citekey", "")),
         ("≡&nbsp;**language**:", metadata.get("language", "")),
         ("≡&nbsp;location_city:", metadata.get("location_city", "")),
         ("≡&nbsp;location_state:", metadata.get("location_state", "")),
         ("☰&nbsp;references:", metadata.get("references", "")),
+        ("☰&nbsp;references (derived):", metadata.get("references (derived)", "")),
+        ("≡&nbsp;language versions (derived):", metadata.get("language_versions (derived)", "")),
     ]
 
     table_lines = []
@@ -374,11 +381,11 @@ def format_metadata_table(metadata: dict[str, Any]) -> str:
 
             # Ensure value is single-line for table compatibility
             clean_value = str(value).replace("\n", " ").strip()
-            
+
             # Bold the value only if the field label is bolded
             if "**" in field:
                 clean_value = f"**{clean_value}**"
-                
+
             table_lines.append(f"| {field} | {clean_value} |")
             if first:
                 table_lines.append("| --- | --- |")
@@ -406,14 +413,16 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
     code = data.get("archive_code", "")
     platform = data.get("platform_name", "NATO Archive Obsidian")
 
-    safe_id = safe_identifier(code)
-    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{safe_id}")
+    citekey = data.get("citekey")
+    if not citekey:
+        citekey = safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{citekey}")
     urldate = data.get("url_date", "")
 
     note_parts = [p for p in [inst, code, platform] if p]
     note = ", ".join(note_parts)
 
-    lines = [f"@misc{{{safe_id},"]
+    lines = [f"@misc{{{citekey},"]
     lines.append(f"  author = {{{author_str}}},")
     lines.append(f"  title = {{{title}}},")
     if date:
@@ -450,6 +459,160 @@ def generate_citation_callout(data: dict[str, Any]) -> str:
     )
 
     return format_as_callout(callout_content, title="", callout_type="citing this document")
+
+
+def strip_generated_sections(content: str) -> str:
+    """
+    Strips YAML frontmatter, Metadata callouts, Abstract callouts, and Citation callouts
+    to return only the clean source Markdown text.
+    """
+    # 1. Strip YAML frontmatter
+    _, body = parse_frontmatter(content)
+    body = body.lstrip()
+
+    # 2. Strip callout blocks line-by-line
+    lines = body.splitlines()
+    cleaned_lines = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith("> [!"):
+            callout_header = stripped.lower()
+            if (
+                ("[!info]" in callout_header and "metadata" in callout_header)
+                or ("[!metadata]" in callout_header)
+                or ("[!abstract]" in callout_header)
+                or ("[!citing this document]" in callout_header)
+            ):
+                # Skip callout block lines
+                i += 1
+                while i < n and (lines[i].strip().startswith(">") or lines[i].strip() == ""):
+                    if not lines[i].strip().startswith(">"):
+                        break
+                    i += 1
+                continue
+        cleaned_lines.append(line)
+        i += 1
+
+    return "\n".join(cleaned_lines).strip()
+
+
+def generate_citekey(
+    output_file: Path,
+    mode: str = "stem",
+    vault_root: Path | None = None,
+    output_dir: Path | None = None,
+) -> str:
+    """
+    Generates a normalized citekey from the output file.
+    - stem mode: filename stem.
+    - path mode: full vault-relative path of the output file without the '.md' suffix.
+    """
+    if mode == "path":
+        rel_path = None
+        if vault_root:
+            try:
+                rel_path = output_file.resolve().relative_to(vault_root.resolve())
+            except ValueError:
+                pass
+        if rel_path is None and output_dir:
+            try:
+                rel_path = output_file.resolve().relative_to(output_dir.resolve())
+            except ValueError:
+                pass
+
+        if rel_path:
+            path_str = rel_path.with_suffix("").as_posix()
+            path_str = path_str.replace("/", ":")
+            return safe_identifier(path_str)
+
+    return safe_identifier(output_file.stem)
+
+
+def reconcile_metadata(
+    existing_meta: dict[str, Any],
+    newly_extracted: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Reconciles existing user-supplied metadata with newly extracted metadata.
+    """
+    canonical_fields = {
+        "title",
+        "summary",
+        "abstract",
+        "pages",
+        "source",
+        "sender",
+        "recipient",
+        "intent",
+        "author_name",
+        "author_institution",
+        "date",
+        "archive_code",
+        "citekey",
+        "language",
+        "location_city",
+        "location_state",
+        "references",
+    }
+
+    reconciled: dict[str, Any] = {}
+
+    # 1. Preserve all custom fields
+    for k, v in existing_meta.items():
+        if k not in canonical_fields:
+            reconciled[k] = v
+
+    # 2. Reconcile canonical fields
+    overwrite_fields = {"summary", "pages", "source", "citekey", "abstract"}
+    for field in overwrite_fields:
+        if field in newly_extracted:
+            reconciled[field] = newly_extracted[field]
+        elif field in existing_meta:
+            reconciled[field] = existing_meta[field]
+
+    preserve_fields = {
+        "title",
+        "sender",
+        "recipient",
+        "intent",
+        "author_name",
+        "author_institution",
+        "date",
+        "archive_code",
+        "language",
+        "location_city",
+        "location_state",
+    }
+    for field in preserve_fields:
+        existing_val = existing_meta.get(field)
+        new_val = newly_extracted.get(field)
+        if existing_val not in (None, "", [], {}):
+            reconciled[field] = existing_val
+        elif new_val not in (None, "", [], {}):
+            reconciled[field] = new_val
+
+    # Special merge for references
+    existing_refs = existing_meta.get("references")
+    new_refs = newly_extracted.get("references")
+
+    merged_refs_set: set[str] = set()
+    if isinstance(existing_refs, list):
+        merged_refs_set.update(str(r).strip() for r in existing_refs if r)
+    elif isinstance(existing_refs, str) and existing_refs.strip():
+        merged_refs_set.add(existing_refs.strip())
+
+    if isinstance(new_refs, list):
+        merged_refs_set.update(str(r).strip() for r in new_refs if r)
+    elif isinstance(new_refs, str) and new_refs.strip():
+        merged_refs_set.add(new_refs.strip())
+
+    if merged_refs_set:
+        reconciled["references"] = sorted(list(merged_refs_set))
+
+    return reconciled
 
 
 def safe_read_text(path: Path) -> str:

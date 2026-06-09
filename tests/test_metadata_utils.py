@@ -1,6 +1,6 @@
 import unittest
-import re
-from ocrpolish.utils.metadata import format_hierarchical_tag, extract_last_page_header
+
+from ocrpolish.utils.metadata import extract_last_page_header, format_hierarchical_tag
 
 
 class TestMetadataUtils(unittest.TestCase):

@@ -8,6 +8,7 @@ def test_normalize_exercise_tag():
     assert normalize_exercise_tag("FALLEX-66") == "FALLEX/66"
     assert normalize_exercise_tag("other-tag") == "other-tag"
 
+
 def test_filter_low_value_tags():
     tags = ["#Report", "#Important", "#Study", "#Agenda", "#Notice", "#ValidTag"]
     filtered = filter_low_value_tags(tags)
@@ -17,6 +18,7 @@ def test_filter_low_value_tags():
     assert "#Notice" not in filtered
     assert "#Important" in filtered
     assert "#ValidTag" in filtered
+
 
 def test_to_title_case_custom():
     assert to_title_case_custom("NUCLEAR DETERRENCE") == "NUCLEAR DETERRENCE"

@@ -51,8 +51,5 @@ categories:
 
     assert "Military doctrines." in content
     # Topic should be normalized and matched
-    assert (
-        "#Category/Doctrine-and-Strategy/Nuclear-Deterrence -- Nuclear strategy."
-        in content
-    )
+    assert "#Category/Doctrine-and-Strategy/Nuclear-Deterrence -- Nuclear strategy." in content
     assert "#Category/Doctrine-and-Strategy/Conventional" not in content  # Not used

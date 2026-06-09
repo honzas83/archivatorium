@@ -57,28 +57,9 @@ class MetadataSchema(BaseModel):
         "", description="The action, request, or purpose imposed by the correspondence."
     )
 
-    mentioned_states: list[str] = Field(
-        default_factory=list,
-        description="Full names of national states mentioned (e.g., United Kingdom).",
-    )
-    mentioned_organisations: list[str] = Field(
-        default_factory=list,
-        description="Organizations mentioned (e.g., NATO, European Community).",
-    )
-    mentioned_cities: list[str] = Field(
-        default_factory=list,
-        description="Cities mentioned. Format each as 'City, State' (e.g., 'London, United Kingdom').",
-    )
     references: list[str] = Field(
         default_factory=list,
         description="Other archive reference codes mentioned (e.g., C-M(55)15).",
-    )
-    tags: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Arbitrary, hash-tag like keywords (3-8). MUST NOT contain spaces "
-            "(e.g., #NuclearPlanning)."
-        ),
     )
 
 

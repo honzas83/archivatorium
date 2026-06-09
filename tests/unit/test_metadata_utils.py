@@ -29,7 +29,7 @@ def test_format_bibtex_citation_date() -> None:
         "archive_code": "NPG-D-73-10",
         "author_name": "E. F. Luff",
         "title": "Nuclear Planning Group",
-        "date": "1973-10-05"
+        "date": "1973-10-05",
     }
     bibtex = format_bibtex_citation(data)
     assert "date = {1973-10-05}" in bibtex
@@ -42,7 +42,7 @@ def test_format_metadata_table_icons() -> None:
         "title": "Test Title",
         "pages": 10,
         "date": "2026-05-07",
-        "references": ["Ref1", "Ref2"]
+        "references": ["Ref1", "Ref2"],
     }
     table = format_metadata_table(data)
     assert "≡&nbsp;**title**:" in table

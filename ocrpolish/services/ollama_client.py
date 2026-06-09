@@ -19,7 +19,12 @@ class OllamaClient:
         self.client = Client(host=host, timeout=OLLAMA_TIMEOUT)
 
     def extract_structured(
-        self, prompt: str, schema: type[T], retries: int = 3, model: str | None = None, **kwargs: Any
+        self,
+        prompt: str,
+        schema: type[T],
+        retries: int = 3,
+        model: str | None = None,
+        **kwargs: Any,
     ) -> T:
         """
         Sends a prompt to Ollama and returns a validated Pydantic model.

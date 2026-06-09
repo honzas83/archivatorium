@@ -9,6 +9,7 @@ from ocrpolish.utils.metadata import safe_identifier
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class VaultDocument:
     path: Path
@@ -18,14 +19,15 @@ class VaultDocument:
     language: str
     references: list[str] = field(default_factory=list)
 
+
 class InterlinkingService:
     """Service for interlinking documents in an Obsidian vault."""
 
     def __init__(self, vault_dir: Path, unifications_path: Path | None = None):
         self.vault_dir = vault_dir
-        self.code_map: dict[str, dict[str, str]] = {} # normalized_code -> {lang: relative_path}
-        self.bibtex_map: dict[str, dict[str, str]] = {} # bibtex_key -> {lang: filename}
-        self.bib_to_norm: dict[str, str] = {} # bibtex_key -> normalized_code
+        self.code_map: dict[str, dict[str, str]] = {}  # normalized_code -> {lang: relative_path}
+        self.bibtex_map: dict[str, dict[str, str]] = {}  # bibtex_key -> {lang: filename}
+        self.bib_to_norm: dict[str, str] = {}  # bibtex_key -> normalized_code
         self.unifications: list[dict[str, str]] = self._load_unifications(unifications_path)
         self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
 
@@ -42,11 +44,14 @@ class InterlinkingService:
         try:
             with open(unif_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-                return data.get("unifications", [])
+                if isinstance(data, dict):
+                    unif = data.get("unifications", [])
+                    if isinstance(unif, list):
+                        return unif
+                return []
         except Exception as e:
             logger.warning(f"Could not load unification rules: {e}")
             return []
-
 
     def _build_expansion_map(self) -> dict[str, list[str]]:
         """
@@ -70,7 +75,7 @@ class InterlinkingService:
         """
         if not code:
             return ""
-            
+
         # 1. Apply global unification rules (regex)
         normalized = str(code)
         for rule in self.unifications:
@@ -100,7 +105,7 @@ class InterlinkingService:
         """
         normalized = self.normalize_code(target_code)
         bib = safe_identifier(target_code)
-        
+
         exact_variants = self.code_map.get(normalized, {})
         bib_variants = self.bibtex_map.get(bib, {})
 
@@ -109,13 +114,13 @@ class InterlinkingService:
             return exact_variants[source_lang]
         if source_lang in bib_variants:
             return bib_variants[source_lang]
-            
+
         # 3 & 4: English fallback
         if "English" in exact_variants:
             return exact_variants["English"]
         if "English" in bib_variants:
             return bib_variants["English"]
-            
+
         # 5 & 6: Any other language
         if exact_variants:
             # Sort for stable selection
@@ -125,17 +130,17 @@ class InterlinkingService:
             # Sort for stable selection
             best_lang = sorted(bib_variants.keys())[0]
             return bib_variants[best_lang]
-            
+
         return None
 
     def discover(self) -> None:
         """First pass: build the archive code maps by scanning all Markdown files."""
         self.code_map = {}
         self.bibtex_map = {}
-        
+
         # Sort files for deterministic behavior (handles duplicate codes consistently)
         files = sorted(list(self.vault_dir.rglob("*.md")))
-        
+
         for md_file in files:
             try:
                 content = md_file.read_text(encoding="utf-8")
@@ -143,30 +148,30 @@ class InterlinkingService:
                 match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
                 if not match:
                     continue
-                    
+
                 frontmatter = yaml.safe_load(match.group(1))
                 if not frontmatter:
                     continue
-                    
+
                 code = frontmatter.get("archive_code")
                 lang = frontmatter.get("language")
-                
+
                 if code and lang:
                     norm_code = self.normalize_code(code)
                     bib_code = safe_identifier(code)
                     filename = md_file.name
-                    
+
                     # Add to exact map
                     if norm_code not in self.code_map:
                         self.code_map[norm_code] = {}
                     self.code_map[norm_code][lang] = filename
-                    
+
                     # Add to BibTeX map as fuzzy fallback
                     if bib_code not in self.bibtex_map:
                         self.bibtex_map[bib_code] = {}
                         # Map BibTeX key to the first normalized code that produces it
                         self.bib_to_norm[bib_code] = norm_code
-                        
+
                     # Only add if not already present for this lang (exact code mapping takes precedence if found first)
                     if lang not in self.bibtex_map[bib_code]:
                         self.bibtex_map[bib_code][lang] = filename
@@ -200,14 +205,14 @@ class InterlinkingService:
         callout_pattern = re.compile(
             r"(> \[!info\] Metadata.*?\n)(.*?)(?=\n\n|\n[^>]|$)", re.DOTALL
         )
-        
+
         match = callout_pattern.search(content)
         if not match:
             return content
-            
+
         header = match.group(1)
         table_body = match.group(2)
-        
+
         # 1. Resolve language versions for this document
         archive_code = None
         # Support both bolded and non-bolded labels
@@ -219,14 +224,14 @@ class InterlinkingService:
                 # Remove bold markers from extracted code if LLM added them
                 archive_code = archive_code.replace("**", "")
                 break
-        
+
         lang_versions_row = ""
         if archive_code:
             norm_code = self.normalize_code(archive_code)
             variants = self.code_map.get(norm_code, {})
             # language_versions links to OTHER files with the same code
             other_variants = {lang: p for lang, p in variants.items() if p != current_filename}
-            
+
             if other_variants:
                 links = [f"[{lang}]({p})" for lang, p in sorted(other_variants.items())]
                 # Non-bold as requested
@@ -235,21 +240,20 @@ class InterlinkingService:
         # 2. Process rows
         rows = table_body.split("\n")
         new_rows = []
-        
+
         # We'll handle the references row specially to ensure ordering
         found_ref_row = False
-        
+
         # Precise regex for detecting language and references rows (supporting optional bolding)
         lang_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language(?:\*\*)?: \|")
         lang_versions_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language_versions(?:\*\*)?: \|")
         refs_re = re.compile(r"^(\s*> \| ☰&nbsp;(?:\*\*)?references(?:\*\*)?: \| )(.*)( \|)$")
 
         for row in rows:
-
             # Skip existing language_versions row if present (idempotency)
             if lang_versions_re.match(row):
                 continue
-                
+
             # Match references row
             ref_match = refs_re.match(row)
             if ref_match:
@@ -257,8 +261,8 @@ class InterlinkingService:
                 prefix, values_str, suffix = ref_match.groups()
                 # Use <br> as requested by the user
                 sep = "<br>"
-                parts = re.split(r"<br>|,", values_str) # Support splitting both for migration
-                
+                parts = re.split(r"<br>|,", values_str)  # Support splitting both for migration
+
                 existing_codes = []
                 for part in parts:
                     stripped_part = part.strip()
@@ -271,12 +275,12 @@ class InterlinkingService:
                     canonical = self.bib_to_norm.get(raw_code, raw_code)
                     if canonical not in existing_codes:
                         existing_codes.append(canonical)
-                
+
                 # Merge with discovered_codes (from body)
                 # discovered_codes are already canonicalized by interlink_body
                 body_codes = discovered_codes or []
                 final_codes = []
-                
+
                 # Normalize own archive_code for strict comparison (using BibTeX-style key)
                 own_code_bib = safe_identifier(archive_code) if archive_code else None
 
@@ -288,7 +292,7 @@ class InterlinkingService:
                         if own_code_bib and safe_identifier(c) == own_code_bib:
                             continue
                         final_codes.append(c)
-                
+
                 # Second: Add existing ones that were NOT in body (silent references)
                 for c in existing_codes:
                     # c is already canonical
@@ -297,7 +301,7 @@ class InterlinkingService:
                         if own_code_bib and safe_identifier(c) == own_code_bib:
                             continue
                         final_codes.append(c)
-                
+
                 # Format back with links
                 new_parts = []
                 for code in final_codes:
@@ -306,16 +310,16 @@ class InterlinkingService:
                         new_parts.append(f"[{code}]({link_path})")
                     else:
                         new_parts.append(code)
-                
+
                 new_rows.append(f"{prefix}{sep.join(new_parts)}{suffix}")
                 continue
-                
+
             new_rows.append(row)
-            
+
             # Insert language_versions row after language row
             if lang_re.match(row) and lang_versions_row:
                 new_rows.append(lang_versions_row)
-        
+
         # If no reference row was found but we have discovered codes, add it!
         if not found_ref_row and discovered_codes:
             new_parts = []
@@ -342,16 +346,15 @@ class InterlinkingService:
                 ref_row = f"> | ☰&nbsp;references: | {'<br>'.join(new_parts)} |"
                 new_rows.insert(insert_idx, ref_row)
 
-            
         new_table_body = "\n".join(new_rows)
-        return content[:match.start()] + header + new_table_body + content[match.end():]
+        return content[: match.start()] + header + new_table_body + content[match.end() :]
 
     def interlink_body(
         self,
         content: str,
         source_lang: str,
         current_filename: str | None = None,
-        force: bool = False
+        force: bool = False,
     ) -> tuple[str, list[str]]:
         """
         Processes the Markdown body.
@@ -373,9 +376,11 @@ class InterlinkingService:
         def make_flexible(c: str) -> str:
             # 1. Expand canonical parts to include variants from expansion_map
             expanded = c
-            placeholders = {}
+            placeholders: dict[str, str] = {}
             # Sort expansion map by key length descending to avoid partial matches
-            for canonical, variants in sorted(self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True):
+            for canonical, variants in sorted(
+                self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True
+            ):
                 if canonical in expanded:
                     # Escape the canonical part for regex
                     esc_canonical = re.escape(canonical)
@@ -383,7 +388,7 @@ class InterlinkingService:
                     all_variants = [esc_canonical] + variants
                     # Create a non-capturing group
                     group = f"(?:{'|'.join(all_variants)})"
-                    
+
                     # Use a placeholder to protect this group from further escaping
                     ph = f"___GROUP{len(placeholders)}___"
                     placeholders[ph] = group
@@ -391,25 +396,25 @@ class InterlinkingService:
 
             # 2. re.escape handles parentheses and other special chars
             s = re.escape(expanded)
-            
+
             # 3. Replace escaped or unescaped / and - with [/ \-]*
             s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", s)
             # Add optional [/ \-]* around parentheses to handle "NPG/D(73)/15" or "NPG (73)"
             s = s.replace(r"\(", r"[/ \\-]*\(").replace(r"\)", r"\)[/ \\-]*")
-            
+
             # 4. Restore placeholders
             for ph, group in placeholders.items():
                 # We need to escape the placeholder because re.escape was applied to it
                 s = s.replace(re.escape(ph), group)
-            
+
             # 5. Collapse multiple identical patterns to keep it clean
             while "[/ \\-]*[/ \\-]*" in s:
                 s = s.replace("[/ \\-]*[/ \\-]*", "[/ \\-]*")
             return s
-            
+
         codes_regex_parts = [make_flexible(c) for c in sorted_codes]
         codes_pattern = "|".join(codes_regex_parts)
-        
+
         # Single-pass regex to avoid re-linking already linked text.
         # Group 1: Existing links (Wikilinks [[...]] or Markdown links [...](...))
         #   Markdown link regex handles one level of nested parentheses in the path (e.g. (73))
@@ -431,11 +436,11 @@ class InterlinkingService:
                 if display_text is None:
                     display_text = code_text
                 bib = safe_identifier(code_text)
-                
+
                 canonical = self.bib_to_norm.get(bib, self.normalize_code(code_text))
                 if canonical not in found_codes:
                     found_codes.append(canonical)
-                    
+
                 link_path = self.resolve_link(code_text, source_lang)
                 if link_path and link_path != current_filename:
                     return f"[{display_text}]({link_path})"
@@ -482,21 +487,25 @@ class InterlinkingService:
 
         return "\n".join(new_lines), found_codes
 
-    def interlink_all(self, dry_run: bool = False, verbose: bool = False, force: bool = False) -> None:
+    def interlink_all(
+        self, dry_run: bool = False, verbose: bool = False, force: bool = False
+    ) -> None:
         """Second pass: perform in-place interlinking on all files."""
         updated_count = 0
         for md_file in self.vault_dir.rglob("*.md"):
             try:
                 content = md_file.read_text(encoding="utf-8")
-                
+
                 # 1. Separate frontmatter from body to protect it
                 fm_match = re.match(r"^(---\s*\n.*?\n---\s*\n)(.*)$", content, re.DOTALL)
                 if fm_match:
                     frontmatter_part = fm_match.group(1)
                     body_part = fm_match.group(2)
-                    
+
                     # Extract source language for logic
-                    fm_yaml_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", frontmatter_part, re.DOTALL)
+                    fm_yaml_match = re.match(
+                        r"^---\s*\n(.*?)\n---\s*\n", frontmatter_part, re.DOTALL
+                    )
                     if fm_yaml_match:
                         fm_data = yaml.safe_load(fm_yaml_match.group(1))
                         source_lang = fm_data.get("language", "English") if fm_data else "English"
@@ -506,29 +515,33 @@ class InterlinkingService:
                     frontmatter_part = ""
                     body_part = content
                     source_lang = "English"
-                
+
                 # 2. Interlink Body FIRST to discover all references and their order
-                new_body, discovered_codes = self.interlink_body(body_part, source_lang, md_file.name, force=force)
-                
+                new_body, discovered_codes = self.interlink_body(
+                    body_part, source_lang, md_file.name, force=force
+                )
+
                 # 3. Interlink Metadata callout with discovered codes
-                new_body = self.interlink_metadata(new_body, source_lang, md_file.name, discovered_codes)
-                
+                new_body = self.interlink_metadata(
+                    new_body, source_lang, md_file.name, discovered_codes
+                )
+
                 new_content = frontmatter_part + new_body
-                
+
                 if new_content != content:
                     rel_path = md_file.relative_to(self.vault_dir)
                     if verbose or dry_run:
                         action = "[DRY-RUN] Would update" if dry_run else "Updating"
                         logger.info(f"{action}: {rel_path}")
-                    
+
                     if not dry_run:
                         md_file.write_text(new_content, encoding="utf-8")
                     updated_count += 1
-                        
+
             except Exception as e:
                 logger.error(f"Error processing {md_file}: {e}")
                 continue
-        
+
         msg = f"Interlinking complete. {updated_count} files modified"
         if dry_run:
             msg += " (dry-run)"

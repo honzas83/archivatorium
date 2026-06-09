@@ -17,15 +17,16 @@ from ocrpolish.utils.metadata import (
     extract_last_page_header,
     flatten_metadata,
     format_as_callout,
-    format_hierarchical_tag,
     format_metadata_table,
     generate_citation_callout,
+    generate_citekey,
     mirror_file,
-    normalize_obsidian_tags,
     parse_frontmatter,
     prefix_tag,
+    reconcile_metadata,
     safe_read_text,
     stringify_frontmatter,
+    strip_generated_sections,
 )
 from ocrpolish.utils.tag_parser import CanonicalTagParser
 
@@ -46,6 +47,7 @@ class MetadataProcessor:
         pdf_dir: Path | None = None,
         tagging_service: TaggingService | None = None,
         input_dir: Path | None = None,
+        citekey_mode: str = "stem",
     ):
         self.client = ollama_client
         self.output_dir = output_dir
@@ -54,6 +56,7 @@ class MetadataProcessor:
         self.pdf_dir = pdf_dir
         self.tagging_service = tagging_service
         self.input_dir = input_dir
+        self.citekey_mode = citekey_mode
         self.conceptual_tag_counts: Counter[str] = Counter()
         self.topic_counts: Counter[str] = Counter()
         self.entity_counts: dict[str, Counter[str]] = {
@@ -63,6 +66,7 @@ class MetadataProcessor:
             "Person": Counter(),
         }
         self.scanned_files_tags: dict[Path, CanonicalTags] = {}
+        self._preflight_done = False
 
     def _get_pdf_link(self, input_file: Path) -> str:
         """Calculates the Obsidian-style link to the source PDF."""
@@ -88,9 +92,9 @@ class MetadataProcessor:
             return f"[[{pdf_filename}]]"
 
     def _prepare_obsidian_metadata(
-        self, raw_dict: dict[str, Any], input_file: Path
+        self, raw_dict: dict[str, Any], input_file: Path, output_file: Path
     ) -> dict[str, Any]:
-        """Prepares the metadata dictionary for Obsidian output."""
+        """Prepares the metadata dictionary for Obsidian frontmatter and table output."""
         # 1. Clean dict and handle renames
         clean_dict: dict[str, Any] = {}
         for k, v in raw_dict.items():
@@ -98,15 +102,27 @@ class MetadataProcessor:
             # Rename legacy fields to intent if found
             if new_key in ("transaction", "correspondence"):
                 new_key = "intent"
+            # Exclude obsolete fields
+            if new_key in (
+                "mentioned_states",
+                "mentioned_organisations",
+                "mentioned_cities",
+                "tags",
+            ):
+                continue
             clean_dict[new_key] = v
         raw_dict = clean_dict
 
-        # 2. Standardize tags (flat tags)
-        if raw_dict.get("tags"):
-            raw_dict["tags"] = normalize_obsidian_tags(raw_dict["tags"])
-
-        # 3. Add source PDF link
+        # 2. Add source PDF link
         raw_dict["source"] = self._get_pdf_link(input_file)
+
+        # 3. Add citekey
+        raw_dict["citekey"] = generate_citekey(
+            output_file=output_file,
+            mode=self.citekey_mode,
+            vault_root=self.vault_root,
+            output_dir=self.output_dir,
+        )
 
         # 4. Define primary field order and extract them
         primary_keys = [
@@ -120,14 +136,13 @@ class MetadataProcessor:
             "author_institution",
             "date",
             "archive_code",
+            "citekey",
             "language",
             "location_city",
             "location_state",
             "source",
+            "references",
         ]
-
-        # 5. Exclude mentioned_* from frontmatter (they go to Callout)
-        excluded_keys = ["mentioned_states", "mentioned_organisations", "mentioned_cities"]
 
         metadata_dict = {}
         for k in primary_keys:
@@ -137,11 +152,10 @@ class MetadataProcessor:
                 if val not in (None, "", [], {}):
                     metadata_dict[k] = val
 
-        # 6. Flatten the remaining fields and filter them
+        # 5. Flatten the remaining fields and filter them
         flattened_remainder = flatten_metadata(raw_dict)
         for k, v in flattened_remainder.items():
-            # Ensure excluded keys don't sneak back in after flattening
-            if k not in excluded_keys and v not in (None, "", [], {}):
+            if v not in (None, "", [], {}):
                 metadata_dict[k] = v
         return metadata_dict
 
@@ -162,15 +176,29 @@ class MetadataProcessor:
         """
         Processes a single file: extracts metadata and writes to output.
         """
+        output_file = output_file.with_suffix(".md")
         if output_file.exists() and not self.overwrite:
             logger.debug(f"Skipping {input_file} (output already exists)")
+            if output_file not in self.scanned_files_tags:
+                try:
+                    content = safe_read_text(output_file)
+                    parser = CanonicalTagParser()
+                    tags = parser.parse_text(content, file_path=output_file)
+                    self._add_tags_to_counters(tags)
+                    self.scanned_files_tags[output_file] = tags
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to parse existing file {output_file} during skip logic: {e}"
+                    )
             return False
 
         try:
             content = safe_read_text(input_file)
+            cleaned_content = strip_generated_sections(content)
 
             # 1. Separate existing frontmatter from body
-            existing_metadata, original_body = parse_frontmatter(content)
+            existing_metadata, _ = parse_frontmatter(content)
+            original_body = cleaned_content
 
             # Prepare tag and entity context if available
             tag_context = ""
@@ -198,7 +226,7 @@ class MetadataProcessor:
                     entity_context += f"- Cities: {', '.join(top_cities)}\n"
 
             # Phase 1: Primary Extraction (First chunk)
-            first_chunk = content[:CHUNK_SIZE]
+            first_chunk = cleaned_content[:CHUNK_SIZE]
             prompt = (
                 f"Source Filename: {input_file.name}\n\n"
                 f"Document Content (First Part):\n\n{first_chunk}\n\n"
@@ -213,22 +241,17 @@ class MetadataProcessor:
                 "2. 'summary' must be exactly one sentence. It must be an independent entity.\n"
                 "3. 'abstract' must be a detailed overview, limited to at most 20 sentences. "
                 "It must be a superset of the summary.\n"
-                "4. 'mentioned_states' must only contain full names of nation states.\n"
-                "5. 'mentioned_organisations' should include international bodies.\n"
-                "6. 'mentioned_cities' MUST be a list of strings in 'City, State' format "
-                "(e.g., ['London, United Kingdom', 'Washington, United States']).\n"
-                "7. 'date' must be the complete official document date (YYYY-MM-DD).\n"
-                "8. 'archive_code' should be derived using both the text and the filename.\n"
-                "9. If the document is a letter, describe 'sender', 'recipient', "
+                "4. 'date' must be the complete official document date (YYYY-MM-DD).\n"
+                "5. 'archive_code' should be derived using both the text and the filename.\n"
+                "6. If the document is a letter, describe 'sender', 'recipient', "
                 "and 'intent' (the specific action/request).\n"
-                "10. 'references' should contain a list of any other reference codes.\n"
-                "11. IMPORTANT: Use English for all metadata values EXCEPT 'title', "
+                "7. 'references' should contain a list of any other reference codes.\n"
+                "8. IMPORTANT: Use English for all metadata values EXCEPT 'title', "
                 "which must remain in the original language.\n"
-                "12. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
+                "9. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
                 "Preserve uppercase for acronyms.\n"
-                "13. Ensure 'location_state' is filled if 'location_city' is identified.\n"
-                "14. Generate between 3 and 8 'tags'. No spaces.\n"
-                "15. Interpret and correct OCR errors using context."
+                "10. Ensure 'location_state' is filled if 'location_city' is identified.\n"
+                "11. Interpret and correct OCR errors using context."
                 f"{tag_context}"
                 f"{entity_context}"
             )
@@ -241,14 +264,14 @@ class MetadataProcessor:
             raw_dict = metadata_obj.model_dump()
 
             # US-014: Extract page count from source headers
-            pages = extract_last_page_header(content)
+            pages = extract_last_page_header(cleaned_content)
             if pages:
                 raw_dict["pages"] = pages
 
             # Phase 2: Secondary Pass for Date (only if missing and document is large)
-            if not raw_dict.get("date") and len(content) > LARGE_DOC_THRESHOLD:
+            if not raw_dict.get("date") and len(cleaned_content) > LARGE_DOC_THRESHOLD:
                 logger.debug(f"Date missing from first chunk of {input_file.name}. Scanning end...")
-                last_chunk = content[-CHUNK_SIZE:]
+                last_chunk = cleaned_content[-CHUNK_SIZE:]
                 date_prompt = (
                     f"Document Content (Final Part):\n\n{last_chunk}\n\n"
                     "Extract ONLY the complete official date (YYYY-MM-DD)."
@@ -261,16 +284,17 @@ class MetadataProcessor:
                 except Exception as e:
                     logger.warning(f"Secondary date extraction failed: {e}")
 
-            # Prepare metadata for Obsidian (standardization, flattening, prefix removal)
-            # We merge with existing metadata here
-            combined_raw = {**existing_metadata, **raw_dict}
+            # Reconcile existing metadata with newly extracted metadata
+            raw_dict["source"] = self._get_pdf_link(input_file)
+            raw_dict["citekey"] = generate_citekey(
+                output_file=output_file,
+                mode=self.citekey_mode,
+                vault_root=self.vault_root,
+                output_dir=self.output_dir,
+            )
+            reconciled_raw = reconcile_metadata(existing_metadata, raw_dict)
 
-            # US-014: Extract mentioned entities BEFORE filtering for frontmatter
-            states_list = combined_raw.get("mentioned_states", [])
-            orgs_list = combined_raw.get("mentioned_organisations", [])
-            cities_list = combined_raw.get("mentioned_cities", [])
-
-            metadata_dict = self._prepare_obsidian_metadata(combined_raw, input_file)
+            metadata_dict = self._prepare_obsidian_metadata(reconciled_raw, input_file, output_file)
 
             # User Story 2: Move title and abstract to body callout
             # We keep title in frontmatter for searchability (as requested),
@@ -284,7 +308,7 @@ class MetadataProcessor:
             tag_list_items = []
 
             if self.tagging_service:
-                tagging_result = self.tagging_service.extract_tags(content)
+                tagging_result = self.tagging_service.extract_tags(cleaned_content)
                 if tagging_result.topic_tags:
                     for t in tagging_result.topic_tags:
                         norm_reason = self._normalize_topic_citations(t.reason)
@@ -299,32 +323,6 @@ class MetadataProcessor:
                     tag_list_items = [
                         prefix_tag(t, TAG_PREFIX_TAG) for t in tagging_result.conceptual_tags
                     ]
-            else:
-                # Fallback to Step 1 extraction if no tagging service
-                state_fallback = states_list[0] if states_list else "Unknown"
-                default_state = metadata_dict.get("location_state") or state_fallback
-                for s in states_list:
-                    entity_tags.append(
-                        prefix_tag(format_hierarchical_tag("State", s), TAG_PREFIX_ENTITY)
-                    )
-                for o in orgs_list:
-                    entity_tags.append(
-                        prefix_tag(format_hierarchical_tag("Org", o), TAG_PREFIX_ENTITY)
-                    )
-                for c_item in cities_list:
-                    if "," in c_item:
-                        city, state = [part.strip() for part in c_item.split(",", 1)]
-                    else:
-                        city = c_item
-                        state = default_state
-                    prefixed = prefix_tag(
-                        format_hierarchical_tag("City", state, city), TAG_PREFIX_ENTITY
-                    )
-                    entity_tags.append(prefixed)
-
-                flat_tags = metadata_dict.get("tags", [])
-                if flat_tags:
-                    tag_list_items = [prefix_tag(t, TAG_PREFIX_TAG) for t in flat_tags]
 
             # Group entities by type for the callout
             entity_section_body = ""
@@ -451,8 +449,8 @@ class MetadataProcessor:
             new_content += "\n" + original_body
 
             # Append citation callout at the end
-            combined_raw["url_date"] = date.today().strftime("%Y-%m-%d")
-            citation_callout = generate_citation_callout(combined_raw)
+            metadata_dict["url_date"] = date.today().strftime("%Y-%m-%d")
+            citation_callout = generate_citation_callout(metadata_dict)
 
             if not new_content.endswith("\n\n"):
                 if not new_content.endswith("\n"):
@@ -517,6 +515,9 @@ class MetadataProcessor:
 
     def preflight_scan(self) -> None:
         """Scans the output directory and populates the registry and global counters with existing tags."""
+        if self._preflight_done:
+            return
+        self._preflight_done = True
         self.scanned_files_tags.clear()
         self.conceptual_tag_counts = Counter()
         self.topic_counts = Counter()

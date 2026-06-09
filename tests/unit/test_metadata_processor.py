@@ -31,11 +31,12 @@ def test_prepare_obsidian_metadata_removes_empty_fields(processor: Any) -> None:
         "language": "English",
     }
     input_file = Path("test.md")
+    output_file = processor.output_dir / "test.md"
 
     # We need to mock _get_pdf_link because it's called in _prepare_obsidian_metadata
     processor._get_pdf_link = MagicMock(return_value="[[test.pdf]]")
 
-    metadata = processor._prepare_obsidian_metadata(raw_dict, input_file)
+    metadata = processor._prepare_obsidian_metadata(raw_dict, input_file, output_file)
 
     assert "title" in metadata
     assert "summary" in metadata
@@ -63,15 +64,16 @@ def test_prepare_obsidian_metadata_field_order_and_exclusion(processor: Any) -> 
         "pages": 10,  # Manually added before calling _prepare
     }
     input_file = Path("doc.md")
+    output_file = processor.output_dir / "doc.md"
     processor._get_pdf_link = MagicMock(return_value="[[doc.pdf]]")
 
-    metadata = processor._prepare_obsidian_metadata(raw_dict, input_file)
+    metadata = processor._prepare_obsidian_metadata(raw_dict, input_file, output_file)
 
     # Check for renaming and presence
     assert "intent" in metadata
     assert metadata["intent"] == "Some action"
     assert "pages" in metadata
-    
+
     # Check for exclusion of mentioned_*
     assert "mentioned_states" not in metadata
     assert "mentioned_organisations" not in metadata
@@ -98,14 +100,10 @@ def test_process_file_english_consistency(processor: Any, tmp_path: Path) -> Non
     mock_metadata = MagicMock()
     mock_metadata.title = "French Document"
     mock_metadata.summary = "This is a document in French."
-    mock_metadata.mentioned_cities = ["Paris"]
-    mock_metadata.mentioned_states = ["France"]
     mock_metadata.language = "English"  # Mandated English
     mock_metadata.model_dump.return_value = {
         "title": "French Document",
         "summary": "This is a document in French.",
-        "mentioned_cities": ["Paris"],
-        "mentioned_states": ["France"],
         "language": "English",
     }
     processor.client.extract_structured.return_value = mock_metadata
@@ -118,8 +116,7 @@ def test_process_file_english_consistency(processor: Any, tmp_path: Path) -> Non
 
     assert metadata["title"] == "French Document"
     assert metadata["language"] == "English"
-    # Tag should use configured prefix
-    assert f"#{TAG_PREFIX_ENTITY}/City/France/Paris" in body
+
 
 def test_process_file_callout_presence_and_normalization(processor: Any, tmp_path: Path) -> None:
     input_file = tmp_path / "test_callouts.md"
@@ -153,26 +150,26 @@ def test_process_file_callout_presence_and_normalization(processor: Any, tmp_pat
     mock_tagging_result.topic_tags = [mock_topic]
     mock_tagging_result.entity_tags = ["Entity1"]
     mock_tagging_result.conceptual_tags = ["Concept1"]
-    
+
     processor.tagging_service = MagicMock()
     processor.tagging_service.extract_tags.return_value = mock_tagging_result
 
     processor.process_file(input_file, output_file)
 
     content = output_file.read_text()
-    
+
     # Check for Metadata callout
     assert "> [!info] Metadata" in content
     assert "≡&nbsp;**title**:" in content
-    
+
     # Check for Abstract callout
     assert "> [!abstract]" in content
     assert "This is a detailed abstract." in content
-    
+
     # Check for normalized citation in topic reason
     # 'direct citation' should become _"direct citation"_
-    assert f"#{TAG_PREFIX_TOPIC}/TestTopic — Justified by _\"direct citation\"_ from text." in content
-    
+    assert f'#{TAG_PREFIX_TOPIC}/TestTopic — Justified by _"direct citation"_ from text.' in content
+
     # Check for Citing callout
     assert "> [!citing this document]" in content
     assert "date = {2026-05-07}" in content
