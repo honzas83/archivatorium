@@ -447,11 +447,62 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip(",") + "\n}"
 
 
+def format_coins_span(data: dict[str, Any]) -> str:
+    """Generates a COinS HTML span for browser extensions like Zotero."""
+    import urllib.parse
+    
+    author_info = _parse_author(data.get("author_name", ""))
+    date_str = data.get("date", "")
+    
+    year = ""
+    if date_str:
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            year = str(dt.year)
+        except ValueError:
+            year = date_str[:4]
+            
+    title = data.get("title", "Untitled")
+    publisher = data.get("author_institution", "NATO Archive Obsidian")
+    code = data.get("archive_code", "")
+    citekey = data.get("citekey") or safe_identifier(code)
+    url = data.get("url", f"https://nato-obsidian.kky.zcu.cz/{citekey}")
+
+    coins_data = {
+        "ctx_ver": "Z39.88-2004",
+        "rft_val_fmt": "info:ofi/fmt:kev:mtx:dc",
+        "rft.type": "document",
+        "rft.title": title,
+        "rft.publisher": publisher,
+        "rft.identifier": [url, citekey],
+    }
+    
+    if year:
+        coins_data["rft.date"] = year
+        
+    if author_info:
+        first, last, _ = author_info
+        if last:
+            coins_data["rft.creator"] = f"{last}, {first}"
+        else:
+            coins_data["rft.creator"] = first
+            
+    language = data.get("language", "")
+    if language:
+        coins_data["rft.language"] = language
+
+    encoded_data = urllib.parse.urlencode(coins_data, doseq=True).replace("&", "&amp;")
+    
+    return f'<span class="Z3988" title="{encoded_data}"></span>'
+
+
 def generate_citation_callout(data: dict[str, Any]) -> str:
     """Generates the full Obsidian callout with all citation styles."""
     chicago = format_chicago_citation(data)
     harvard = format_harvard_citation(data)
     bibtex = format_bibtex_citation(data)
+    coins = format_coins_span(data)
 
     callout_content = (
         "**Chicago**:\n"
@@ -465,7 +516,8 @@ def generate_citation_callout(data: dict[str, Any]) -> str:
         "**BibTeX**:\n"
         "```\n"
         f"{bibtex}\n"
-        "```"
+        "```\n"
+        f"{coins}"
     )
 
     return format_as_callout(callout_content, title="", callout_type="citing this document")

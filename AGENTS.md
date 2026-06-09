@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/027-fix-metadata-correctness/plan.md
+at specs/028-zotero-citation-import/plan.md
 <!-- SPECKIT END -->
 
 ## Active Technologies
