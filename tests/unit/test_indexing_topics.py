@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from ocrpolish.models.metadata import CanonicalTags
 from ocrpolish.services.indexing_service import EntityReference, IndexEntry, IndexingService
 
 
@@ -24,17 +25,11 @@ categories:
 
     indexer = IndexingService(vault_dir, topics_yaml=topics_yaml)
 
-    # Mock entries with hyphenated tags
+    tags = CanonicalTags(raw_paths={"Topics/Doctrine-and-Strategy/Nuclear-Deterrence"})
     indexer.entries = [
         IndexEntry(
             doc_path=Path("doc1.md"),
-            entities=[
-                EntityReference(
-                    "Doctrine-and-Strategy",
-                    "#Doctrine-and-Strategy/Nuclear-Deterrence",
-                    "Nuclear Deterrence",
-                )
-            ],
+            canonical_tags=tags,
         )
     ]
 
@@ -53,3 +48,37 @@ categories:
     # Topic should be normalized and matched
     assert "#Category/Doctrine-and-Strategy/Nuclear-Deterrence -- Nuclear strategy." in content
     assert "#Category/Doctrine-and-Strategy/Conventional" not in content  # Not used
+
+
+def test_gen_topics_index_ignores_legacy_topic_tags(tmp_path: Path) -> None:
+    vault_dir = tmp_path / "vault"
+    vault_dir.mkdir()
+    topics_yaml = tmp_path / "topics.yaml"
+    topics_yaml.write_text(
+        """
+categories:
+  - category: "Doctrine and Strategy"
+    topics:
+      - topic: "Nuclear Deterrence"
+        description: "Nuclear strategy."
+""",
+        encoding="utf-8",
+    )
+    indexer = IndexingService(vault_dir, topics_yaml=topics_yaml)
+    indexer.entries = [
+        IndexEntry(
+            doc_path=Path("legacy.md"),
+            entities=[
+                EntityReference(
+                    "Doctrine-and-Strategy",
+                    "#Category/Doctrine-and-Strategy/Nuclear-Deterrence",
+                    "Nuclear Deterrence",
+                )
+            ],
+            canonical_tags=CanonicalTags(),
+        )
+    ]
+
+    indexer.generate_markdown_indices()
+
+    assert not (vault_dir / "Index - Topics.md").exists()

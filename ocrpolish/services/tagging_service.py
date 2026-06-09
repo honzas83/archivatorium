@@ -1,11 +1,17 @@
 import logging
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from ocrpolish.models.metadata import AggregatedTaggingResult, TopicResult, WindowTaggingResult
+from ocrpolish.models.metadata import (
+    AggregatedTaggingResult,
+    SubstantiveWindowTaggingResult,
+    TopicResult,
+    WindowTaggingResult,
+)
 from ocrpolish.services.flattening_service import FlatteningService
 from ocrpolish.services.ollama_client import OllamaClient
 from ocrpolish.services.windowing_service import SlidingWindowService
@@ -17,6 +23,13 @@ from ocrpolish.utils.nlp import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 5
+
+
+class TaggingQualityError(RuntimeError):
+    """Raised when a substantive document receives an unacceptable tagging result."""
 
 
 class TaggingService:
@@ -78,15 +91,22 @@ class TaggingService:
             logger.error(f"Failed to load YAML from {path}: {e}")
             return {}
 
-    def extract_tags(self, text: str) -> AggregatedTaggingResult:
+    def extract_tags(self, text: str, reuse_hints: Any | None = None) -> AggregatedTaggingResult:
         """
         Performs the second-pass tagging using a dynamic strategy.
         """
         tokens = estimate_tokens(text)
+        is_substantive = self._is_substantive(text)
+        protected_conceptual = self._protected_conceptual_terms(reuse_hints)
 
         if tokens <= self.context_limit:
             logger.debug(f"Using single pass for tagging ({tokens} tokens)")
-            window_result = self._extract_chunk(text)
+            window_result = self._extract_chunk(
+                text, require_conceptual_tags=is_substantive, reuse_hints=reuse_hints
+            )
+            self._validate_conceptual_tags(
+                window_result.conceptual_tags, is_substantive=is_substantive
+            )
 
             # Normalize entities
             normalized_entities = []
@@ -117,8 +137,12 @@ class TaggingService:
             # Apply filtering and suppression
             filtered_conceptual = filter_low_value_tags(normalized_conceptual)
             suppressed_conceptual = suppress_duplicates(
-                filtered_conceptual, entities_list, topic_names
+                filtered_conceptual,
+                entities_list,
+                topic_names,
+                protected_terms=protected_conceptual,
             )
+            self._validate_conceptual_tags(suppressed_conceptual, is_substantive=is_substantive)
 
             return AggregatedTaggingResult(
                 conceptual_tags=suppressed_conceptual,
@@ -135,7 +159,12 @@ class TaggingService:
         topics_dict = {}
 
         for chunk in chunks:
-            window_result = self._extract_chunk(chunk)
+            window_result = self._extract_chunk(
+                chunk, require_conceptual_tags=is_substantive, reuse_hints=reuse_hints
+            )
+            self._validate_conceptual_tags(
+                window_result.conceptual_tags, is_substantive=is_substantive
+            )
 
             # Normalize and update
             for t in window_result.conceptual_tags:
@@ -162,7 +191,13 @@ class TaggingService:
         entities_list = sorted(list(all_entities))
         topics_list = sorted(topics_dict.values(), key=lambda x: x.topic)
         topic_names = [t.topic for t in topics_list]
-        suppressed_conceptual = suppress_duplicates(filtered_conceptual, entities_list, topic_names)
+        suppressed_conceptual = suppress_duplicates(
+            filtered_conceptual,
+            entities_list,
+            topic_names,
+            protected_terms=protected_conceptual,
+        )
+        self._validate_conceptual_tags(suppressed_conceptual, is_substantive=is_substantive)
 
         return AggregatedTaggingResult(
             conceptual_tags=suppressed_conceptual,
@@ -170,23 +205,95 @@ class TaggingService:
             topic_tags=topics_list,
         )
 
-    def _extract_chunk(self, chunk: str) -> WindowTaggingResult:
+    def _extract_chunk(
+        self,
+        chunk: str,
+        require_conceptual_tags: bool = True,
+        reuse_hints: Any | None = None,
+    ) -> WindowTaggingResult:
         """
         Extracts tags from a single chunk of text using a non-thinking model.
         """
-        prompt = self._generate_tagging_prompt(chunk)
+        prompt = self._generate_tagging_prompt(chunk, reuse_hints=reuse_hints)
+        schema = SubstantiveWindowTaggingResult if require_conceptual_tags else WindowTaggingResult
         try:
             return self.client.extract_structured(
-                prompt, WindowTaggingResult, model=self.model_name, think=False
+                prompt, schema, model=self.model_name, think=False
             )
+        except TaggingQualityError:
+            raise
         except Exception as e:
             logger.error(f"Error extracting tags from chunk: {e}")
+            if require_conceptual_tags:
+                raise TaggingQualityError(
+                    "Tagging-quality failure: substantive document tagging did not produce "
+                    "a valid conceptual_tags field."
+                ) from e
             return WindowTaggingResult()
 
-    def _generate_tagging_prompt(self, text: str) -> str:
+    def _is_substantive(self, text: str) -> bool:
+        normalized = " ".join(text.lower().split())
+        if not normalized:
+            return False
+
+        boilerplate_patterns = [
+            r"^(this document is )?incorporated into the initial document( and cancelled)?\.?$",
+            r"^cancelled\.?$",
+            r"^canceled\.?$",
+            r"^annul[eé]\.?$",
+            r"^ce document est incorpor[eé] dans le document initial( et annul[eé])?\.?$",
+        ]
+        return not any(re.match(pattern, normalized) for pattern in boilerplate_patterns)
+
+    def _validate_conceptual_tags(
+        self, conceptual_tags: list[str], *, is_substantive: bool
+    ) -> None:
+        if not is_substantive:
+            return
+        if len(conceptual_tags) < MIN_SUBSTANTIVE_CONCEPTUAL_TAGS:
+            raise TaggingQualityError(
+                "Tagging-quality failure: substantive document returned fewer than "
+                f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual_tags from the initial tagging pass."
+            )
+
+    def _format_reuse_hints(self, reuse_hints: Any | None) -> str:
+        if not reuse_hints:
+            return ""
+
+        lines = []
+        conceptual = getattr(reuse_hints, "preferred_conceptual_tags", []) or []
+        entities = getattr(reuse_hints, "preferred_entities", {}) or {}
+        topics = getattr(reuse_hints, "preferred_topics", []) or []
+
+        if conceptual:
+            lines.append("RESUMED #Tags PREFERRED VOCABULARY:")
+            lines.append(", ".join(conceptual))
+        if entities:
+            entity_lines = []
+            for etype, values in entities.items():
+                if values:
+                    entity_lines.append(f"- {etype}: {', '.join(values)}")
+            if entity_lines:
+                lines.append("RESUMED #Entities PREFERRED VOCABULARY:")
+                lines.extend(entity_lines)
+        if topics:
+            lines.append("RESUMED #Topics HINTS (subordinate to taxonomy):")
+            lines.append(", ".join(topics))
+
+        return "\n".join(lines)
+
+    def _protected_conceptual_terms(self, reuse_hints: Any | None) -> set[str]:
+        protected = {tag.lower() for tag in self.useful_tags}
+        conceptual = getattr(reuse_hints, "preferred_conceptual_tags", []) or []
+        protected.update(normalize_tag_component(tag).lower() for tag in conceptual)
+        return protected
+
+    def _generate_tagging_prompt(self, text: str, reuse_hints: Any | None = None) -> str:
         """
         Generates the prompt for the tagging pass.
         """
+        reuse_hint_text = self._format_reuse_hints(reuse_hints)
+        reuse_section = f"\n\n{reuse_hint_text}\n" if reuse_hint_text else "\n"
         return (
             "Document Excerpt:\n\n"
             f"{text}\n\n"
@@ -197,20 +304,24 @@ class TaggingService:
             "Use format: Category/Topic. Include a brief 'reason' for each. Max 10.\n"
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
-            "3. 'conceptual_tags': Up to 15 flat, canonical tags for archivally substantive "
-            "concepts. "
-            "PRIORITIZE re-using tags from the vocabulary below. Normalize exercises as Name/YY. "
+            "3. 'conceptual_tags': Required flat, canonical tags for archivally substantive "
+            "concepts. Return at least 5 conceptual tags for substantive documents; include "
+            "every clearly justified useful conceptual tag; return an empty list only for "
+            "non-substantive administrative stubs. "
+            "PRIORITIZE re-using tags from the vocabularies below. Normalize exercises as Name/YY. "
             "MANDATORY: Include all all-caps abbreviations mentioned in the text "
-            "(e.g., SACEUR, SACLANT, CINCHAN).\n\n"
+            "when they are meaningful acronyms.\n\n"
             "APPROVED TAXONOMY (YAML):\n"
             f"{self.taxonomy_prompt_text}\n\n"
             "EXISTING VOCABULARY (USEFUL TAGS):\n"
-            f"{self.useful_tags_prompt_text}\n\n"
+            f"{self.useful_tags_prompt_text}"
+            f"{reuse_section}\n"
             "CRITICAL RULES:\n"
             "- Only include tags that are clearly justified by the text.\n"
             "- Exclude routine administrative labels (agenda, report, notice, corrigendum).\n"
             "- Ensure hierarchical formats are strictly followed.\n"
-            "- Conceptual tags MUST NOT duplicate entities or topics.\n"
+            "- Conceptual tags must not be exact duplicates of entity names or topic components, "
+            "but preserve substantive archival concepts even when related entities or topics exist.\n"
             "- If an entity or concept is in ALL-CAPS but is NOT an abbreviation "
             "(e.g., PERSHING), generate the tag in Title Case (e.g., Pershing)."
         )

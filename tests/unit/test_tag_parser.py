@@ -86,3 +86,13 @@ def test_deduplicate_values() -> None:
     assert len(tags.entities["State"]) == 1
     assert tags.entities["State"] == {"france"}
     assert tags.conceptual_tags == {"deterrence"}
+
+
+def test_parse_hierarchical_conceptual_tags() -> None:
+    text = "#Tags/WINTEX/73 #Tags/Exercise/Series/1973"
+    parser = CanonicalTagParser()
+    tags = parser.parse_text(text)
+
+    assert tags.conceptual_tags == {"wintex/73", "exercise/series/1973"}
+    assert "Tags/WINTEX/73" in tags.raw_paths
+    assert "Tags/Exercise/Series/1973" in tags.raw_paths

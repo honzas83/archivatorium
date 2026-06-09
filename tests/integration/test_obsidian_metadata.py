@@ -7,6 +7,7 @@ from click.testing import CliRunner
 from ocrpolish.cli import cli
 from ocrpolish.data_model import TAG_PREFIX_ENTITY
 from ocrpolish.models.metadata import AggregatedTaggingResult, MetadataSchema
+from ocrpolish.services.tagging_service import TaggingQualityError
 from ocrpolish.utils.metadata import parse_frontmatter
 
 
@@ -143,3 +144,88 @@ def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> N
         assert "* Cities" in body
         assert f"  - #{TAG_PREFIX_ENTITY}/City/United-Kingdom/London" in body
         assert f"  - #{TAG_PREFIX_ENTITY}/City/United-States/Washington" in body
+
+
+@patch("ollama.Client.chat")
+def test_substantive_output_includes_tags_section(
+    mock_chat: Any, tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (input_dir / "test.md").write_text("NATO nuclear planning consultation procedures")
+
+    mock_chat.return_value = create_mock_ollama_response(
+        MetadataSchema(title="Document", summary="Summary.").model_dump_json()
+    )
+    tagging_result = AggregatedTaggingResult(
+        conceptual_tags=[
+            "Nuclear-Planning",
+            "Consultation-Procedures",
+            "Nuclear-Release",
+            "Deterrence-Strategy",
+            "Operational-Doctrine",
+        ],
+        entity_tags=["Org/NATO"],
+        topic_tags=[],
+    )
+
+    runner = CliRunner()
+    with patch(
+        "ocrpolish.services.tagging_service.TaggingService.extract_tags",
+        return_value=tagging_result,
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    assert result.exit_code == 0
+    body = parse_frontmatter((output_dir / "test.md").read_text())[1]
+    assert "## Tags" in body
+    assert body.count("#Tags/") >= 5
+
+
+@patch("ollama.Client.chat")
+def test_tagging_quality_failure_does_not_write_incomplete_output(
+    mock_chat: Any, tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (input_dir / "test.md").write_text("NATO nuclear planning consultation procedures")
+
+    mock_chat.return_value = create_mock_ollama_response(
+        MetadataSchema(title="Document", summary="Summary.").model_dump_json()
+    )
+
+    runner = CliRunner()
+    with patch(
+        "ocrpolish.services.tagging_service.TaggingService.extract_tags",
+        side_effect=TaggingQualityError("quality failure"),
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert not (output_dir / "test.md").exists()

@@ -26,6 +26,7 @@ from ocrpolish.utils.metadata import (
     format_metadata_table,
     generate_citation_callout,
     generate_citekey,
+    is_generated_document_markdown,
     mirror_file,
     parse_frontmatter,
     prefix_tag,
@@ -79,6 +80,13 @@ class CalloutStage:
     original_body: str
 
 
+@dataclass(frozen=True)
+class TaggingReuseHints:
+    preferred_conceptual_tags: list[str]
+    preferred_entities: dict[str, list[str]]
+    preferred_topics: list[str]
+
+
 class MetadataProcessor:
     def __init__(  # noqa: PLR0913
         self,
@@ -111,8 +119,14 @@ class MetadataProcessor:
         self._preflight_done = False
 
     def get_mirrored_pdf_path(self, input_file: Path) -> Path:
-        """Return the canonical generated vault location for a source PDF."""
-        return self.output_dir / "pdf" / f"{input_file.stem}.pdf"
+        """Return the generated vault location for a source PDF beside its Markdown."""
+        relative_parent = Path()
+        if self.input_dir:
+            try:
+                relative_parent = input_file.relative_to(self.input_dir).parent
+            except ValueError:
+                relative_parent = Path()
+        return self.output_dir / relative_parent / "pdf" / f"{input_file.stem}.pdf"
 
     def _get_pdf_link(self, input_file: Path) -> str:
         """Calculates the Obsidian-style link to the mirrored source PDF."""
@@ -316,8 +330,23 @@ class MetadataProcessor:
     def _extract_generated_tags(self, cleaned_content: str) -> GeneratedTagSections:
         result = AggregatedTaggingResult()
         if self.tagging_service:
-            result = self.tagging_service.extract_tags(cleaned_content)
+            result = self.tagging_service.extract_tags(
+                cleaned_content,
+                reuse_hints=self._build_tagging_reuse_hints(),
+            )
         return self._format_generated_tags(result)
+
+    def _build_tagging_reuse_hints(self) -> TaggingReuseHints:
+        return TaggingReuseHints(
+            preferred_conceptual_tags=[
+                tag for tag, _ in self.conceptual_tag_counts.most_common(50)
+            ],
+            preferred_entities={
+                etype: [value for value, _ in counter.most_common(20)]
+                for etype, counter in self.entity_counts.items()
+            },
+            preferred_topics=[topic for topic, _ in self.topic_counts.most_common(20)],
+        )
 
     def _format_generated_tags(
         self, tagging_result: AggregatedTaggingResult
@@ -587,16 +616,19 @@ class MetadataProcessor:
 
         parser = CanonicalTagParser()
         for md_file in self.output_dir.rglob("*.md"):
-            if md_file.is_file() and not md_file.name.endswith(".filtered.md"):
-                try:
-                    content = safe_read_text(md_file)
-                    tags = parser.parse_text(content, file_path=md_file)
-                    self.scanned_files_tags[md_file] = tags
-                    self._add_tags_to_counters(tags)
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to parse existing file {md_file} during preflight scan: {e}"
-                    )
+            if not md_file.is_file() or not is_generated_document_markdown(
+                md_file, vault_root=self.output_dir
+            ):
+                continue
+            try:
+                content = safe_read_text(md_file)
+                tags = parser.parse_text(content, file_path=md_file)
+                self.scanned_files_tags[md_file] = tags
+                self._add_tags_to_counters(tags)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to parse existing file {md_file} during preflight scan: {e}"
+                )
 
     def _add_tags_to_counters(self, tags: CanonicalTags) -> None:
         if tags.conceptual_tags:

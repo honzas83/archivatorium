@@ -28,7 +28,15 @@ def test_tag_reuse_prompt_inclusion(mock_ollama, mock_windowing, tmp_path):
     )
 
     mock_ollama.extract_structured.return_value = WindowTaggingResult(
-        conceptual_tags=["#NATO"], entity_tags=[], topic_tags=[]
+        conceptual_tags=[
+            "#NATO",
+            "#ColdWar",
+            "#NuclearPlanning",
+            "#DeterrenceStrategy",
+            "#OperationalDoctrine",
+        ],
+        entity_tags=[],
+        topic_tags=[],
     )
 
     service.extract_tags("Text mentioning nato and cold war.")

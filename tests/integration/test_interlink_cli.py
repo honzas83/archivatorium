@@ -79,3 +79,27 @@ language: French
     assert "[CODE1](doc1_fr.md)" in c2
     # Body should link
     assert "Regardez [CODE1](doc1_fr.md)" in c2
+
+
+def test_interlink_export_uses_canonical_tags_only(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    doc = vault / "doc.md"
+    doc.write_text(
+        """---
+archive_code: CODE1
+language: English
+---
+#State/Belgium #Org/NATO #Entities/Org/SHAPE #Tags/Canonical
+""",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["interlink", str(vault)])
+
+    assert result.exit_code == 0
+    assert (vault / "Index - Organizations.md").exists()
+    assert not (vault / "Index - States.md").exists()
+    xlsx = vault / "metadata_index.xlsx"
+    assert xlsx.exists()

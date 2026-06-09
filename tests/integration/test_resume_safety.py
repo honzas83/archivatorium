@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections.abc import Callable
 
 from ocrpolish.processor_metadata import MetadataProcessor
 
@@ -115,3 +116,21 @@ title: Doc 2
     # The skipped file's tags must be parsed and added to counters
     assert processor.entity_counts["State"]["germany"] == 1
     assert output_file in processor.scanned_files_tags
+
+
+def test_resume_preflight_ignores_generated_support_files(
+    mixed_vault_factory: Callable[[], Path],
+) -> None:
+    output_dir = mixed_vault_factory()
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=output_dir,
+        overwrite=False,
+    )
+
+    processor.preflight_scan()
+
+    assert processor.conceptual_tag_counts["document-only"] == 1
+    assert "index-only" not in processor.conceptual_tag_counts
+    assert "template-only" not in processor.conceptual_tag_counts
+    assert "hidden-only" not in processor.conceptual_tag_counts

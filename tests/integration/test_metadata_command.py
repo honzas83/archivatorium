@@ -140,3 +140,124 @@ def test_metadata_command_large_file_date_fallback(
 
         # Verify date was updated from the second pass
         assert "date: '2026-12-31'" in output_content or "date: 2026-12-31" in output_content
+
+
+def test_metadata_mask_enriches_only_matching_markdown(
+    tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    (input_dir / "match.md").write_text("matching")
+    (input_dir / "skip.txt.md").write_text("nonmatching")
+
+    runner = CliRunner()
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
+        mock_chat.return_value = create_mock_ollama_response(
+            MetadataSchema(title="Matched").model_dump_json()
+        )
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--mask",
+                "match.md",
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert mock_chat.call_count == 1
+    assert (output_dir / "match.md").read_text().startswith("---")
+    assert (output_dir / "skip.txt.md").read_text() == "nonmatching"
+
+
+def test_metadata_filtered_sidecar_is_not_enriched(
+    tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    (input_dir / "doc.filtered.md").write_text("sidecar")
+
+    runner = CliRunner()
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert mock_chat.call_count == 0
+    assert (output_dir / "doc.filtered.md").read_text() == "sidecar"
+
+
+def test_metadata_dry_run_is_non_mutating(
+    tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    existing = output_dir / "existing.md"
+    existing.write_text("existing")
+    (input_dir / "doc.md").write_text("body")
+    (input_dir / "source.pdf").write_bytes(b"pdf")
+    (input_dir / "notes.txt").write_text("notes")
+
+    before = {
+        path.relative_to(output_dir).as_posix(): path.read_bytes()
+        for path in output_dir.rglob("*")
+        if path.is_file()
+    }
+    runner = CliRunner()
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags") as mock_tags,
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--dry-run",
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    after = {
+        path.relative_to(output_dir).as_posix(): path.read_bytes()
+        for path in output_dir.rglob("*")
+        if path.is_file()
+    }
+    assert result.exit_code == 0
+    assert before == after
+    assert not (output_dir / "doc.md").exists()
+    assert not (output_dir / "pdf" / "source.pdf").exists()
+    assert mock_chat.call_count == 0
+    assert mock_tags.call_count == 0

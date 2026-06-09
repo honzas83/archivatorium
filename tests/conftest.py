@@ -71,3 +71,58 @@ def tagging_result() -> AggregatedTaggingResult:
             )
         ],
     )
+
+
+@pytest.fixture
+def mixed_vault_factory(tmp_path: Path) -> Callable[[], Path]:
+    def factory() -> Path:
+        vault = tmp_path / "vault"
+        vault.mkdir()
+        (vault / "doc.md").write_text("# Document\n#Tags/Document-Only\n", encoding="utf-8")
+        (vault / "Index - Tags.md").write_text("#Tags/Index-Only\n", encoding="utf-8")
+        (vault / "index.md").write_text("#Tags/Landing-Only\n", encoding="utf-8")
+        (vault / "doc.filtered.md").write_text("#Tags/Sidecar-Only\n", encoding="utf-8")
+        templates = vault / "templates"
+        templates.mkdir()
+        (templates / "template.md").write_text("#Tags/Template-Only\n", encoding="utf-8")
+        hidden = vault / ".obsidian"
+        hidden.mkdir()
+        (hidden / "support.md").write_text("#Tags/Hidden-Only\n", encoding="utf-8")
+        return vault
+
+    return factory
+
+
+@pytest.fixture
+def substantive_text() -> str:
+    return (
+        "The NATO Nuclear Planning Group discussed nuclear release procedures, "
+        "consultation procedures, deterrence strategy, WINTEX 71 exercises, "
+        "SACEUR command arrangements, and operational doctrine."
+    )
+
+
+@pytest.fixture
+def administrative_stub_text() -> str:
+    return "This document is incorporated into the initial document and cancelled."
+
+
+@pytest.fixture
+def assert_filesystem_unchanged() -> Callable[[Path, dict[str, tuple[bool, bytes]]], None]:
+    def snapshot(root: Path) -> dict[str, tuple[bool, bytes]]:
+        paths = {root}
+        if root.exists():
+            paths.update(root.rglob("*"))
+        return {
+            str(path.relative_to(root) if path != root else Path(".")): (
+                path.is_file(),
+                path.read_bytes() if path.is_file() else b"",
+            )
+            for path in sorted(paths)
+        }
+
+    def assert_unchanged(root: Path, before: dict[str, tuple[bool, bytes]]) -> None:
+        assert snapshot(root) == before
+
+    assert_unchanged.snapshot = snapshot  # type: ignore[attr-defined]
+    return assert_unchanged

@@ -72,7 +72,7 @@ def test_malformed_state_tag() -> None:
         logger.removeHandler(handler)
 
 
-def test_malformed_conceptual_tag() -> None:
+def test_hierarchical_conceptual_tag_is_valid() -> None:
     handler = ListHandler()
     logger = logging.getLogger("ocrpolish.utils.tag_parser")
     logger.addHandler(handler)
@@ -83,9 +83,7 @@ def test_malformed_conceptual_tag() -> None:
         parser = CanonicalTagParser()
         tags = parser.parse_text(text)
 
-        assert not tags.conceptual_tags
-        assert any(
-            "Conceptual tag must have format #Tags/<tag>" in r.getMessage() for r in handler.records
-        )
+        assert tags.conceptual_tags == {"deterrence/nuclear"}
+        assert not handler.records
     finally:
         logger.removeHandler(handler)

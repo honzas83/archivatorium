@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections.abc import Callable
 
 from ocrpolish.processor_metadata import MetadataProcessor
 
@@ -99,3 +100,41 @@ def test_ingest_generated_output_tags_updates_counters(tmp_path: Path) -> None:
 
     assert processor.entity_counts["Org"]["nato"] == 1
     assert processor.conceptual_tag_counts["nuclear-planning"] == 1
+
+
+def test_preflight_scan_excludes_support_files(
+    mixed_vault_factory: Callable[[], Path],
+) -> None:
+    output_dir = mixed_vault_factory()
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=output_dir,
+    )
+
+    processor.preflight_scan()
+
+    assert processor.conceptual_tag_counts["document-only"] == 1
+    assert "index-only" not in processor.conceptual_tag_counts
+    assert "landing-only" not in processor.conceptual_tag_counts
+    assert "sidecar-only" not in processor.conceptual_tag_counts
+    assert "template-only" not in processor.conceptual_tag_counts
+    assert "hidden-only" not in processor.conceptual_tag_counts
+
+
+def test_tagging_reuse_hints_are_compact_and_category_specific(tmp_path: Path) -> None:
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=tmp_path,
+    )
+    for idx in range(60):
+        processor.conceptual_tag_counts[f"tag-{idx}"] = 100 - idx
+    for idx in range(25):
+        processor.entity_counts["Org"][f"org-{idx}"] = 100 - idx
+        processor.topic_counts[f"category/topic-{idx}"] = 100 - idx
+
+    hints = processor._build_tagging_reuse_hints()
+
+    assert len(hints.preferred_conceptual_tags) == 50
+    assert len(hints.preferred_entities["Org"]) == 20
+    assert len(hints.preferred_topics) == 20
+    assert hints.preferred_conceptual_tags[0] == "tag-0"

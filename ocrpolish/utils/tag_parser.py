@@ -20,7 +20,7 @@ MIN_ENTITY_COMPONENTS = 2
 STANDARD_ENTITY_COMPONENTS = 3
 CITY_ENTITY_COMPONENTS = 4
 MIN_TOPIC_COMPONENTS = 2
-CONCEPTUAL_TAG_COMPONENTS = 2
+MIN_CONCEPTUAL_TAG_COMPONENTS = 2
 
 
 class CanonicalTagParser:
@@ -128,14 +128,14 @@ class CanonicalTagParser:
         self, raw_match: str, normalized_parts: list[str], tags: CanonicalTags
     ) -> None:
         """Parses and validates #Tags/... tags."""
-        if len(normalized_parts) != CONCEPTUAL_TAG_COMPONENTS:
+        if len(normalized_parts) < MIN_CONCEPTUAL_TAG_COMPONENTS:
             logger.warning(
                 f"Malformed generated tag ignored: {raw_match} "
-                f"(Conceptual tag must have format #Tags/<tag>)"
+                f"(Conceptual tag must have format #Tags/<tag-path>)"
             )
             return
 
-        val = normalized_parts[1]
+        val = "/".join(normalized_parts[1:])
         tags.conceptual_tags.add(val.lower())
 
         raw_path = "/".join(normalized_parts)

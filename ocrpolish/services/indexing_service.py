@@ -144,28 +144,6 @@ class IndexingService:
             }
 
             raw_paths = entry.canonical_tags.raw_paths
-            # Fallback for XLSX export if canonical tags are empty but entities is populated
-            if not raw_paths:
-                raw_paths = set()
-                for ent in entry.entities:
-                    clean = ent.value.lstrip("#")
-                    if (
-                        clean.startswith("Entities/")
-                        or clean.startswith("Topics/")
-                        or clean.startswith("Tags/")
-                    ):
-                        raw_paths.add(clean)
-                    # Map old unprefixed tags
-                    elif ent.prefix in {"State", "Org", "Person"}:
-                        raw_paths.add(f"Entities/{ent.prefix}/{clean.split('/')[-1]}")
-                    elif ent.prefix == "City":
-                        parts = clean.split("/")
-                        if len(parts) >= 2:
-                            raw_paths.add(f"Entities/City/{parts[-2]}/{parts[-1]}")
-                        else:
-                            raw_paths.add(f"Entities/City/Unknown/{clean}")
-                    elif ent.prefix == "Category":
-                        raw_paths.add(f"Topics/{'/'.join(clean.split('/')[1:])}")
 
             tag_vals = {
                 "conceptual_tags": ", ".join(
@@ -225,21 +203,10 @@ class IndexingService:
         """Helper to generate alphabetical grouped indices with document links."""
         tag_to_entries = defaultdict(list)
         for entry in self.entries:
-            has_canonical = False
             for p in entry.canonical_tags.raw_paths:
                 if p.startswith(prefix):
                     tag = f"#{p}"
                     tag_to_entries[tag].append(entry)
-                    has_canonical = True
-
-            if not has_canonical:
-                for entity in entry.entities:
-                    clean_prefix = prefix.strip("/").split("/")[-1]
-                    if entity.prefix == clean_prefix:
-                        val = entity.value
-                        if not val.startswith("#" + prefix):
-                            val = "#" + prefix + val.lstrip("#").split("/")[-1]
-                        tag_to_entries[val].append(entry)
 
         if not tag_to_entries:
             return
@@ -272,7 +239,6 @@ class IndexingService:
             lambda: defaultdict(list)
         )
         for entry in self.entries:
-            has_canonical = False
             for p in entry.canonical_tags.raw_paths:
                 if p.startswith("Entities/City/"):
                     parts = p.split("/")
@@ -281,18 +247,6 @@ class IndexingService:
                         state_display = state.replace("-", " ")
                         tag = f"#{p}"
                         state_to_cities[state_display][tag].append(entry)
-                        has_canonical = True
-
-            if not has_canonical:
-                for entity in entry.entities:
-                    if entity.prefix == "City":
-                        parts = entity.value.lstrip("#").split("/")
-                        if len(parts) >= 3:
-                            state = parts[-2]
-                            city = parts[-1]
-                            state_display = state.replace("-", " ")
-                            tag = f"#Entities/City/{state}/{city}"
-                            state_to_cities[state_display][tag].append(entry)
 
         if not state_to_cities:
             return
@@ -326,22 +280,12 @@ class IndexingService:
             logger.error(f"Failed to parse topics YAML: {e}")
             return
 
-        # Get used topics from both canonical tags and entry.entities
+        # Get used topics from canonical tags only.
         used_topics = set()
         for entry in self.entries:
-            # 1. From canonical tags
             for p in entry.canonical_tags.raw_paths:
                 if p.startswith("Topics/"):
                     used_topics.add(f"#{p}")
-                    parts = p.split("/")
-                    if len(parts) >= 2:
-                        used_topics.add(f"#{'/'.join(parts[1:])}")
-            # 2. From entities (for backward compatibility)
-            for entity in entry.entities:
-                used_topics.add(entity.value)
-                clean = entity.value.lstrip("#")
-                if not clean.startswith("Category/") and "/" in clean:
-                    used_topics.add(f"#Category/{clean}")
 
         lines = ["# Index of Categories/Topics\n"]
 
@@ -356,18 +300,13 @@ class IndexingService:
 
             normalized_cat = normalize_tag_component(cat_name)
             cat_tag_new = f"#Category/{normalized_cat}"
-            cat_tag_legacy = f"#{normalized_cat}"
             cat_desc = cat.get("description", "")
 
             topics = cat.get("topics", [])
 
             # Helper to check if a specific topic tag is used
             def is_topic_used(c_norm: str, t_norm: str) -> bool:
-                return (
-                    f"#Category/{c_norm}/{t_norm}" in used_topics
-                    or f"#{c_norm}/{t_norm}" in used_topics
-                    or f"#Topics/{c_norm}/{t_norm}" in used_topics
-                )
+                return f"#Topics/{c_norm}/{t_norm}" in used_topics
 
             # Check if category or any of its subtopics are used
             has_used_st = any(
@@ -375,7 +314,7 @@ class IndexingService:
                 for t in topics
             )
 
-            if cat_tag_new in used_topics or cat_tag_legacy in used_topics or has_used_st:
+            if has_used_st:
                 lines.append(f"## {cat_tag_new}")
                 if cat_desc:
                     lines.append(cat_desc)
@@ -385,17 +324,13 @@ class IndexingService:
                     st_desc = topic.get("description", "")
                     st_norm = normalize_tag_component(st_name)
                     st_tag_new = f"#Category/{normalized_cat}/{st_norm}"
-                    st_tag_legacy = f"#{normalized_cat}/{st_norm}"
                     st_tag_canonical = f"#Topics/{normalized_cat}/{st_norm}"
 
-                    if (
-                        st_tag_new in used_topics
-                        or st_tag_legacy in used_topics
-                        or st_tag_canonical in used_topics
-                    ):
+                    if st_tag_canonical in used_topics:
                         lines.append(f"{st_tag_new} -- {st_desc}")
 
-        self._write_index("Index - Topics.md", "\n".join(lines))
+        if len(lines) > 1:
+            self._write_index("Index - Topics.md", "\n".join(lines))
 
     def _write_index(self, filename: str, content: str) -> None:
         """Writes index content to a file in the vault root."""
