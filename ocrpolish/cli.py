@@ -236,7 +236,9 @@ def tag(input_dir: Path, output_dir: Path, mask: str, taxonomy: Path, tags: Path
 def interlink(
     vault_dir: Path, dry_run: bool, verbose: bool, force: bool, unifications: Path | None
 ) -> None:
-    """Post-processes a generated Obsidian vault in-place to interlink documents."""
+    """Post-processes a generated Obsidian vault in-place to interlink documents, generate indices, and export metadata."""
+    from ocrpolish.services.indexing_service import IndexEntry, IndexingService
+
     service = InterlinkingService(vault_dir, unifications_path=unifications)
 
     click.echo(f"Scanning vault: {vault_dir}")
@@ -244,6 +246,27 @@ def interlink(
 
     click.echo(f"Interlinking {len(service.code_map)} unique archive codes...")
     service.interlink_all(dry_run=dry_run, verbose=verbose, force=force)
+
+    click.echo("Generating Markdown indices and XLSX export...")
+    # Map final (potentially updated) VaultDocuments to IndexEntries
+    indexer = IndexingService(vault_dir)
+    for doc in service.documents:
+        entry = IndexEntry(
+            doc_path=Path(doc.vault_relative_path),
+            title=doc.frontmatter.get("title", doc.path.stem),
+            summary=doc.frontmatter.get("summary", ""),
+            date=doc.frontmatter.get("date", ""),
+            raw_metadata=doc.frontmatter,
+            canonical_tags=doc.canonical_tags,
+        )
+        indexer.entries.append(entry)
+
+    if not dry_run:
+        # Generate outputs in VAULT_DIR
+        indexer.generate_xlsx(vault_dir / "metadata_index.xlsx")
+        indexer.generate_markdown_indices()
+    else:
+        click.echo("[DRY-RUN] Would generate index files and metadata_index.xlsx")
 
     click.echo("Done.")
 

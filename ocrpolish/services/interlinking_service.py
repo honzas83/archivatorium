@@ -2,10 +2,13 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
-from ocrpolish.utils.metadata import safe_identifier
+from ocrpolish.models.metadata import CanonicalTags
+from ocrpolish.utils.metadata import parse_frontmatter, safe_identifier
+from ocrpolish.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +17,12 @@ logger = logging.getLogger(__name__)
 class VaultDocument:
     path: Path
     vault_relative_path: str
-    archive_code: str
-    normalized_code: str
-    language: str
-    references: list[str] = field(default_factory=list)
+    body: str
+    frontmatter: dict[str, Any] = field(default_factory=dict)
+    archive_code: str = ""
+    language: str = "English"
+    raw_references: list[str] = field(default_factory=list)
+    canonical_tags: CanonicalTags = field(default_factory=CanonicalTags)
 
 
 class InterlinkingService:
@@ -26,10 +31,11 @@ class InterlinkingService:
     def __init__(self, vault_dir: Path, unifications_path: Path | None = None):
         self.vault_dir = vault_dir
         self.code_map: dict[str, dict[str, str]] = {}  # normalized_code -> {lang: relative_path}
-        self.bibtex_map: dict[str, dict[str, str]] = {}  # bibtex_key -> {lang: filename}
+        self.bibtex_map: dict[str, dict[str, str]] = {}  # bibtex_key -> {lang: relative_path}
         self.bib_to_norm: dict[str, str] = {}  # bibtex_key -> normalized_code
         self.unifications: list[dict[str, str]] = self._load_unifications(unifications_path)
         self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
+        self.documents: list[VaultDocument] = []
 
     def _load_unifications(self, custom_path: Path | None = None) -> list[dict[str, str]]:
         """Loads unification rules from topics/unifications.yaml or a custom path."""
@@ -134,37 +140,72 @@ class InterlinkingService:
         return None
 
     def discover(self) -> None:
-        """First pass: build the archive code maps by scanning all Markdown files."""
+        """First pass: build the archive code maps by scanning all Markdown files, excluding index files, etc."""
         self.code_map = {}
         self.bibtex_map = {}
+        self.bib_to_norm = {}
+        self.documents = []
 
         # Sort files for deterministic behavior (handles duplicate codes consistently)
         files = sorted(list(self.vault_dir.rglob("*.md")))
+        tag_parser = CanonicalTagParser()
 
         for md_file in files:
+            # Exclude logic
+            # 1. Exclude if file name starts with "Index - "
+            if md_file.name.startswith("Index - "):
+                continue
+            # 2. Exclude metadata_index.xlsx or other non-markdown
+            if md_file.name == "metadata_index.xlsx":
+                continue
+            # 3. Exclude hidden folders like .obsidian, .git, .venv
+            parts = md_file.parts
+            if any(p.startswith(".") for p in parts):
+                continue
+            # 4. Exclude templates folder/files or files with template in name
+            if any("template" in p.lower() for p in parts):
+                continue
+
             try:
                 content = md_file.read_text(encoding="utf-8")
-                # Simple frontmatter extraction
-                match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-                if not match:
-                    continue
+                # Parse frontmatter and body
+                metadata, body = parse_frontmatter(content)
+                
+                # Default values if missing
+                code = metadata.get("archive_code", "")
+                lang = metadata.get("language", "English")
+                if not lang:
+                    lang = "English"
 
-                frontmatter = yaml.safe_load(match.group(1))
-                if not frontmatter:
-                    continue
+                # Parse canonical tags using CanonicalTagParser
+                canonical_tags = tag_parser.parse_text(content, file_path=md_file)
 
-                code = frontmatter.get("archive_code")
-                lang = frontmatter.get("language")
+                # References list
+                raw_refs = metadata.get("references", [])
+                if not isinstance(raw_refs, list):
+                    raw_refs = [raw_refs] if raw_refs else []
 
-                if code and lang:
+                doc = VaultDocument(
+                    path=md_file,
+                    vault_relative_path=str(md_file.relative_to(self.vault_dir)),
+                    body=body,
+                    frontmatter=metadata,
+                    archive_code=code,
+                    language=lang,
+                    raw_references=raw_refs,
+                    canonical_tags=canonical_tags
+                )
+                self.documents.append(doc)
+
+                if code:
                     norm_code = self.normalize_code(code)
                     bib_code = safe_identifier(code)
-                    filename = md_file.name
+                    rel_path = doc.vault_relative_path
 
                     # Add to exact map
                     if norm_code not in self.code_map:
                         self.code_map[norm_code] = {}
-                    self.code_map[norm_code][lang] = filename
+                    self.code_map[norm_code][lang] = rel_path
 
                     # Add to BibTeX map as fuzzy fallback
                     if bib_code not in self.bibtex_map:
@@ -172,11 +213,11 @@ class InterlinkingService:
                         # Map BibTeX key to the first normalized code that produces it
                         self.bib_to_norm[bib_code] = norm_code
 
-                    # Only add if not already present for this lang (exact code mapping takes precedence if found first)
+                    # Only add if not already present for this lang
                     if lang not in self.bibtex_map[bib_code]:
-                        self.bibtex_map[bib_code][lang] = filename
-            except Exception:
-                # Silently skip files that can't be parsed
+                        self.bibtex_map[bib_code][lang] = rel_path
+            except Exception as e:
+                logger.warning(f"Failed to scan/parse {md_file}: {e}")
                 continue
 
     def get_boundary_regex(self, code: str) -> str:
@@ -186,21 +227,23 @@ class InterlinkingService:
         Following char must be non-alphanumeric or end of string.
         """
         escaped = re.escape(code)
-        # Prefix boundary: not preceded by alphanumeric
-        # Suffix boundary: not followed by alphanumeric
         return rf"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])"
 
     def interlink_metadata(
         self,
         content: str,
         source_lang: str,
-        current_filename: str | None = None,
+        current_relative_path: str | None = None,
         discovered_codes: list[str] | None = None,
+        current_filename: str | None = None,
     ) -> str:
         """
         Processes the Metadata callout table in the content.
         Updates 'references' with links, merges discovered codes, and adds language_versions.
         """
+        # Alias for backward compatibility in unit tests
+        cur_path = current_relative_path or current_filename
+
         # Regex to find the [!info] Metadata callout block
         callout_pattern = re.compile(
             r"(> \[!info\] Metadata.*?\n)(.*?)(?=\n\n|\n[^>]|$)", re.DOTALL
@@ -230,7 +273,7 @@ class InterlinkingService:
             norm_code = self.normalize_code(archive_code)
             variants = self.code_map.get(norm_code, {})
             # language_versions links to OTHER files with the same code
-            other_variants = {lang: p for lang, p in variants.items() if p != current_filename}
+            other_variants = {lang: p for lang, p in variants.items() if p != cur_path}
 
             if other_variants:
                 links = [f"[{lang}]({p})" for lang, p in sorted(other_variants.items())]
@@ -277,7 +320,6 @@ class InterlinkingService:
                         existing_codes.append(canonical)
 
                 # Merge with discovered_codes (from body)
-                # discovered_codes are already canonicalized by interlink_body
                 body_codes = discovered_codes or []
                 final_codes = []
 
@@ -286,7 +328,6 @@ class InterlinkingService:
 
                 # First: Add all from body in order of appearance
                 for c in body_codes:
-                    # c is already canonical
                     if c not in final_codes:
                         # Skip if it's the document's own archive_code (BibTeX-style fuzzy check)
                         if own_code_bib and safe_identifier(c) == own_code_bib:
@@ -295,7 +336,6 @@ class InterlinkingService:
 
                 # Second: Add existing ones that were NOT in body (silent references)
                 for c in existing_codes:
-                    # c is already canonical
                     if c not in final_codes:
                         # Skip if it's the document's own archive_code
                         if own_code_bib and safe_identifier(c) == own_code_bib:
@@ -306,7 +346,7 @@ class InterlinkingService:
                 new_parts = []
                 for code in final_codes:
                     link_path = self.resolve_link(code, source_lang)
-                    if link_path and link_path != current_filename:
+                    if link_path and link_path != cur_path:
                         new_parts.append(f"[{code}]({link_path})")
                     else:
                         new_parts.append(code)
@@ -331,7 +371,7 @@ class InterlinkingService:
                     continue
 
                 link_path = self.resolve_link(code, source_lang)
-                if link_path and link_path != current_filename:
+                if link_path and link_path != cur_path:
                     new_parts.append(f"[{code}]({link_path})")
                 else:
                     new_parts.append(code)
@@ -353,8 +393,10 @@ class InterlinkingService:
         self,
         content: str,
         source_lang: str,
-        current_filename: str | None = None,
+        current_relative_path: str | None = None,
+        own_archive_code: str | None = None,
         force: bool = False,
+        current_filename: str | None = None,
     ) -> tuple[str, list[str]]:
         """
         Processes the Markdown body.
@@ -364,6 +406,9 @@ class InterlinkingService:
         Prevents linking a document to itself.
         Returns (new_content, ordered_list_of_codes_found).
         """
+        # Alias for backward compatibility in unit tests
+        cur_path = current_relative_path or current_filename
+
         # Sort codes by length descending to ensure longest match priority
         # Include both exact codes and BibTeX-style keys
         all_search_keys = set(self.code_map.keys()) | set(self.bibtex_map.keys())
@@ -377,19 +422,14 @@ class InterlinkingService:
             # 1. Expand canonical parts to include variants from expansion_map
             expanded = c
             placeholders: dict[str, str] = {}
-            # Sort expansion map by key length descending to avoid partial matches
             for canonical, variants in sorted(
                 self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True
             ):
                 if canonical in expanded:
-                    # Escape the canonical part for regex
                     esc_canonical = re.escape(canonical)
-                    # Join with variants (which are already regex patterns)
                     all_variants = [esc_canonical] + variants
-                    # Create a non-capturing group
                     group = f"(?:{'|'.join(all_variants)})"
 
-                    # Use a placeholder to protect this group from further escaping
                     ph = f"___GROUP{len(placeholders)}___"
                     placeholders[ph] = group
                     expanded = expanded.replace(canonical, ph)
@@ -399,12 +439,10 @@ class InterlinkingService:
 
             # 3. Replace escaped or unescaped / and - with [/ \-]*
             s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", s)
-            # Add optional [/ \-]* around parentheses to handle "NPG/D(73)/15" or "NPG (73)"
             s = s.replace(r"\(", r"[/ \\-]*\(").replace(r"\)", r"\)[/ \\-]*")
 
             # 4. Restore placeholders
             for ph, group in placeholders.items():
-                # We need to escape the placeholder because re.escape was applied to it
                 s = s.replace(re.escape(ph), group)
 
             # 5. Collapse multiple identical patterns to keep it clean
@@ -416,9 +454,6 @@ class InterlinkingService:
         codes_pattern = "|".join(codes_regex_parts)
 
         # Single-pass regex to avoid re-linking already linked text.
-        # Group 1: Existing links (Wikilinks [[...]] or Markdown links [...](...))
-        #   Markdown link regex handles one level of nested parentheses in the path (e.g. (73))
-        # Group 2: Raw archive codes
         combined_pattern = re.compile(
             rf"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))|(?<![a-zA-Z0-9\[])({codes_pattern})(?![a-zA-Z0-9\]/])"
         )
@@ -426,6 +461,8 @@ class InterlinkingService:
         found_codes = []
         lines = content.split("\n")
         new_lines = []
+
+        own_code_bib = safe_identifier(own_archive_code) if own_archive_code else None
 
         for line in lines:
             if "archive_code:" in line:
@@ -437,12 +474,16 @@ class InterlinkingService:
                     display_text = code_text
                 bib = safe_identifier(code_text)
 
+                # Self-linking prevention
+                if own_code_bib and bib == own_code_bib:
+                    return display_text
+
                 canonical = self.bib_to_norm.get(bib, self.normalize_code(code_text))
                 if canonical not in found_codes:
                     found_codes.append(canonical)
 
                 link_path = self.resolve_link(code_text, source_lang)
-                if link_path and link_path != current_filename:
+                if link_path and link_path != cur_path:
                     return f"[{display_text}]({link_path})"
                 return display_text
 
@@ -490,9 +531,15 @@ class InterlinkingService:
     def interlink_all(
         self, dry_run: bool = False, verbose: bool = False, force: bool = False
     ) -> None:
-        """Second pass: perform in-place interlinking on all files."""
+        """Second pass: perform in-place interlinking on all files, then reparse updated ones."""
         updated_count = 0
-        for md_file in self.vault_dir.rglob("*.md"):
+        from ocrpolish.utils.metadata import parse_frontmatter
+        from ocrpolish.utils.tag_parser import CanonicalTagParser
+
+        tag_parser = CanonicalTagParser()
+
+        for doc in self.documents:
+            md_file = doc.path
             try:
                 content = md_file.read_text(encoding="utf-8")
 
@@ -501,16 +548,7 @@ class InterlinkingService:
                 if fm_match:
                     frontmatter_part = fm_match.group(1)
                     body_part = fm_match.group(2)
-
-                    # Extract source language for logic
-                    fm_yaml_match = re.match(
-                        r"^---\s*\n(.*?)\n---\s*\n", frontmatter_part, re.DOTALL
-                    )
-                    if fm_yaml_match:
-                        fm_data = yaml.safe_load(fm_yaml_match.group(1))
-                        source_lang = fm_data.get("language", "English") if fm_data else "English"
-                    else:
-                        source_lang = "English"
+                    source_lang = doc.language
                 else:
                     frontmatter_part = ""
                     body_part = content
@@ -518,24 +556,40 @@ class InterlinkingService:
 
                 # 2. Interlink Body FIRST to discover all references and their order
                 new_body, discovered_codes = self.interlink_body(
-                    body_part, source_lang, md_file.name, force=force
+                    body_part, source_lang, doc.vault_relative_path, doc.archive_code, force=force
                 )
 
                 # 3. Interlink Metadata callout with discovered codes
                 new_body = self.interlink_metadata(
-                    new_body, source_lang, md_file.name, discovered_codes
+                    new_body, source_lang, doc.vault_relative_path, discovered_codes
                 )
 
                 new_content = frontmatter_part + new_body
 
                 if new_content != content:
-                    rel_path = md_file.relative_to(self.vault_dir)
+                    rel_path = doc.vault_relative_path
                     if verbose or dry_run:
                         action = "[DRY-RUN] Would update" if dry_run else "Updating"
                         logger.info(f"{action}: {rel_path}")
 
                     if not dry_run:
                         md_file.write_text(new_content, encoding="utf-8")
+                        
+                        # Reparse the document to update in-memory record
+                        reparsed_content = new_content
+                        metadata, body = parse_frontmatter(reparsed_content)
+                        doc.body = body
+                        doc.frontmatter = metadata
+                        doc.archive_code = metadata.get("archive_code", "")
+                        doc.language = metadata.get("language", "English") or "English"
+                        
+                        raw_refs = metadata.get("references", [])
+                        if not isinstance(raw_refs, list):
+                            raw_refs = [raw_refs] if raw_refs else []
+                        doc.raw_references = raw_refs
+                        
+                        doc.canonical_tags = tag_parser.parse_text(reparsed_content, file_path=md_file)
+
                     updated_count += 1
 
             except Exception as e:

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TOPIC
+from ocrpolish.data_model import TAG_PREFIX_TOPIC
 from ocrpolish.processor_metadata import MetadataProcessor
 from ocrpolish.utils.metadata import parse_frontmatter
 

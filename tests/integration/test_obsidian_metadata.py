@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from ocrpolish.cli import cli
 from ocrpolish.data_model import TAG_PREFIX_ENTITY
-from ocrpolish.models.metadata import MetadataSchema, AggregatedTaggingResult
+from ocrpolish.models.metadata import AggregatedTaggingResult, MetadataSchema
 from ocrpolish.utils.metadata import parse_frontmatter
 
 

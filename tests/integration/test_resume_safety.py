@@ -1,6 +1,6 @@
 from pathlib import Path
+
 from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.models.metadata import CanonicalTags
 
 
 class MockOllamaClient:
