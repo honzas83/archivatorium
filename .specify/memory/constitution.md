@@ -1,17 +1,11 @@
 <!--
 Sync Impact Report:
-- Version change: Initial -> 1.0.0
+- Version change: 1.0.0 -> 1.1.0
 - List of modified principles:
-  - Added: I. Quality-Driven Python Development
-  - Added: II. CLI-First Interface
-  - Added: III. Recursive Directory Processing
-  - Added: IV. Data Isolation
-  - Added: V. Atomic Git Workflow
-- Added sections: Tooling & Quality Gates, Project Structure
+  - Modified: V. Atomic Git Workflow (explicitly forbid staging/committing unrelated files)
+- Added sections: None
 - Removed sections: None
-- Templates requiring updates:
-  - .specify/templates/plan-template.md (✅ updated)
-  - .specify/templates/tasks-template.md (✅ updated)
+- Templates requiring updates: None
 - Follow-up TODOs: None
 -->
 
@@ -32,7 +26,7 @@ The tool MUST support recursive processing of directories. It MUST search for ma
 All sample, test, and real-world data MUST reside in a `data/` directory at the project root. This directory MUST be excluded from version control via `.gitignore` to prevent leaking sensitive information or bloating the repository with binary/large text blobs.
 
 ### V. Atomic Git Workflow
-Developers MUST commit changes in small, logical increments. Every completed task from the implementation plan MUST result in a stable commit. This ensures a clean history and simplifies debugging and rollbacks.
+Developers MUST commit changes in small, logical increments. Every completed task from the implementation plan MUST result in a stable commit. Commits MUST include only modified/uniquely relevant files for that specific operation, and unrelated or untracked files (such as editor/tool metadata, temporary files, or unrelated doc edits) MUST NOT be staged or committed. This ensures a clean, relevant history and simplifies debugging and rollbacks.
 
 ## Tooling & Quality Gates
 To maintain the standards set in Principle I, the following tools MUST be configured and pass before any feature is considered complete:
@@ -53,4 +47,4 @@ The repository MUST follow this structure:
 ## Governance
 This constitution is the supreme authority on project standards for `ocrpolish`. Amendments MUST be made via the `speckit.constitution` process and require a version bump. All PRs and automated checks MUST verify compliance with these principles.
 
-**Version**: 1.0.0 | **Ratified**: 2026-02-12 | **Last Amended**: 2026-02-12
+**Version**: 1.1.0 | **Ratified**: 2026-02-12 | **Last Amended**: 2026-06-09
