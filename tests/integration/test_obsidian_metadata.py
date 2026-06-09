@@ -15,7 +15,9 @@ def create_mock_ollama_response(content: str) -> dict[str, dict[str, str]]:
 
 
 @patch("ollama.Client.chat")
-def test_obsidian_metadata_standard(mock_chat: Any, tmp_path: Path) -> None:
+def test_obsidian_metadata_standard(
+    mock_chat: Any, tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     output_dir = tmp_path / "output"
@@ -37,7 +39,19 @@ def test_obsidian_metadata_standard(mock_chat: Any, tmp_path: Path) -> None:
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+    with patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
     assert result.exit_code == 0
 
     output_file = output_dir / "test.md"
@@ -57,7 +71,7 @@ def test_obsidian_metadata_standard(mock_chat: Any, tmp_path: Path) -> None:
     assert "Detailed abstract." in body
 
 
-def test_obsidian_metadata_entities(tmp_path: Path) -> None:
+def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> None:
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     output_dir = tmp_path / "output"
@@ -104,6 +118,8 @@ def test_obsidian_metadata_entities(tmp_path: Path) -> None:
                 str(output_dir),
                 "--hierarchy-file",
                 str(dummy_hierarchy),
+                "--tags-file",
+                str(useful_tags_file),
             ],
         )
         assert result.exit_code == 0

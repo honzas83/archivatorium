@@ -1,107 +1,83 @@
-# LLM Metadata Extraction & Topic Detection Workflow
+# LLM Metadata Extraction & Flat Tagging Workflow
 
-This document provides a detailed technical overview of how `ocrpolish` utilizes Large Language Models (LLMs) via Ollama to extract structured metadata and detect hierarchical topics from OCR-processed documents.
-
-## Table of Contents
-1. [Architectural Overview](#architectural-overview)
-2. [Primary Metadata Extraction](#primary-metadata-extraction)
-3. [Two-Step Topic Detection](#two-step-topic-detection)
-4. [Prompt Engineering Strategies](#prompt-engineering-strategies)
-5. [Context Window Management](#context-window-management)
-6. [Obsidian Integration & Formatting](#obsidian-integration--formatting)
-
----
+This document describes how `ocrpolish` uses Ollama-backed LLM calls to extract
+structured document metadata and production tags from OCR-processed Markdown.
 
 ## Architectural Overview
 
-`ocrpolish` uses a sequential, multi-pass LLM workflow to transform noisy OCR text into rich, structured Obsidian Markdown files. The system interfaces with a local Ollama instance (default model: `gemma4:26b`) using Pydantic schemas for guaranteed structured output.
+`ocrpolish metadata` uses a staged workflow:
 
-The workflow follows these stages:
-1. **Pass 1: Primary Metadata**: Extracts title, summary, abstract, dates, and actors.
-2. **Pass 2 (Optional): Topic Detection**: Performs a two-step classification against a YAML hierarchy.
-3. **Pass 3: Formatting**: Reworks the extracted data into YAML frontmatter and an Obsidian-styled "Abstract" callout.
+1. **Read source**: Load the source Markdown file.
+2. **Parse and strip generated sections**: Preserve user frontmatter for
+   reconciliation, but remove generated frontmatter/callouts before LLM prompts.
+3. **Extract document metadata**: Extract title, summary, abstract, dates,
+   actors, archive code, language, location, and references.
+4. **Extract generated tags**: Run the flat `TaggingService` path for topics,
+   entities, and conceptual tags.
+5. **Reconcile metadata and tags**: Combine existing user metadata with newly
+   extracted and computed fields.
+6. **Render output**: Write YAML frontmatter, Metadata callout, Abstract callout,
+   original body, and Citation callout.
+7. **Ingest generated tags**: Parse generated output tags back into counters for
+   consistency hints across the run.
 
----
+## Production Command
+
+The production command requires explicit taxonomy and useful-tag files:
+
+```bash
+python -m ocrpolish.cli metadata NATO_NPG_source NATO_NPG_metadata.v5 --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml
+```
+
+When omitted, `--vault-root` and `--pdf-dir` default to the output directory for
+compatibility. Generated source PDF links are still derived from the generated
+vault layout, not from the source PDF lookup directory.
 
 ## Primary Metadata Extraction
 
-The first pass focuses on general document understanding. It reads a significant portion of the document (up to 10kB) to fill a comprehensive `MetadataSchema`.
+The metadata pass reads the cleaned source body and asks the LLM for a
+`MetadataSchema`. It extracts:
 
-### Extracted Fields
-- **Standard Identifiers**: Title, Archive Code, Language.
-- **Temporospatial**: Complete official date (YYYY-MM-DD), City, State.
-- **Narrative**: One-sentence summary, Detailed abstract (up to 20 sentences).
-- **Actors**: Sender, Recipient, Transaction details (for correspondence).
-- **Entities**: Mentioned states and organizations.
-- **Tags**: A list of 3-8 flat tags for general indexing.
+- **Standard identifiers**: title, archive code, language.
+- **Temporospatial metadata**: official date, city, state.
+- **Narrative metadata**: one-sentence summary and detailed abstract.
+- **Correspondence fields**: sender, recipient, and intent.
+- **References**: mentioned archive reference codes.
 
-### Hallucination Prevention
-If a document is large (>12kB) and the date is missing from the first chunk, the system performs a targeted **Secondary Date Pass** on the final 10kB of the file to locate official dates typically found at the document's end.
+If a large document does not yield a date from the first chunk, the processor
+uses a secondary date prompt on the final chunk. Page counts are calculated from
+`# Page N` headers.
 
----
+## Flat Tagging
 
-## Topic Detection Workflow
+Production topic extraction is flat-only. The tagging service loads the provided
+hierarchy, flattens it once into `Category/Topic` entries, and reuses that static
+taxonomy prompt text for every document chunk. Useful tags from
+`--tags-file` are normalized once and reused in every prompt.
 
-When a hierarchy YAML (e.g., `NATO_themes.yaml`) is provided, `ocrpolish` performs a high-precision categorization process. Two modes are available:
+The tagging pass returns:
 
-### 1. Single-Step Flat Extraction (Recommended)
-Enabled with the `--flat-topics` flag. This mode flattens the hierarchy into a single YAML list and passes it to the LLM in one pass.
+- **Entity tags**: `State/<name>`, `Org/<name>`, `City/<state>/<city>`,
+  `Person/<name>`.
+- **Topic tags**: flat `Category/Topic` tags with quoted evidence in the reason.
+- **Conceptual tags**: canonical tags that prioritize the useful-tag vocabulary.
 
-- **Sample Visibility**: The LLM sees all positive and negative samples for all topics simultaneously, allowing for better cross-topic discrimination.
-- **Efficiency**: Reduces LLM API calls and avoids the "blind" category selection step.
-- **Mapping**: The system automatically maps flat `Category/Topic` IDs back to the standard hierarchical model.
+Non-flat and two-step topic extraction are not production modes.
 
-### 2. Two-Step Hierarchical Detection (Legacy)
-The default mode if `--flat-topics` is not set. It uses a narrowing approach:
+## Obsidian Output
 
-#### Step 1: Category Selection
-The LLM is presented with the raw 10kB document excerpt and a list of high-level categories (including their descriptions) from the hierarchy. It selects only the categories that apply.
+Generated Markdown is organized for Obsidian:
 
-#### Step 2: Topic Assignment
-For the selected categories, the LLM is presented with all sub-topics, including:
-- Detailed topic descriptions.
-- **Positive Anchors**: Keywords/concepts that strongly suggest a match.
-- **Negative Anchors**: Keywords/concepts that should exclude a match.
+1. **YAML frontmatter**: canonical metadata, including deterministic `source`
+   and `citekey`.
+2. **Metadata callout**: rendered metadata table.
+3. **Abstract callout**: title, abstract, categories/topics, entities, and tags.
+4. **Original body**: cleaned source Markdown.
+5. **Citation callout**: Chicago-style citation and BibTeX entry.
 
-### Constraints & Selectivity
-- **Limit**: At most 3 most important topics are assigned (enforced via Pydantic).
-- **Reasoning**: The model MUST provide a specific, non-generic reason for every assignment.
-- **Quality over Quantity**: The model is instructed to be selective, especially for documents shorter than 3 pages, and to avoid "over-filling" the 3 available slots.
-- **Isolation**: To prevent "hallucination loops," topic extraction relies strictly on the raw document excerpt, ignoring Pass 1 metadata (summary/abstract).
+Generated PDFs are mirrored into the output vault's `pdf/` directory. Source
+links in generated Markdown use the stable vault link form:
 
----
-
-## Prompt Engineering Strategies
-
-The system uses several advanced prompting techniques:
-- **Title Case Correction**: Instructs the LLM to correct ALL CAPS text to Title Case while preserving NATO acronyms.
-- **OCR Correction**: Encourages the model to use context to interpret and correct OCR errors during extraction.
-- **Negative Instruction**: Explicitly forbids generic reasoning like "it is relevant to the context."
-- **Structured Pydantic Output**: All prompts are wrapped in requests for JSON objects matching internal Pydantic models, ensuring the CLI can reliably parse the LLM's response.
-
----
-
-## Context Window Management
-
-The context window is optimized for both speed and precision:
-- **`CHUNK_SIZE`**: 10,000 characters (approx. 10kB).
-- **`LARGE_DOC_THRESHOLD`**: 12,000 characters.
-- **Text Selection**: The system prioritizes the beginning of the document (Pass 1 & 2) but can pivot to the end (Secondary Date Pass) to ensure no critical metadata is missed.
-
----
-
-## Obsidian Integration & Formatting
-
-The extracted data is formatted specifically for Obsidian:
-
-### YAML Frontmatter
-Clean metadata (title, sender, date, etc.) is stored here for standard searchability. **Tags are excluded from frontmatter to prevent clutter.**
-
-### Abstract Callout (`[!abstract]`)
-All narrative and categorization data is moved here:
-1. **Title**: Rendered as an H1 header.
-2. **Abstract**: The detailed document overview.
-3. **## Categories/Topics**: A list of hierarchical tags and justifications (e.g., `#Category/Topic — Specific Reason`).
-4. **## Tags**: The flat tags from Pass 1, rendered inline and prefixed with `#`.
-
-This layout ensures that the document is informative and navigable immediately upon opening in Obsidian.
+```text
+[[pdf/<filename>.pdf]]
+```

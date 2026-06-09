@@ -27,9 +27,6 @@ include = ["ocrpolish*"]
 line-length = 100
 target-version = "py312"
 
-[tool.ruff.lint]
-select = ["E", "F", "B", "I", "N", "UP", "PL"]
-
 [tool.mypy]
 python_version = "3.12"
 strict = true

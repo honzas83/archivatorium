@@ -7,7 +7,7 @@ from ocrpolish.models.metadata import MetadataSchema
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 
-def test_full_bibtex_citation_output(tmp_path):
+def test_full_bibtex_citation_output(tmp_path, hierarchy_file, useful_tags_file):
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     (input_dir / "doc1.md").write_text("Test content for citation.")
@@ -24,14 +24,28 @@ def test_full_bibtex_citation_output(tmp_path):
         "author_institution": "NATO",
     }
 
-    with patch("ollama.Client.chat") as mock_chat:
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
         )
 
         # Mock date.today() to have consistent output if needed,
         # but here we mostly care about the BibTeX fields we provided.
-        result = runner.invoke(cli, ["metadata", str(input_dir), str(output_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
 
         assert result.exit_code == 0
 

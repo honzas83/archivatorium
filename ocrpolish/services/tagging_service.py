@@ -25,7 +25,7 @@ class TaggingService:
     using a dynamic single-pass or sliding-window strategy.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         ollama_client: OllamaClient,
         windowing_service: SlidingWindowService,
@@ -33,7 +33,6 @@ class TaggingService:
         useful_tags_path: Path | None = None,
         context_limit: int = 32000,
         model_name: str = "gemma4:31b",
-        flat_mode: bool = False,
     ):
         self.client = ollama_client
         self.windowing_service = windowing_service
@@ -41,18 +40,20 @@ class TaggingService:
         self.useful_tags_path = useful_tags_path
         self.context_limit = context_limit
         self.model_name = model_name
-        self.flat_mode = flat_mode
         self.flattening_service = FlatteningService()
 
         # Load and Normalize Themes
         raw_themes = self._load_yaml(themes_path)
         self.themes = self._normalize_data(raw_themes)
+        self.flattened_taxonomy = self.flattening_service.flatten(self.themes)
+        self.taxonomy_prompt_text = yaml.dump(self.flattened_taxonomy, sort_keys=False)
 
         # Load and Normalize Useful Tags
         self.useful_tags = []
         if useful_tags_path:
             raw_tags = self._load_yaml(useful_tags_path).get("useful_tags", [])
             self.useful_tags = [normalize_tag_component(t) for t in raw_tags]
+        self.useful_tags_prompt_text = ", ".join(self.useful_tags)
 
     def _normalize_data(self, data: Any) -> Any:
         """Recursively normalize categories and topics in the hierarchy."""
@@ -186,26 +187,14 @@ class TaggingService:
         """
         Generates the prompt for the tagging pass.
         """
-        if self.flat_mode:
-            taxonomy = self.flattening_service.flatten(self.themes)
-            topic_format = "Category/Topic"
-            topic_instruction = "Select the most important topics from the flat taxonomy below."
-        else:
-            taxonomy = self.themes
-            topic_format = "Category/<category>/<topic>"
-            topic_instruction = "Hierarchical tags from the approved taxonomy below."
-
-        taxonomy_info = yaml.dump(taxonomy, sort_keys=False)
-        useful_tags_str = ", ".join(self.useful_tags)
-
         return (
             "Document Excerpt:\n\n"
             f"{text}\n\n"
             "Based on the content above, extract precision tags in three categories:\n\n"
             "1. 'entity_tags': Hierarchical tags for mentioned entities. "
             "Use formats: State/<name>, Org/<name>, City/<state>/<city>, Person/<name>.\n"
-            f"2. 'topic_tags': {topic_instruction} "
-            f"Use format: {topic_format}. Include a brief 'reason' for each. Max 10.\n"
+            "2. 'topic_tags': Select the most important topics from the flat taxonomy below. "
+            "Use format: Category/Topic. Include a brief 'reason' for each. Max 10.\n"
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
             "3. 'conceptual_tags': Up to 15 flat, canonical tags for archivally substantive "
@@ -214,9 +203,9 @@ class TaggingService:
             "MANDATORY: Include all all-caps abbreviations mentioned in the text "
             "(e.g., SACEUR, SACLANT, CINCHAN).\n\n"
             "APPROVED TAXONOMY (YAML):\n"
-            f"{taxonomy_info}\n\n"
+            f"{self.taxonomy_prompt_text}\n\n"
             "EXISTING VOCABULARY (USEFUL TAGS):\n"
-            f"{useful_tags_str}\n\n"
+            f"{self.useful_tags_prompt_text}\n\n"
             "CRITICAL RULES:\n"
             "- Only include tags that are clearly justified by the text.\n"
             "- Exclude routine administrative labels (agenda, report, notice, corrigendum).\n"

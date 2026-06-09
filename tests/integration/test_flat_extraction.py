@@ -5,7 +5,7 @@ from click.testing import CliRunner
 
 from ocrpolish.cli import cli
 from ocrpolish.data_model import TAG_PREFIX_TOPIC
-from ocrpolish.models.metadata import MetadataSchema, WindowTaggingResult
+from ocrpolish.models.metadata import MetadataSchema, TopicResult, WindowTaggingResult
 
 
 @pytest.fixture
@@ -33,14 +33,14 @@ categories:
 
 
 @patch("ocrpolish.services.ollama_client.OllamaClient.extract_structured")
-def test_cli_flat_topics_integration(mock_extract, input_dir, hierarchy_file, tmp_path):
+def test_cli_flat_topics_integration(
+    mock_extract, input_dir, hierarchy_file, useful_tags_file, tmp_path
+):
     output_dir = tmp_path / "output"
 
     # Mock responses for MetadataSchema and WindowTaggingResult
 
     mock_metadata = MetadataSchema(title="Test Title", abstract="Test Abstract", tags=["test"])
-
-    from ocrpolish.models.metadata import TopicResult
 
     mock_tagging_result = WindowTaggingResult(
         topic_tags=[
@@ -64,7 +64,8 @@ def test_cli_flat_topics_integration(mock_extract, input_dir, hierarchy_file, tm
             str(output_dir),
             "--hierarchy-file",
             str(hierarchy_file),
-            "--flat-topics",
+            "--tags-file",
+            str(useful_tags_file),
         ],
     )
 
@@ -75,7 +76,8 @@ def test_cli_flat_topics_integration(mock_extract, input_dir, hierarchy_file, tm
     content = output_file.read_text()
 
     # Verify hierarchical tag is present in the output with reasoning
-    assert (
-        f"- #{TAG_PREFIX_TOPIC}/Doctrine-and-Strategy/Nuclear-Deterrence — Mention of nuclear strategy"
-        in content
+    expected_topic = (
+        f"- #{TAG_PREFIX_TOPIC}/Doctrine-and-Strategy/Nuclear-Deterrence "
+        "— Mention of nuclear strategy"
     )
+    assert expected_topic in content
