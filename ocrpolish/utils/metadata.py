@@ -450,19 +450,20 @@ def format_bibtex_citation(data: dict[str, Any]) -> str:
 def format_coins_span(data: dict[str, Any]) -> str:
     """Generates a COinS HTML span for browser extensions like Zotero."""
     import urllib.parse
-    
+
     author_info = _parse_author(data.get("author_name", ""))
     date_str = data.get("date", "")
-    
+
     year = ""
     if date_str:
         try:
             from datetime import datetime
+
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             year = str(dt.year)
         except ValueError:
             year = date_str[:4]
-            
+
     title = data.get("title", "Untitled")
     publisher = data.get("author_institution", "NATO Archive Obsidian")
     code = data.get("archive_code", "")
@@ -477,23 +478,23 @@ def format_coins_span(data: dict[str, Any]) -> str:
         "rft.publisher": publisher,
         "rft.identifier": [url, citekey],
     }
-    
+
     if year:
         coins_data["rft.date"] = year
-        
+
     if author_info:
         first, last, _ = author_info
         if last:
             coins_data["rft.creator"] = f"{last}, {first}"
         else:
             coins_data["rft.creator"] = first
-            
+
     language = data.get("language", "")
     if language:
         coins_data["rft.language"] = language
 
     encoded_data = urllib.parse.urlencode(coins_data, doseq=True).replace("&", "&amp;")
-    
+
     return f'<span class="Z3988" title="{encoded_data}"></span>'
 
 
