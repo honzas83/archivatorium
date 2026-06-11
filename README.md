@@ -25,9 +25,26 @@ ollama pull gemma4:31b
 
 ## Usage
 
-The toolkit provides three primary commands: `clean`, `metadata`, and `index`.
+The toolkit provides several primary commands for processing documents: `ocr`, `clean`, `metadata`, `interlink`, and `index`.
 
-### Cleaning OCR Text
+### 1. OCR Processing (Ollama VLM)
+Converts multipage PDF files in `INPUT_DIR` recursively to Markdown files in `OUTPUT_DIR` using a local VLM (Ollama). Includes on-the-fly rendering and incremental per-page recovery/resumption.
+
+```bash
+ocrpolish ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
+```
+
+#### Options
+- `--host TEXT`: URL for the Ollama server (or environment variable `OLLAMA_HOST`).
+- `--user TEXT`: DigestAuth username (or environment variable `OLLAMA_USER`).
+- `--password TEXT`: DigestAuth password (or environment variable `OLLAMA_PASSWORD`).
+- `--model TEXT`: The VLM model name to use (default: `qwen3.5:9b`).
+- `--dpi INTEGER`: DPI for page rendering (default: `300`).
+- `--no-page-header`: Do not include `---\n\n# Page N\n\n` markers in the output (Note: this disables page-level resuming).
+
+*Note: Requires system package `poppler` (e.g. `brew install poppler` on macOS or `apt-get install poppler-utils` on Linux).*
+
+### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.
 
 ```bash
@@ -40,11 +57,11 @@ ocrpolish clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--dry-run`: Identify boilerplate without writing primary output files.
 - `--docx PATH`: Generate DOCX files in the specified directory.
 
-### Extracting Metadata
+### 3. Extracting Metadata
 Extracts structured data and flat production topics using a local LLM.
 
 ```bash
-python -m ocrpolish.cli metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml
+ocrpolish metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml [OPTIONS]
 ```
 
 #### Options
@@ -56,37 +73,32 @@ python -m ocrpolish.cli metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NA
 - `--vault-root PATH`: Optional Obsidian vault root; defaults to `OUTPUT_DIR`.
 - `--pdf-dir PATH`: Optional source PDF lookup directory; defaults to `OUTPUT_DIR`.
 - `--citekey-mode {stem,path}`: Deterministic citekey mode.
-- `--dry-run`: Scan inputs and report planned metadata actions without initializing templates, writing Markdown, mirroring PDFs, copying/hardlinking files, or updating existing outputs.
+- `--dry-run`: Scan inputs and report planned metadata actions.
 
-Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown
-file, and generated Markdown links to them as `[[pdf/<filename>.pdf]]`. For
-example, `series/1973/doc.md` links to `series/1973/pdf/doc.pdf`.
+Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown file, and generated Markdown links to them as `[[pdf/<filename>.pdf]]`.
 
-Resume counters are rebuilt only from generated document Markdown outputs. Index
-pages, vault support files, templates, hidden/system folders, `.filtered.md`
-sidecars, and metadata exports do not affect resumed tag counters.
-
-For substantive documents, metadata tagging requires conceptual `#Tags/...`
-values in the initial tagging pass. Empty conceptual tags are accepted only for
-deterministically non-substantive administrative stubs.
-
-### Generating Indices
-Generates Obsidian index pages and an optional XLSX index from vault metadata.
+### 4. Interlinking Obsidian Vault
+Post-processes a generated Obsidian vault in-place to cross-link documents using archive codes, generate indices, and export metadata.
 
 ```bash
-ocrpolish index [OPTIONS] INPUT_DIR
+ocrpolish interlink [OPTIONS] VAULT_DIR
 ```
 
 #### Options
-- `--output-xlsx, -o PATH`: Path to save the XLSX metadata index.
-- `--topics-yaml, -t PATH`: Path to the YAML file defining topic hierarchy.
-- `--recursive / --no-recursive`: Scan subdirectories (default: `recursive`).
+- `--dry-run`: Logs changes without writing.
+- `--verbose`: Show detailed matching logs.
+- `--force`: Regenerate all links, even if they already exist.
+- `--unifications PATH`: Path to custom unification rules YAML.
 
-Index pages and XLSX exports use canonical `#Tags/...`, `#Topics/...`, and
-`#Entities/...` tags only. Obsolete unprefixed tags such as `#State/...`,
-`#Org/...`, `#City/...`, `#Person/...`, `#Category/...`, or `#Topic/...` are not
-migrated into canonical columns.
+### 5. Generating Indices
+Generates Obsidian index pages and an optional XLSX index from vault metadata.
 
+```bash
+ocrpolish index [OPTIONS] INPUT_DIR OUTPUT_DIR
+```
+
+#### Options
+- `--mask TEXT`: Glob pattern for files to process (default: `*.md`).
 
 ## Development
 
