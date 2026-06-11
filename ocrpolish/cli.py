@@ -210,30 +210,6 @@ def obsidian(input_dir: Path, output_dir: Path, mask: str, template_dir: Path) -
     # Leaving command as placeholder or for pure template init.
 
 
-@cli.command()
-@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
-@click.argument("output_dir", type=click.Path(path_type=Path))
-@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
-def index(input_dir: Path, output_dir: Path, mask: str) -> None:
-    """Index metadata and generate citations."""
-    service = IndexingService(input_dir=input_dir)
-    for md_file in input_dir.rglob(mask):
-        service.process_file(md_file)
-    service.generate_xlsx(output_dir / "metadata_index.xlsx")
-    service.generate_markdown_indices()
-
-
-@cli.command()
-@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
-@click.argument("output_dir", type=click.Path(path_type=Path))
-@click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
-@click.option("--taxonomy", type=click.Path(exists=True, path_type=Path), required=True)
-@click.option("--tags", type=click.Path(exists=True, path_type=Path), required=True)
-def tag(input_dir: Path, output_dir: Path, mask: str, taxonomy: Path, tags: Path) -> None:
-    """Apply tiered tagging system to Obsidian vault. (Integrated into metadata command)"""
-    click.echo("Tagging is now performed during the metadata extraction pass.")
-    click.echo("Please use the 'metadata' command with --hierarchy-file and --tags-file options.")
-
 
 @cli.command()
 @click.argument("vault_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))

@@ -25,7 +25,7 @@ ollama pull gemma4:31b
 
 ## Usage
 
-The toolkit provides several primary commands for processing documents: `ocr`, `clean`, `metadata`, `interlink`, and `index`.
+The toolkit provides several primary commands for processing documents: `ocr`, `clean`, `metadata`, and `interlink`.
 
 ### 1. OCR Processing (Ollama VLM)
 Converts multipage PDF files in `INPUT_DIR` recursively to Markdown files in `OUTPUT_DIR` using a local VLM (Ollama). Includes on-the-fly rendering and incremental per-page recovery/resumption.
@@ -92,16 +92,6 @@ ocrpolish interlink [OPTIONS] VAULT_DIR
 - `--verbose`: Show detailed matching logs.
 - `--force`: Regenerate all links, even if they already exist.
 - `--unifications PATH`: Path to custom unification rules YAML.
-
-### 5. Generating Indices
-Generates Obsidian index pages and an optional XLSX index from vault metadata.
-
-```bash
-ocrpolish index [OPTIONS] INPUT_DIR OUTPUT_DIR
-```
-
-#### Options
-- `--mask TEXT`: Glob pattern for files to process (default: `*.md`).
 
 ## Development
 

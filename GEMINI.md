@@ -36,8 +36,6 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 - `ocrpolish clean <input_dir> <output_dir>`: Wrap and filter OCR files.
 - `ocrpolish metadata <input_dir> <output_dir>`: Extract metadata using LLM.
 - `ocrpolish obsidian <input_dir> <output_dir> --template-dir <template_dir>`: Generate Obsidian vault.
-- `ocrpolish index <input_dir> <output_dir>`: Index metadata and generate citations.
-- `ocrpolish tag <input_dir> <output_dir> --taxonomy <taxonomy_yaml> --tags <tags_yaml>`: Apply tagging system.
 - `ocrpolish interlink <vault_dir> [--force]`: Post-process vault for cross-linking (020). Use `--force` to regenerate existing links.
 
 ## Code Style
