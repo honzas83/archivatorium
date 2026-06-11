@@ -14,6 +14,9 @@ dependencies = [
     "tiktoken",
     "pytest",
     "pytest-cov",
+    "PyPDF2",
+    "pdf2image",
+    "httpx",
 ]
 
 [project.scripts]
@@ -44,6 +47,8 @@ check_untyped_defs = true
 module = [
     "yaml",
     "docx",
+    "PyPDF2",
+    "pdf2image",
 ]
 ignore_missing_imports = true
 

@@ -282,6 +282,63 @@ def interlink(
     click.echo("Done.")
 
 
+@cli.command()
+@click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
+@click.argument("output_dir", type=click.Path(path_type=Path))
+@click.option("--host", help="Ollama server URL.")
+@click.option("--user", help="DigestAuth username.")
+@click.option("--password", help="DigestAuth password.")
+@click.option("--model", default="qwen3.5:9b", show_default=True, help="VLM model to use.")
+@click.option("--dpi", type=int, default=300, show_default=True, help="DPI for page rendering.")
+@click.option(
+    "--no-page-header",
+    is_flag=True,
+    help="Do not include Page headers in the output.",
+)
+def ocr(  # noqa: PLR0913
+    input_dir: Path,
+    output_dir: Path,
+    host: str | None,
+    user: str | None,
+    password: str | None,
+    model: str,
+    dpi: int,
+    no_page_header: bool,
+) -> None:
+    """OCR multipage PDF files using Ollama (VLM) → Markdown."""
+    from ocrpolish.ocr_engine import OCREngine
+
+    engine = OCREngine(
+        host=host,
+        user=user,
+        password=password,
+        model=model,
+        dpi=dpi,
+    )
+
+    # Recursively find pdf files
+    pdf_files = sorted(list(input_dir.rglob("*")))
+    pdf_files = [f for f in pdf_files if f.is_file() and f.suffix.lower() == ".pdf"]
+
+    if not pdf_files:
+        click.echo(f"No PDF files found in {input_dir}")
+        return
+
+    click.echo(f"Found {len(pdf_files)} PDF files to process.")
+    with click.progressbar(pdf_files, label="Processing PDFs") as bar:
+        for pdf_file in bar:
+            rel_path = pdf_file.relative_to(input_dir)
+            output_md = output_dir / rel_path.with_suffix(".md")
+            try:
+                engine.run_ocr(
+                    input_pdf=pdf_file,
+                    output_md=output_md,
+                    page_header=not no_page_header,
+                )
+            except Exception as e:
+                click.echo(f"\nError processing {rel_path}: {e}", err=True)
+
+
 def main() -> None:
     """Main entry point for the CLI."""
     cli()
