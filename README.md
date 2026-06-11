@@ -55,7 +55,10 @@ ocrpolish clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--mask TEXT`: Glob pattern for files to process (default: `*.md`).
 - `--width INTEGER`: Typewriter width for wrapping (default: `80`).
 - `--dry-run`: Identify boilerplate without writing primary output files.
-- `--docx PATH`: Generate DOCX files in the specified directory.
+- `--no-filtered`: Disable generation of `.filtered.md` sidecar files.
+- `--frequency-file PATH`: Path for the consolidated frequency report within `OUTPUT_DIR` (default: `frequency.txt`).
+- `--docx PATH`: Generate DOCX files alongside Markdown files.
+- `--filter-file PATH`: Path to a text file containing phrases to filter out.
 
 ### 3. Extracting Metadata
 Extracts structured data and flat production topics using a local LLM.
