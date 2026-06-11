@@ -52,20 +52,20 @@ def test_malformed_city_tag() -> None:
         logger.removeHandler(handler)
 
 
-def test_malformed_state_tag() -> None:
+def test_malformed_person_tag() -> None:
     handler = ListHandler()
     logger = logging.getLogger("ocrpolish.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 
     try:
-        text = "#Entities/State/US/East"
+        text = "#Entities/Person/Jane/Doe"
         parser = CanonicalTagParser()
         tags = parser.parse_text(text)
 
-        assert not tags.entities["State"]
+        assert not tags.entities["Person"]
         assert any(
-            "State tag must have format #Entities/State/<Name>" in r.getMessage()
+            "Person tag must have format #Entities/Person/<Name>" in r.getMessage()
             for r in handler.records
         )
     finally:
@@ -85,5 +85,22 @@ def test_hierarchical_conceptual_tag_is_valid() -> None:
 
         assert tags.conceptual_tags == {"deterrence/nuclear"}
         assert not handler.records
+    finally:
+        logger.removeHandler(handler)
+
+
+def test_malformed_empty_state_component_still_warns() -> None:
+    handler = ListHandler()
+    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)
+
+    try:
+        text = "#Entities/State//"
+        parser = CanonicalTagParser()
+        tags = parser.parse_text(text)
+
+        assert not tags.entities["State"]
+        assert any("Contains empty component" in r.getMessage() for r in handler.records)
     finally:
         logger.removeHandler(handler)

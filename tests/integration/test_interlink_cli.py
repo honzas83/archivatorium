@@ -103,3 +103,88 @@ language: English
     assert not (vault / "Index - States.md").exists()
     xlsx = vault / "metadata_index.xlsx"
     assert xlsx.exists()
+
+
+def test_interlink_language_versions_use_filename_for_nested_siblings(tmp_path):
+    vault = tmp_path / "vault"
+    doc_dir = vault / "NPG - Nuclear Planning Group" / "1 NPG - Nuclear Planning Group" / "1974"
+    doc_dir.mkdir(parents=True)
+
+    english = doc_dir / "NPG-D(74)12_ENG.md"
+    english.write_text(
+        """---
+archive_code: NPG/D(74)12
+language: English
+---
+> [!info] Metadata
+> | ≡&nbsp;archive_code: | NPG/D(74)12 |
+> | ≡&nbsp;language: | English |
+""",
+        encoding="utf-8",
+    )
+
+    french = doc_dir / "NPG-D(74)12_FRE.md"
+    french.write_text(
+        """---
+archive_code: NPG/D(74)12
+language: French
+---
+> [!info] Metadata
+> | ≡&nbsp;archive_code: | NPG/D(74)12 |
+> | ≡&nbsp;language: | French |
+""",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["interlink", str(vault)])
+
+    assert result.exit_code == 0
+    content = english.read_text(encoding="utf-8")
+    assert "[French](NPG-D(74)12_FRE.md)" in content
+    assert "[French](NPG - Nuclear Planning Group/" not in content
+
+
+def test_interlink_references_and_body_use_filename_for_nested_targets(tmp_path):
+    vault = tmp_path / "vault"
+    source_dir = vault / "NPG - Nuclear Planning Group" / "1 NPG - Nuclear Planning Group"
+    target_dir = vault / "NPG - Nuclear Planning Group" / "3 NPG(STUDY) - Nuclear Planning Study"
+    source_dir.mkdir(parents=True)
+    target_dir.mkdir(parents=True)
+
+    source = source_dir / "NPG-D(74)12_ENG.md"
+    source.write_text(
+        """---
+archive_code: NPG/D(74)12
+language: English
+---
+> [!info] Metadata
+> | ≡&nbsp;archive_code: | NPG/D(74)12 |
+> | ≡&nbsp;language: | English |
+> | ☰&nbsp;references: | NPG(STUDY)/38 |
+
+See NPG(STUDY)/38 for details.
+""",
+        encoding="utf-8",
+    )
+
+    target = target_dir / "NPG(STUDY)38_ENG.md"
+    target.write_text(
+        """---
+archive_code: NPG(STUDY)/38
+language: English
+---
+> [!info] Metadata
+> | ≡&nbsp;archive_code: | NPG(STUDY)/38 |
+> | ≡&nbsp;language: | English |
+""",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["interlink", str(vault)])
+
+    assert result.exit_code == 0
+    content = source.read_text(encoding="utf-8")
+    assert "[NPG(STUDY)/38](NPG(STUDY)38_ENG.md)" in content
+    assert "[NPG(STUDY)/38](NPG - Nuclear Planning Group/" not in content

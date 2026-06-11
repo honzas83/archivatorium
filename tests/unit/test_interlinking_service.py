@@ -119,6 +119,34 @@ Body text.
     assert "language_versions" not in new_content
 
 
+def test_interlink_metadata_references_use_basename_for_nested_paths():
+    service = InterlinkingService(Path("/tmp"))
+    nested_target = (
+        "NPG - Nuclear Planning Group/3 NPG(STUDY) - Nuclear Planning Study/NPG(STUDY)38_ENG.md"
+    )
+    service.code_map = {
+        "CODE1": {"English": "folder/current.md"},
+        "NPG(STUDY)/38": {"English": nested_target},
+    }
+
+    content = """> [!info] Metadata
+> | ≡&nbsp;archive_code: | CODE1 |
+> | ≡&nbsp;language: | English |
+> | ☰&nbsp;references: | NPG(STUDY)/38 |
+
+Body text.
+"""
+
+    new_content = service.interlink_metadata(
+        content,
+        "English",
+        current_relative_path="folder/current.md",
+    )
+
+    assert "[NPG(STUDY)/38](NPG(STUDY)38_ENG.md)" in new_content
+    assert f"[NPG(STUDY)/38]({nested_target})" not in new_content
+
+
 def test_interlink_metadata_with_lang_versions():
     service = InterlinkingService(Path("/tmp"))
     service.code_map = {
@@ -134,6 +162,57 @@ def test_interlink_metadata_with_lang_versions():
     assert "| ≡&nbsp;language_versions: | [French](fr1.md) |" in new_content
 
 
+def test_interlink_metadata_lang_versions_use_basename_for_nested_paths():
+    service = InterlinkingService(Path("/tmp"))
+    nested_target = (
+        "NPG - Nuclear Planning Group/1 NPG - Nuclear Planning Group/1974/NPG-D(74)12_FRE.md"
+    )
+    service.code_map = {
+        "NPG/D(74)12": {
+            "English": "NPG - Nuclear Planning Group/1 NPG - Nuclear Planning Group/1974/"
+            "NPG-D(74)12_ENG.md",
+            "French": nested_target,
+        },
+    }
+
+    content = """> [!info] Metadata
+> | ≡&nbsp;archive_code: | NPG/D(74)12 |
+> | ≡&nbsp;language: | English |
+"""
+
+    new_content = service.interlink_metadata(
+        content,
+        "English",
+        current_relative_path=service.code_map["NPG/D(74)12"]["English"],
+    )
+
+    assert "[French](NPG-D(74)12_FRE.md)" in new_content
+    assert f"[French]({nested_target})" not in new_content
+
+
+def test_interlink_metadata_lang_versions_preserve_filename_punctuation():
+    service = InterlinkingService(Path("/tmp"))
+    service.code_map = {
+        "CODE1": {
+            "English": "folder/CODE1_ENG.md",
+            "French": "folder/archive/NPG-D(74)12_FRE_final-v2.md",
+        },
+    }
+
+    content = """> [!info] Metadata
+> | ≡&nbsp;archive_code: | CODE1 |
+> | ≡&nbsp;language: | English |
+"""
+
+    new_content = service.interlink_metadata(
+        content,
+        "English",
+        current_relative_path="folder/CODE1_ENG.md",
+    )
+
+    assert "[French](NPG-D(74)12_FRE_final-v2.md)" in new_content
+
+
 def test_interlink_body_idempotency():
     service = InterlinkingService(Path("/tmp"))
     service.code_map = {"CODE1": {"English": "en1.md"}}
@@ -146,6 +225,25 @@ def test_interlink_body_idempotency():
     # 2. Already linked
     double_linked, _ = service.interlink_body(linked, "English")
     assert double_linked == "See [CODE1](en1.md) for details."
+
+
+def test_interlink_body_uses_basename_for_nested_document_links():
+    service = InterlinkingService(Path("/tmp"))
+    nested_target = (
+        "NPG - Nuclear Planning Group/3 NPG(STUDY) - Nuclear Planning Study/NPG(STUDY)38_ENG.md"
+    )
+    service.code_map = {"NPG(STUDY)/38": {"English": nested_target}}
+    service.bibtex_map = {"NPG-STUDY-38": {"English": nested_target}}
+    service.bib_to_norm = {"NPG-STUDY-38": "NPG(STUDY)/38"}
+
+    linked, found = service.interlink_body(
+        "See NPG(STUDY)/38 for details.",
+        "English",
+        current_relative_path="folder/current.md",
+    )
+
+    assert linked == "See [NPG(STUDY)/38](NPG(STUDY)38_ENG.md) for details."
+    assert found == ["NPG(STUDY)/38"]
 
 
 def test_interlink_body_force():

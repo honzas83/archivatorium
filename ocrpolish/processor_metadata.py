@@ -345,7 +345,7 @@ class MetadataProcessor:
                 etype: [value for value, _ in counter.most_common(20)]
                 for etype, counter in self.entity_counts.items()
             },
-            preferred_topics=[topic for topic, _ in self.topic_counts.most_common(20)],
+            preferred_topics=[topic for topic, _ in self.topic_counts.most_common(100)],
         )
 
     def _format_generated_tags(

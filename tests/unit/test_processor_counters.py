@@ -128,7 +128,7 @@ def test_tagging_reuse_hints_are_compact_and_category_specific(tmp_path: Path) -
     )
     for idx in range(60):
         processor.conceptual_tag_counts[f"tag-{idx}"] = 100 - idx
-    for idx in range(25):
+    for idx in range(120):
         processor.entity_counts["Org"][f"org-{idx}"] = 100 - idx
         processor.topic_counts[f"category/topic-{idx}"] = 100 - idx
 
@@ -136,5 +136,7 @@ def test_tagging_reuse_hints_are_compact_and_category_specific(tmp_path: Path) -
 
     assert len(hints.preferred_conceptual_tags) == 50
     assert len(hints.preferred_entities["Org"]) == 20
-    assert len(hints.preferred_topics) == 20
+    assert len(hints.preferred_topics) == 100
     assert hints.preferred_conceptual_tags[0] == "tag-0"
+    assert hints.preferred_topics[0] == "category/topic-0"
+    assert hints.preferred_topics[-1] == "category/topic-99"

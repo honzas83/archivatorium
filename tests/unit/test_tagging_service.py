@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from ocrpolish.models.metadata import (
+    AggregatedTaggingResult,
     SubstantiveWindowTaggingResult,
     TopicResult,
     WindowTaggingResult,
@@ -240,6 +241,45 @@ def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
     assert "Return at least 3 conceptual tags for substantive documents" in prompt
     assert "include every clearly justified useful conceptual tag" in prompt
     assert "Up to 15" not in prompt
+
+
+def test_topic_tagging_guidance_has_no_hard_maximum(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    prompt = service._generate_tagging_prompt("NATO nuclear planning")
+    window_topic_description = WindowTaggingResult.model_fields["topic_tags"].description or ""
+    aggregated_topic_description = (
+        AggregatedTaggingResult.model_fields["topic_tags"].description or ""
+    )
+
+    assert "Max 10" not in prompt
+    assert "maximum" not in window_topic_description.lower()
+    assert "maximum" not in aggregated_topic_description.lower()
+    assert "every clearly justified taxonomy topic" in prompt
+
+
+def test_extract_tags_retains_more_than_ten_topic_assignments(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=["tag-a", "tag-b", "tag-c"],
+        topic_tags=[
+            TopicResult(topic=f"Category/Topic-{idx}", reason=f"Reason {idx}") for idx in range(12)
+        ],
+    )
+
+    result = service.extract_tags("NATO nuclear planning consultation procedures")
+
+    assert len(result.topic_tags) == 12
+    assert {topic.topic for topic in result.topic_tags} == {
+        f"Category/Topic-{idx}" for idx in range(12)
+    }
 
 
 @pytest.mark.parametrize("conceptual_tags", [[], ["a"], ["a", "b"]])
