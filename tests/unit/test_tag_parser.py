@@ -1,6 +1,15 @@
 from pathlib import Path
+from typing import Any
 
 from ocrpolish.utils.tag_parser import CanonicalTagParser
+
+
+SLASH_ENTITY_TAG_TEXT = """
+- #Entities/Org/OTAN/NATO
+- #Entities/Org/NAC/DP
+- #Entities/Org/Council/DPC
+- #Entities/State/USA/California
+"""
 
 
 def test_parse_valid_tags() -> None:
@@ -96,3 +105,28 @@ def test_parse_hierarchical_conceptual_tags() -> None:
     assert tags.conceptual_tags == {"wintex/73", "exercise/series/1973"}
     assert "Tags/WINTEX/73" in tags.raw_paths
     assert "Tags/Exercise/Series/1973" in tags.raw_paths
+
+
+def test_parse_slash_containing_org_and_state_names() -> None:
+    parser = CanonicalTagParser()
+    tags = parser.parse_text(SLASH_ENTITY_TAG_TEXT)
+
+    assert "Entities/Org/OTAN-NATO" in tags.raw_paths
+    assert "Entities/Org/NAC-DP" in tags.raw_paths
+    assert "Entities/Org/Council-DPC" in tags.raw_paths
+    assert "Entities/State/USA-California" in tags.raw_paths
+    assert tags.entities["Org"] >= {"otan-nato", "nac-dp", "council-dpc"}
+    assert "usa-california" in tags.entities["State"]
+
+
+def test_slash_containing_org_and_state_names_do_not_warn(caplog: Any) -> None:
+    parser = CanonicalTagParser()
+
+    tags = parser.parse_text(SLASH_ENTITY_TAG_TEXT)
+
+    assert "Entities/Org/OTAN-NATO" in tags.raw_paths
+    assert not [
+        record
+        for record in caplog.records
+        if "Malformed generated tag ignored" in record.getMessage()
+    ]

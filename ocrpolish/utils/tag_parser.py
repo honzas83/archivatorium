@@ -81,6 +81,13 @@ class CanonicalTagParser:
             )
             return
 
+        if matching_type in {"State", "Org"} and len(normalized_parts) > STANDARD_ENTITY_COMPONENTS:
+            normalized_parts = [
+                normalized_parts[0],
+                normalized_parts[1],
+                "-".join(normalized_parts[2:]),
+            ]
+
         if matching_type in {"State", "Org", "Person"}:
             if len(normalized_parts) != STANDARD_ENTITY_COMPONENTS:
                 logger.warning(

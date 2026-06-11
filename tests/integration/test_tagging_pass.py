@@ -82,3 +82,47 @@ def test_two_pass_tagging_output(tmp_path, mock_ollama, mock_tagging_service):
     assert f"#{TAG_PREFIX_TAG}/NATO #{TAG_PREFIX_TAG}/Exercise" in content
 
     mock_tagging_service.extract_tags.assert_called_once()
+
+
+def test_two_pass_tagging_output_retains_more_than_ten_topics(
+    tmp_path, mock_ollama, mock_tagging_service
+):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+
+    input_file = input_dir / "dense_doc.md"
+    input_file.write_text("NATO dense substantive document body.\n", encoding="utf-8")
+    mock_ollama.extract_structured.return_value = MetadataSchema(
+        title="Dense Doc",
+        summary="Dense Summary",
+        abstract="Dense Abstract",
+        date="2026-01-01",
+        mentioned_states=[],
+        mentioned_organisations=[],
+        mentioned_cities=[],
+        tags=[],
+    )
+
+    from ocrpolish.models.metadata import TopicResult
+
+    mock_tagging_service.extract_tags.return_value = AggregatedTaggingResult(
+        conceptual_tags=["#NATO", "#Exercise", "#Consultation"],
+        entity_tags=["Org/NATO"],
+        topic_tags=[
+            TopicResult(topic=f"Category/Topic-{idx}", reason=f"Reason {idx}") for idx in range(12)
+        ],
+    )
+
+    processor = MetadataProcessor(
+        ollama_client=mock_ollama,
+        output_dir=output_dir,
+        tagging_service=mock_tagging_service,
+    )
+
+    processor.process_file(input_file, output_dir / "dense_doc.md")
+
+    content = (output_dir / "dense_doc.md").read_text(encoding="utf-8")
+    for idx in range(12):
+        assert f"- #{TAG_PREFIX_TOPIC}/Category/Topic-{idx} — Reason {idx}" in content

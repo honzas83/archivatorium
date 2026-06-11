@@ -143,6 +143,11 @@ class InterlinkingService:
 
         return None
 
+    @staticmethod
+    def _format_document_link_target(target_path: str) -> str:
+        """Format generated document links as filename-only Markdown targets."""
+        return Path(target_path).name
+
     def discover(self) -> None:
         """First pass: build the archive code maps by scanning all Markdown files, excluding index files, etc."""
         self.code_map = {}
@@ -268,7 +273,10 @@ class InterlinkingService:
             other_variants = {lang: p for lang, p in variants.items() if p != cur_path}
 
             if other_variants:
-                links = [f"[{lang}]({p})" for lang, p in sorted(other_variants.items())]
+                links = [
+                    f"[{lang}]({self._format_document_link_target(p)})"
+                    for lang, p in sorted(other_variants.items())
+                ]
                 # Non-bold as requested
                 lang_versions_row = f"> | ≡&nbsp;language_versions: | {'<br>'.join(links)} |"
 
@@ -339,7 +347,8 @@ class InterlinkingService:
                 for code in final_codes:
                     link_path = self.resolve_link(code, source_lang)
                     if link_path and link_path != cur_path:
-                        new_parts.append(f"[{code}]({link_path})")
+                        target = self._format_document_link_target(link_path)
+                        new_parts.append(f"[{code}]({target})")
                     else:
                         new_parts.append(code)
 
@@ -364,7 +373,8 @@ class InterlinkingService:
 
                 link_path = self.resolve_link(code, source_lang)
                 if link_path and link_path != cur_path:
-                    new_parts.append(f"[{code}]({link_path})")
+                    target = self._format_document_link_target(link_path)
+                    new_parts.append(f"[{code}]({target})")
                 else:
                     new_parts.append(code)
 
@@ -476,7 +486,8 @@ class InterlinkingService:
 
                 link_path = self.resolve_link(code_text, source_lang)
                 if link_path and link_path != cur_path:
-                    return f"[{display_text}]({link_path})"
+                    target = self._format_document_link_target(link_path)
+                    return f"[{display_text}]({target})"
                 return display_text
 
             def replace_match(m: re.Match[str]) -> str:
