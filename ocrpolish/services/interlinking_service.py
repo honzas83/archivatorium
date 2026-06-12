@@ -11,6 +11,7 @@ from ocrpolish.utils.metadata import (
     is_generated_document_markdown,
     parse_frontmatter,
     safe_identifier,
+    stringify_frontmatter,
 )
 from ocrpolish.utils.tag_parser import CanonicalTagParser
 
@@ -40,6 +41,104 @@ class InterlinkingService:
         self.unifications: list[dict[str, str]] = self._load_unifications(unifications_path)
         self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
         self.documents: list[VaultDocument] = []
+
+    def clean_citekey(self, citekey: str) -> str:
+        """
+        Cleans a potentially broken citekey that contains markdown link brackets, e.g.:
+        '[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG' -> 'NPG-D-73-6_ENG'
+        """
+        if not citekey:
+            return ""
+        # Handle nested parentheses in URLs and optional suffixes like -COR1
+        match = re.match(r"^\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})$", citekey)
+        if match:
+            text, suffix_cor, suffix_lang = match.groups()
+            return f"{text}{suffix_cor}{suffix_lang}"
+        return citekey
+
+    def clean_citation_callout(self, citation_text: str) -> str:
+        """
+        Cleans any markdown links that got incorrectly inserted into the citation block.
+        """
+        if not citation_text:
+            return ""
+        # Match nested parentheses in URLs and optional suffixes like -COR1 using suffix group
+        return re.sub(r'\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})', r'\1\2\3', citation_text)
+
+    def infer_archive_code(self, filename: str) -> str:
+        """
+        Infers archive_code from the filename, e.g.:
+        NPG-D(73)6_ENG.md -> NPG/D(73)6
+        NPG-WP(73)1-COR1_ENG.md -> NPG/WP(73)1-COR1
+        """
+        stem = Path(filename).stem
+        # Strip language suffix like _ENG, _FRE, _BIL
+        stem = re.sub(r'_(ENG|FRE|BIL)$', '', stem, flags=re.IGNORECASE)
+        # Replace the first dash with a slash if it's like NPG-D, NPG-WP, NPG-SG, NPG-STUDY
+        for prefix in ["NPG-D", "NPG-WP", "NPG-SG", "NPG-STUDY", "MC-D", "MC-WP"]:
+            if stem.startswith(prefix):
+                return stem.replace("-", "/", 1)
+        # Fallback to replacing the first dash if it's alphanumeric on both sides
+        match = re.match(r"^([A-Z]+)-([A-Z0-9]+)\b", stem, re.IGNORECASE)
+        if match:
+            return stem.replace("-", "/", 1)
+        return stem
+
+    def split_body_parts(self, body_content: str) -> tuple[str, str, str, str]:
+        """
+        Splits body content into:
+        1. metadata_callout (str)
+        2. abstract_callout (str)
+        3. main_body (str)
+        4. citation_callout (str)
+        """
+        lines = body_content.splitlines(keepends=True)
+        metadata_lines = []
+        abstract_lines = []
+        main_body_lines = []
+        citation_lines = []
+
+        current_section = "main_body"
+
+        i = 0
+        n = len(lines)
+        while i < n:
+            line = lines[i]
+            stripped = line.strip()
+            if stripped.startswith("> [!"):
+                header_lower = stripped.lower()
+                if "[!info]" in header_lower and "metadata" in header_lower:
+                    current_section = "metadata"
+                elif "[!metadata]" in header_lower:
+                    current_section = "metadata"
+                elif "[!abstract]" in header_lower:
+                    current_section = "abstract"
+                elif "[!citing" in header_lower:
+                    current_section = "citation"
+                else:
+                    current_section = "main_body"
+
+            if current_section in ("metadata", "abstract", "citation"):
+                if not stripped.startswith(">"):
+                    current_section = "main_body"
+
+            if current_section == "metadata":
+                metadata_lines.append(line)
+            elif current_section == "abstract":
+                abstract_lines.append(line)
+            elif current_section == "citation":
+                citation_lines.append(line)
+            else:
+                main_body_lines.append(line)
+
+            i += 1
+
+        return (
+            "".join(metadata_lines),
+            "".join(abstract_lines),
+            "".join(main_body_lines),
+            "".join(citation_lines),
+        )
 
     def _load_unifications(self, custom_path: Path | None = None) -> list[dict[str, str]]:
         """Loads unification rules from topics/unifications.yaml or a custom path."""
@@ -160,6 +259,8 @@ class InterlinkingService:
         tag_parser = CanonicalTagParser()
 
         for md_file in files:
+            if md_file.name.startswith("."):
+                continue
             if not is_generated_document_markdown(md_file, vault_root=self.vault_dir):
                 continue
 
@@ -168,8 +269,17 @@ class InterlinkingService:
                 # Parse frontmatter and body
                 metadata, body = parse_frontmatter(content)
 
+                # Clean citekey if it got broken
+                citekey = metadata.get("citekey", "")
+                if citekey:
+                    metadata["citekey"] = self.clean_citekey(citekey)
+
                 # Default values if missing
                 code = metadata.get("archive_code", "")
+                if not code:
+                    code = self.infer_archive_code(md_file.name)
+                    metadata["archive_code"] = code
+
                 lang = metadata.get("language", "English")
                 if not lang:
                     lang = "English"
@@ -233,6 +343,7 @@ class InterlinkingService:
         current_relative_path: str | None = None,
         discovered_codes: list[str] | None = None,
         current_filename: str | None = None,
+        own_archive_code: str | None = None,
     ) -> str:
         """
         Processes the Metadata callout table in the content.
@@ -254,7 +365,7 @@ class InterlinkingService:
         table_body = match.group(2)
 
         # 1. Resolve language versions for this document
-        archive_code = None
+        archive_code = own_archive_code
         # Support both bolded and non-bolded labels
         archive_code_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?archive_code(?:\*\*)?: \| (.*?) \|")
         for row in table_body.split("\n"):
@@ -264,6 +375,21 @@ class InterlinkingService:
                 # Remove bold markers from extracted code if LLM added them
                 archive_code = archive_code.replace("**", "")
                 break
+
+        # 2. Process rows
+        rows = table_body.split("\n")
+
+        # If we have own_archive_code but it's not present in rows, insert it
+        has_archive_code_row = any(archive_code_re.match(r) for r in rows)
+        if own_archive_code and not has_archive_code_row:
+            insert_idx = len(rows)
+            for i, r in enumerate(rows):
+                if "language:" in r or "citekey:" in r:
+                    insert_idx = i
+                    break
+            archive_code_row = f"> | ≡&nbsp;archive_code: | {own_archive_code} |"
+            rows.insert(insert_idx, archive_code_row)
+            archive_code = own_archive_code
 
         lang_versions_row = ""
         if archive_code:
@@ -280,8 +406,6 @@ class InterlinkingService:
                 # Non-bold as requested
                 lang_versions_row = f"> | ≡&nbsp;language_versions: | {'<br>'.join(links)} |"
 
-        # 2. Process rows
-        rows = table_body.split("\n")
         new_rows = []
 
         # We'll handle the references row specially to ensure ordering
@@ -296,6 +420,14 @@ class InterlinkingService:
             # Skip existing language_versions row if present (idempotency)
             if lang_versions_re.match(row):
                 continue
+
+            # Clean broken citekey if found in the row
+            if "citekey:" in row:
+                row_match = re.match(r"^(\s*> \| ≡&nbsp;(?:\*\*)?citekey(?:\*\*)?: \| )(.*)( \|)$", row)
+                if row_match:
+                    prefix, citekey_val, suffix = row_match.groups()
+                    clean_val = self.clean_citekey(citekey_val.strip())
+                    row = f"{prefix}{clean_val}{suffix}"
 
             # Match references row
             ref_match = refs_re.match(row)
@@ -549,7 +681,7 @@ class InterlinkingService:
                 # 1. Separate frontmatter from body to protect it
                 fm_match = re.match(r"^(---\s*\n.*?\n---\s*\n)(.*)$", content, re.DOTALL)
                 if fm_match:
-                    frontmatter_part = fm_match.group(1)
+                    frontmatter_part = stringify_frontmatter(doc.frontmatter)
                     body_part = fm_match.group(2)
                     source_lang = doc.language
                 else:
@@ -557,15 +689,49 @@ class InterlinkingService:
                     body_part = content
                     source_lang = "English"
 
-                # 2. Interlink Body FIRST to discover all references and their order
-                new_body, discovered_codes = self.interlink_body(
-                    body_part, source_lang, doc.vault_relative_path, doc.archive_code, force=force
+                # 2. Split body part to protect metadata and citation callouts
+                metadata_callout, abstract_callout, main_body, citation_callout = self.split_body_parts(body_part)
+
+                # 3. Interlink abstract and main body (protecting metadata and citation callouts)
+                new_abstract, desc_codes_abstract = self.interlink_body(
+                    abstract_callout, source_lang, doc.vault_relative_path, doc.archive_code, force=force
+                )
+                new_main, desc_codes_body = self.interlink_body(
+                    main_body, source_lang, doc.vault_relative_path, doc.archive_code, force=force
                 )
 
-                # 3. Interlink Metadata callout with discovered codes
-                new_body = self.interlink_metadata(
-                    new_body, source_lang, doc.vault_relative_path, discovered_codes
+                # Combine discovered codes maintaining order
+                discovered_codes = []
+                for c in desc_codes_abstract + desc_codes_body:
+                    if c not in discovered_codes:
+                        discovered_codes.append(c)
+
+                # 4. Interlink Metadata callout with discovered codes
+                updated_metadata_callout = self.interlink_metadata(
+                    metadata_callout, source_lang, doc.vault_relative_path, discovered_codes,
+                    own_archive_code=doc.archive_code
                 )
+
+                # 5. Clean citation callout (in case it is already broken)
+                cleaned_citation_callout = self.clean_citation_callout(citation_callout)
+
+                # Assemble everything back
+                new_body_parts = []
+                if updated_metadata_callout.strip():
+                    new_body_parts.append(updated_metadata_callout.strip())
+                if new_abstract.strip():
+                    new_body_parts.append(new_abstract.strip())
+                if new_main.strip():
+                    new_body_parts.append(new_main.strip())
+
+                new_body = "\n\n".join(new_body_parts)
+                if not new_body.endswith("\n\n") and not new_body.endswith("\n"):
+                    new_body += "\n\n"
+                elif new_body.endswith("\n") and not new_body.endswith("\n\n"):
+                    new_body += "\n"
+
+                if cleaned_citation_callout.strip():
+                    new_body += cleaned_citation_callout.strip() + "\n"
 
                 new_content = frontmatter_part + new_body
 

@@ -288,3 +288,130 @@ def test_self_reference_removal():
     new_content = service.interlink_metadata(content, "English", current_filename="en1.md")
     assert "references: | [CODE2](doc2.md) |" in new_content
     assert "CODE1" not in new_content.split("references:")[1]
+
+
+def test_clean_citekey():
+    service = InterlinkingService(Path("/tmp"))
+    assert service.clean_citekey("[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG") == "NPG-D-73-6_ENG"
+    assert service.clean_citekey("[NPG-WP-73-1](NPG-WP(73)1_ENG.md)-COR1_ENG") == "NPG-WP-73-1-COR1_ENG"
+    assert service.clean_citekey("NPG-D-73-6_FRE") == "NPG-D-73-6_FRE"
+    assert service.clean_citekey("") == ""
+
+
+def test_clean_citation_callout():
+    service = InterlinkingService(Path("/tmp"))
+    dirty_citation = (
+        "> [!citing this document]\n"
+        "> https://nato-obsidian.kky.zcu.cz/[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG\n"
+        "> @misc{[NPG-WP-73-1](NPG-WP(73)1_ENG.md)-COR1_ENG,\n"
+    )
+    expected = (
+        "> [!citing this document]\n"
+        "> https://nato-obsidian.kky.zcu.cz/NPG-D-73-6_ENG\n"
+        "> @misc{NPG-WP-73-1-COR1_ENG,\n"
+    )
+    assert service.clean_citation_callout(dirty_citation) == expected
+
+
+def test_infer_archive_code():
+    service = InterlinkingService(Path("/tmp"))
+    assert service.infer_archive_code("NPG-D(73)6_ENG.md") == "NPG/D(73)6"
+    assert service.infer_archive_code("NPG-WP(73)1-COR1_FRE.md") == "NPG/WP(73)1-COR1"
+    assert service.infer_archive_code("MC-D(75)2_BIL.md") == "MC/D(75)2"
+    assert service.infer_archive_code("SomeOtherFile.md") == "SomeOtherFile"
+
+
+def test_split_body_parts():
+    service = InterlinkingService(Path("/tmp"))
+    content = (
+        "> [!info] Metadata\n"
+        "> | key | val |\n"
+        "\n"
+        "> [!abstract]\n"
+        "> Summary and tags\n"
+        "\n"
+        "# Page 1\n"
+        "Document body\n"
+        "\n"
+        "> [!citing this document]\n"
+        "> Citation info\n"
+    )
+    metadata, abstract, body, citation = service.split_body_parts(content)
+    assert metadata == "> [!info] Metadata\n> | key | val |\n"
+    assert abstract == "> [!abstract]\n> Summary and tags\n"
+    assert body == "\n\n# Page 1\nDocument body\n\n"
+    assert citation == "> [!citing this document]\n> Citation info\n"
+
+
+def test_interlink_all_restores_and_cleans(tmp_path: Path):
+    # Setup two language versions: one French with archive_code, one English missing archive_code and with broken citekey
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    
+    eng_file = vault / "NPG-D(73)6_ENG.md"
+    eng_file.write_text(
+        """---
+title: ENG Title
+citekey: '[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG'
+language: English
+---
+
+> [!info] Metadata
+> | ≡&nbsp;title: | ENG Title |
+> | ≡&nbsp;citekey: | [NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG |
+> | ≡&nbsp;language: | English |
+
+# Page 1
+Document body content.
+
+> [!citing this document]
+> Chicago:
+> https://nato-obsidian.kky.zcu.cz/[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG
+""",
+        encoding="utf-8"
+    )
+
+    fre_file = vault / "NPG-D(73)6_FRE.md"
+    fre_file.write_text(
+        """---
+title: FRE Title
+archive_code: NPG/D(73)6
+citekey: NPG-D-73-6_FRE
+language: French
+---
+
+> [!info] Metadata
+> | ≡&nbsp;title: | FRE Title |
+> | ≡&nbsp;archive_code: | NPG/D(73)6 |
+> | ≡&nbsp;citekey: | NPG-D-73-6_FRE |
+> | ≡&nbsp;language: | French |
+
+# Page 1
+Document body content.
+
+> [!citing this document]
+> Chicago:
+> https://nato-obsidian.kky.zcu.cz/NPG-D-73-6_FRE
+""",
+        encoding="utf-8"
+    )
+
+    service = InterlinkingService(vault)
+    service.discover()
+    
+    # Verify discover inferred archive_code for ENG file
+    assert service.code_map["NPG/D(73)6"]["English"] == "NPG-D(73)6_ENG.md"
+    assert service.code_map["NPG/D(73)6"]["French"] == "NPG-D(73)6_FRE.md"
+
+    # Run interlink_all
+    service.interlink_all(force=True)
+
+    # Read back the files and verify they are correctly cleaned and cross-linked
+    eng_content = eng_file.read_text(encoding="utf-8")
+    assert "archive_code: NPG/D(73)6" in eng_content
+    assert "citekey: NPG-D-73-6_ENG" in eng_content
+    assert "language_versions: | [French](NPG-D(73)6_FRE.md) |" in eng_content
+    assert "citekey: | NPG-D-73-6_ENG |" in eng_content
+    assert "https://nato-obsidian.kky.zcu.cz/NPG-D-73-6_ENG" in eng_content
+    assert "[NPG-D-73-6]" not in eng_content
+
