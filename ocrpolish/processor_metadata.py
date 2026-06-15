@@ -327,12 +327,26 @@ class MetadataProcessor:
 
         return ExtractedMetadata(raw_dict=raw_dict)
 
-    def _extract_generated_tags(self, cleaned_content: str) -> GeneratedTagSections:
+    def _source_relative_filename(self, input_file: Path) -> str:
+        if self.input_dir:
+            try:
+                return input_file.relative_to(self.input_dir).as_posix()
+            except ValueError:
+                return input_file.name
+        return input_file.name
+
+    def _extract_generated_tags(
+        self, cleaned_content: str, input_file: Path | None = None
+    ) -> GeneratedTagSections:
         result = AggregatedTaggingResult()
         if self.tagging_service:
+            source_filename = (
+                self._source_relative_filename(input_file) if input_file is not None else None
+            )
             result = self.tagging_service.extract_tags(
                 cleaned_content,
                 reuse_hints=self._build_tagging_reuse_hints(),
+                source_filename=source_filename,
             )
         return self._format_generated_tags(result)
 
@@ -536,7 +550,7 @@ class MetadataProcessor:
             extracted = self._extract_document_metadata(
                 input_file, parsed.cleaned_content, frequent_tags
             )
-            tag_sections = self._extract_generated_tags(parsed.cleaned_content)
+            tag_sections = self._extract_generated_tags(parsed.cleaned_content, input_file)
             metadata = self._reconcile_metadata_and_tags(
                 parsed.existing_metadata, extracted, input_file, output_file
             )

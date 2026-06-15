@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 
-MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 3
+MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 1
 
 
 class CorrespondenceSchema(BaseModel):
@@ -74,12 +74,30 @@ class TopicResult(BaseModel):
     """A topic assignment with its reasoning."""
 
     topic: str = Field(..., description="The hierarchical topic tag (e.g., 'Category/Topic').")
-    reason: str = Field(..., description="Brief reason for assigning this topic.")
+    reason: str = Field(
+        ...,
+        description=(
+            "Brief reason for assigning this topic, including direct quoted evidence "
+            "from the source text."
+        ),
+    )
 
 
 class WindowTaggingResult(BaseModel):
     """Raw output from the LLM for a single chunk or entire document pass."""
 
+    topic_tags: list[TopicResult] = Field(
+        default_factory=list,
+        description=(
+            "Mandatory taxonomy classification result. Include every clearly justified "
+            "hierarchical taxonomy topic with a quoted-evidence reason; use [] only when "
+            "no approved taxonomy topic is supported by the source text."
+        ),
+    )
+    entity_tags: list[str] = Field(
+        default_factory=list,
+        description="Hierarchical tags: State/X, Org/X, City/State/City, Person/X.",
+    )
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(
@@ -87,27 +105,25 @@ class WindowTaggingResult(BaseModel):
             "or new canonical forms justified by the source text."
         ),
     )
-    entity_tags: list[str] = Field(
-        default_factory=list,
-        description="Hierarchical tags: State/X, Org/X, City/State/City, Person/X.",
-    )
-    topic_tags: list[TopicResult] = Field(
-        default_factory=list,
-        description=(
-            "List of every clearly justified hierarchical taxonomy topic with its reason."
-        ),
-    )
 
 
 class SubstantiveWindowTaggingResult(WindowTaggingResult):
     """Raw tagging output required for substantive document text."""
 
+    topic_tags: list[TopicResult] = Field(
+        ...,
+        description=(
+            "Required for substantive documents. Include every clearly justified "
+            "hierarchical taxonomy topic with a quoted-evidence reason; use [] only "
+            "when no approved taxonomy topic is supported by the source text."
+        ),
+    )
     conceptual_tags: list[str] = Field(
         ...,
         min_length=MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
         description=(
             "Required for substantive documents. Return at least "
-            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tags; include every clearly "
+            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tag(s); include every clearly "
             "justified useful conceptual tag. Do not impose a hard maximum."
         ),
     )
@@ -116,18 +132,21 @@ class SubstantiveWindowTaggingResult(WindowTaggingResult):
 class AggregatedTaggingResult(BaseModel):
     """Final deduplicated and suppressed result for the entire document."""
 
+    topic_tags: list[TopicResult] = Field(
+        default_factory=list,
+        description=(
+            "Set union of all clearly justified taxonomy topics with best available "
+            "quoted-evidence reasons."
+        ),
+    )
+    entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(
             "Frequency-weighted, normalized, duplicate-suppressed conceptual tags. "
             "Substantive documents must retain at least "
-            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} useful tags."
+            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} useful tag(s)."
         ),
-    )
-    entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
-    topic_tags: list[TopicResult] = Field(
-        default_factory=list,
-        description="Set union of all clearly justified topics with best available reasons.",
     )
 
 
