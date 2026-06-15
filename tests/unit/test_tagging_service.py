@@ -220,14 +220,12 @@ def test_extract_tags_raises_quality_error_on_substantive_llm_failure(mock_ollam
     mock_ollama.extract_structured.assert_called_once()
 
 
-def test_substantive_schema_requires_three_conceptual_tags() -> None:
-    assert SubstantiveWindowTaggingResult(conceptual_tags=["a", "b", "c"]).conceptual_tags == [
-        "a",
-        "b",
-        "c",
+def test_substantive_schema_requires_one_conceptual_tag() -> None:
+    assert SubstantiveWindowTaggingResult(topic_tags=[], conceptual_tags=["a"]).conceptual_tags == [
+        "a"
     ]
     with pytest.raises(Exception):
-        SubstantiveWindowTaggingResult(conceptual_tags=["a", "b"])
+        SubstantiveWindowTaggingResult(topic_tags=[], conceptual_tags=[])
 
 
 def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
@@ -238,7 +236,7 @@ def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
     )
     prompt = service._generate_tagging_prompt("NATO nuclear planning")
 
-    assert "Return at least 3 conceptual tags for substantive documents" in prompt
+    assert "Return at least 1 conceptual tag(s) for substantive documents" in prompt
     assert "include every clearly justified useful conceptual tag" in prompt
     assert "Up to 15" not in prompt
 
@@ -282,16 +280,13 @@ def test_extract_tags_retains_more_than_ten_topic_assignments(
     }
 
 
-@pytest.mark.parametrize("conceptual_tags", [[], ["a"], ["a", "b"]])
-def test_substantive_validation_rejects_undersized_conceptual_tags(
-    mock_ollama: MagicMock, mock_windowing: MagicMock, conceptual_tags: list[str]
+def test_substantive_validation_rejects_empty_conceptual_tags(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
 ) -> None:
     service = TaggingService(
         mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
     )
-    mock_ollama.extract_structured.return_value = WindowTaggingResult(
-        conceptual_tags=conceptual_tags
-    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(conceptual_tags=[])
 
     with pytest.raises(TaggingQualityError):
         service.extract_tags("NATO nuclear planning consultation procedures")

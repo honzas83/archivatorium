@@ -89,7 +89,12 @@ class TaggingService:
             logger.error(f"Failed to load YAML from {path}: {e}")
             return {}
 
-    def extract_tags(self, text: str, reuse_hints: Any | None = None) -> AggregatedTaggingResult:
+    def extract_tags(
+        self,
+        text: str,
+        reuse_hints: Any | None = None,
+        source_filename: str | None = None,
+    ) -> AggregatedTaggingResult:
         """
         Performs the second-pass tagging using a dynamic strategy.
         """
@@ -100,7 +105,10 @@ class TaggingService:
         if tokens <= self.context_limit:
             logger.debug(f"Using single pass for tagging ({tokens} tokens)")
             window_result = self._extract_chunk(
-                text, require_conceptual_tags=is_substantive, reuse_hints=reuse_hints
+                text,
+                require_conceptual_tags=is_substantive,
+                reuse_hints=reuse_hints,
+                source_filename=source_filename,
             )
             self._validate_conceptual_tags(
                 window_result.conceptual_tags, is_substantive=is_substantive
@@ -158,7 +166,10 @@ class TaggingService:
 
         for chunk in chunks:
             window_result = self._extract_chunk(
-                chunk, require_conceptual_tags=is_substantive, reuse_hints=reuse_hints
+                chunk,
+                require_conceptual_tags=is_substantive,
+                reuse_hints=reuse_hints,
+                source_filename=source_filename,
             )
             self._validate_conceptual_tags(
                 window_result.conceptual_tags, is_substantive=is_substantive
@@ -208,11 +219,14 @@ class TaggingService:
         chunk: str,
         require_conceptual_tags: bool = True,
         reuse_hints: Any | None = None,
+        source_filename: str | None = None,
     ) -> WindowTaggingResult:
         """
         Extracts tags from a single chunk of text using a non-thinking model.
         """
-        prompt = self._generate_tagging_prompt(chunk, reuse_hints=reuse_hints)
+        prompt = self._generate_tagging_prompt(
+            chunk, reuse_hints=reuse_hints, source_filename=source_filename
+        )
         schema = SubstantiveWindowTaggingResult if require_conceptual_tags else WindowTaggingResult
         try:
             return self.client.extract_structured(
@@ -286,31 +300,85 @@ class TaggingService:
         protected.update(normalize_tag_component(tag).lower() for tag in conceptual)
         return protected
 
-    def _generate_tagging_prompt(self, text: str, reuse_hints: Any | None = None) -> str:
+    def _generate_tagging_prompt(
+        self,
+        text: str,
+        reuse_hints: Any | None = None,
+        source_filename: str | None = None,
+    ) -> str:
         """
         Generates the prompt for the tagging pass.
         """
         reuse_hint_text = self._format_reuse_hints(reuse_hints)
         reuse_section = f"\n\n{reuse_hint_text}\n" if reuse_hint_text else "\n"
+        filename_section = ""
+        if source_filename:
+            filename_section = (
+                "Source Relative Filename:\n"
+                f"{source_filename}\n\n"
+                "Use this filename as contextual evidence for archival code, document "
+                "year/date, series, collection, or folder context when it is consistent "
+                "with the full document text. Do not let filename context override clearly "
+                "contradictory document text.\n\n"
+            )
         return (
-            "Document Excerpt:\n\n"
+            f"{filename_section}"
+            "Full Document Text:\n\n"
             f"{text}\n\n"
-            "Based on the content above, extract precision tags in three categories:\n\n"
-            "1. 'entity_tags': Hierarchical tags for mentioned entities. "
-            "Use formats: State/<name>, Org/<name>, City/<state>/<city>, Person/<name>.\n"
-            "2. 'topic_tags': Select every clearly justified taxonomy topic from the "
-            "flat taxonomy below. Use format: Category/Topic. Include a brief 'reason' "
-            "for each.\n"
+            "Based on the content above, extract precision tags in this order:\n\n"
+            "1. 'topic_tags': Categories/Topics first. This is a mandatory multi-label "
+            "taxonomy classification step, not optional context. Review the full APPROVED "
+            "TAXONOMY and identify every clearly justified taxonomy topic supported by the "
+            "full document text, not just the single best or most obvious topic. Use format: "
+            "Category/Topic. A document may match multiple topics across different categories. "
+            "Include every supported topic with a brief 'reason' containing direct quoted "
+            "evidence. Do not stop after finding one matching topic. Use an empty list only "
+            "when no approved taxonomy topic is supported by the full document text.\n"
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
-            "3. 'conceptual_tags': Required canonical tag paths for archivally substantive "
-            f"concepts. Return at least {MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tags "
+            "2. 'entity_tags': Entities second. Hierarchical tags for mentioned entities. "
+            "Use formats: State/<name>, Org/<name>, City/<country>/<city>, Person/<name>.\n"
+            "   STRICT ENTITY NORMALIZATION:\n"
+            "   - Use English canonical names for States, Organisations, and Cities whenever "
+            "the intended entity is clear. For example, use 'Germany' not 'Allemagne', "
+            "'United-Kingdom' not 'Royaume-Uni', 'United-States' not 'USA', "
+            "'Brussels' not 'Bruxelles', and 'The-Hague' not 'La-Haye'.\n"
+            "   - Use Title Case for State, City, Person, and Organisation names; preserve "
+            "ALL CAPS only for standard acronyms such as NATO, SHAPE, NPG, SACLANT, "
+            "SACEUR, and DPC. Never output entity names in lowercase.\n"
+            "   - Prefer standard acronyms for well-known organisations when they are the "
+            "canonical form: use 'NATO' for OTAN or Organisation du Traite de "
+            "l'Atlantique Nord, and use 'SHAPE', 'NPG', 'SACLANT', 'SACEUR', and "
+            "'DPC' where appropriate.\n"
+            "   - Correct obvious OCR damage in known entity names only when surrounding "
+            "context makes the intended entity unambiguous. For example, treat "
+            "'Nuclear Planning Group ST/FF Group', 'Nuclear Planning Group Sta-F Group', "
+            "and 'Nuclear Planning Group St-1F Group' as the standard Nuclear Planning "
+            "Group Staff Group entity.\n"
+            "   - Do not invent a canonical entity from ambiguous OCR-damaged text. If the "
+            "intended State, Organisation, City, or Person is unclear, omit that entity.\n"
+            "   - Keep City tags as City/<country>/<city>; do not emit regions, states, or "
+            "countries as cities.\n"
+            "3. 'conceptual_tags': Tags last. Required canonical tag paths for archivally substantive "
+            f"concepts. Return at least {MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tag(s) "
             "for substantive documents; include "
             "every clearly justified useful conceptual tag; return an empty list only for "
             "non-substantive administrative stubs. "
             "PRIORITIZE re-using tags from the vocabularies below. Normalize exercises as Name/YY. "
             "MANDATORY: Include all all-caps abbreviations mentioned in the text "
             "when they are meaningful acronyms.\n\n"
+            "EXAMPLES OF CORRECT ENTITY EXTRACTION:\n"
+            "- Text: 'Un compte rendu de la reunion a Bruxelles...'\n"
+            "  -> entity_tags: ['City/Belgium/Brussels']\n"
+            "- Text: 'agreed by l\\'OTAN and SACEUR'\n"
+            "  -> entity_tags: ['Org/NATO', 'Org/SACEUR']\n"
+            "- Text: 'represented by Allemagne, Royaume-Uni, and USA'\n"
+            "  -> entity_tags: ['State/Germany', 'State/United-Kingdom', "
+            "'State/United-States']\n"
+            "- Text: 'The Nuclear Planning Group ST/FF Group met...'\n"
+            "  -> entity_tags: ['Org/Nuclear-Planning-Group-Staff-Group']\n"
+            "- Text: 'discussions on the PERSHING missile system...'\n"
+            "  -> conceptual_tags: ['Pershing']\n\n"
             "APPROVED TAXONOMY (YAML):\n"
             f"{self.taxonomy_prompt_text}\n\n"
             "EXISTING VOCABULARY (USEFUL TAGS):\n"
@@ -318,10 +386,27 @@ class TaggingService:
             f"{reuse_section}\n"
             "CRITICAL RULES:\n"
             "- Only include tags that are clearly justified by the text.\n"
+            "- Output order matters for LLM decoding: fill topic_tags first, entity_tags "
+            "second, and conceptual_tags last.\n"
             "- Exclude routine administrative labels (agenda, report, notice, corrigendum).\n"
             "- Ensure hierarchical formats are strictly followed.\n"
-            "- Conceptual tags must not be exact duplicates of entity names or topic components, "
-            "but preserve substantive archival concepts even when related entities or topics exist.\n"
+            "- For entities, use English canonical names, Title Case, standard acronyms, "
+            "and conservative OCR recovery as instructed above.\n"
+            "- STRICT ENTITY/TAG SEPARATION: After choosing entity_tags, treat every entity "
+            "name and normalized variant as forbidden for conceptual_tags. Do not create a "
+            "#Tags entry for any organisation, state, city, or person already represented "
+            "in entity_tags, including exact names, aliases, translated forms, acronyms, "
+            "expanded names, punctuation/case variants, hyphenation variants, or compacted "
+            "forms such as 'NuclearPlanningGroup'. For example, if entity_tags contains "
+            "'Org/NATO', do not emit conceptual tags 'NATO', 'OTAN', or "
+            "'NorthAtlanticTreatyOrganization'; if entity_tags contains 'Org/NPG', do not "
+            "emit 'NPG' or 'NuclearPlanningGroup' as conceptual tags. Only emit a related "
+            "conceptual tag when it names a distinct archival concept, policy, system, "
+            "exercise, procedure, or event beyond the entity itself.\n"
+            "- Do not emit both an abbreviation and its expanded full-name form as conceptual "
+            "tags when they refer to the same concept. Choose one canonical form, preferring "
+            "the standard acronym for well-known NATO-domain terms (e.g., use 'NPG' instead "
+            "of 'NuclearPlanningGroup', and 'NATO' instead of 'NorthAtlanticTreatyOrganization').\n"
             "- If an entity or concept is in ALL-CAPS but is NOT an abbreviation "
             "(e.g., PERSHING), generate the tag in Title Case (e.g., Pershing)."
         )
