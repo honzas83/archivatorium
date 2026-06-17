@@ -1,7 +1,39 @@
-from pydantic import BaseModel, Field
+from typing import Any, Literal, TypeAlias
+
+from pydantic import BaseModel, Field, field_validator
 
 
 MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 1
+
+ItemType: TypeAlias = Literal[
+    "correspondence",
+    "report",
+    "study",
+    "meeting_minutes",
+    "working_paper",
+    "schedule",
+    "corrigendum",
+    "agenda",
+    "press_release",
+    "note",
+    "directive",
+    "other",
+]
+
+APPROVED_ITEM_TYPES: tuple[ItemType, ...] = (
+    "correspondence",
+    "report",
+    "study",
+    "meeting_minutes",
+    "working_paper",
+    "schedule",
+    "corrigendum",
+    "agenda",
+    "press_release",
+    "note",
+    "directive",
+    "other",
+)
 
 
 class CorrespondenceSchema(BaseModel):
@@ -13,6 +45,15 @@ class CorrespondenceSchema(BaseModel):
 
 
 class MetadataSchema(BaseModel):
+    item_type: ItemType = Field(
+        "other",
+        description=(
+            "Controlled document-form classification. Must be exactly one of: "
+            "correspondence, report, study, meeting_minutes, working_paper, "
+            "schedule, corrigendum, agenda, press_release, note, directive, other. "
+            "Use other only when the primary document form is unclear or unsupported."
+        ),
+    )
     title: str = Field(
         "",
         description=(
@@ -39,6 +80,7 @@ class MetadataSchema(BaseModel):
             "remain an independent entity; redefine any abbreviations naturally within the text."
         ),
     )
+
     author_name: str = Field("", description="The name of the officer or individual author.")
     author_institution: str = Field(
         "", description="The organization or institution responsible for the document."
@@ -64,6 +106,13 @@ class MetadataSchema(BaseModel):
         default_factory=list,
         description="Other archive reference codes mentioned (e.g., C-M(55)15).",
     )
+
+    @field_validator("item_type", mode="before")
+    @classmethod
+    def default_empty_item_type(cls, value: Any) -> Any:
+        if value in (None, ""):
+            return "other"
+        return value
 
 
 class LastDateSchema(BaseModel):

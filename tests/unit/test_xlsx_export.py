@@ -26,6 +26,7 @@ def test_xlsx_generation(tmp_path: Path) -> None:
         summary="A test document summary.",
         date="1974-05-15",
         raw_metadata={
+            "item_type": "report",
             "archive_code": "NPG/D(74)2",
             "citekey": "NPG-D-74-2",
             "language": "English",
@@ -52,6 +53,7 @@ def test_xlsx_generation(tmp_path: Path) -> None:
     # Verify headers
     headers = [cell.value for cell in sheet[1]]
     assert "File Path" in headers
+    assert "Item Type" in headers
     assert "Citekey" in headers
     assert "state_entities" in headers
     assert "org_entities" in headers
@@ -61,10 +63,11 @@ def test_xlsx_generation(tmp_path: Path) -> None:
     row_values = [cell.value for cell in sheet[2]]
     # Mapping fields: doc_path is at col 0, Citekey is at col 1, Title at col 2
     assert row_values[0] == "doc1.md"
-    assert row_values[1] == "NPG-D-74-2"
-    assert row_values[2] == "Document One"
-    assert row_values[3] == "A test document summary."
-    assert row_values[4] == "1974-05-15"
+    assert row_values[1] == "report"
+    assert row_values[2] == "NPG-D-74-2"
+    assert row_values[3] == "Document One"
+    assert row_values[4] == "A test document summary."
+    assert row_values[5] == "1974-05-15"
 
     # Verify pivoted tag values are formatted correctly with #
     # state_entities is in tag_fields, let's find it by header index
@@ -110,3 +113,27 @@ def test_xlsx_export_does_not_migrate_legacy_tags(tmp_path: Path) -> None:
         "person_entities",
     ]:
         assert row_values[headers.index(column)] in (None, "")
+
+
+def test_xlsx_export_item_type_missing_historical_value_is_blank(tmp_path: Path) -> None:
+    vault_dir = tmp_path / "vault"
+    vault_dir.mkdir()
+    service = IndexingService(vault_dir)
+    entry = IndexEntry(
+        doc_path=Path("historical.md"),
+        title="Historical",
+        raw_metadata={},
+        canonical_tags=CanonicalTags(),
+    )
+    service.entries = [entry]
+    xlsx_path = vault_dir / "metadata_index.xlsx"
+
+    service.generate_xlsx(xlsx_path)
+
+    wb = openpyxl.load_workbook(xlsx_path)
+    sheet = wb["Metadata Index"]
+    headers = [cell.value for cell in sheet[1]]
+    row_values = [cell.value for cell in sheet[2]]
+
+    assert "Item Type" in headers
+    assert row_values[headers.index("Item Type")] in (None, "")

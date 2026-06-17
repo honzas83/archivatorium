@@ -91,6 +91,7 @@ class IndexingService:
 
         core_fields = [
             "File Path",
+            "Item Type",
             "Citekey",
             "Title",
             "Summary",
@@ -129,6 +130,7 @@ class IndexingService:
 
             core_vals = {
                 "File Path": str(entry.doc_path),
+                "Item Type": entry.raw_metadata.get("item_type", ""),
                 "Citekey": citekey,
                 "Title": entry.title,
                 "Summary": entry.summary,

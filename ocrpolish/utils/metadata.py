@@ -361,6 +361,7 @@ def format_metadata_table(metadata: dict[str, Any]) -> str:
     """
     # Mapping based on MUSTR_metadata_table2.md
     mapping = [
+        ("≡&nbsp;item_type:", metadata.get("item_type", "")),
         ("≡&nbsp;**title**:", metadata.get("title", "Untitled")),
         ("≡&nbsp;summary:", metadata.get("summary", "")),
         ("№&nbsp;**pages**:", str(metadata.get("pages", ""))),
@@ -602,6 +603,7 @@ def reconcile_metadata(
     Reconciles existing user-supplied metadata with newly extracted metadata.
     """
     canonical_fields = {
+        "item_type",
         "title",
         "summary",
         "abstract",
@@ -637,6 +639,7 @@ def reconcile_metadata(
             reconciled[field] = existing_meta[field]
 
     preserve_fields = {
+        "item_type",
         "title",
         "sender",
         "recipient",
