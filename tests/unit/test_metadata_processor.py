@@ -52,6 +52,7 @@ def test_prepare_obsidian_metadata_removes_empty_fields(processor: Any) -> None:
 
 def test_prepare_obsidian_metadata_field_order_and_exclusion(processor: Any) -> None:
     raw_dict: dict[str, Any] = {
+        "item_type": "report",
         "title": "Document Title",
         "summary": "This is a summary.",
         "sender": "Alice",
@@ -62,6 +63,8 @@ def test_prepare_obsidian_metadata_field_order_and_exclusion(processor: Any) -> 
         "mentioned_cities": ["London"],
         "date": "2024-04-30",
         "author_name": "Author",
+        "location_city": "Brussels",
+        "location_state": "Belgium",
         "pages": 10,  # Manually added before calling _prepare
     }
     input_file = Path("doc.md")
@@ -80,15 +83,107 @@ def test_prepare_obsidian_metadata_field_order_and_exclusion(processor: Any) -> 
     assert "mentioned_organisations" not in metadata
     assert "mentioned_cities" not in metadata
 
-    # Check for order (summary, pages, sender, recipient, intent)
+    # Check for order: general metadata first, correspondence details later
     keys = list(metadata.keys())
-    # title is first in primary_keys
-    assert keys[0] == "title"
-    assert keys[1] == "summary"
-    assert keys[2] == "pages"
-    assert keys[3] == "sender"
-    assert keys[4] == "recipient"
-    assert keys[5] == "intent"
+    assert keys[0] == "item_type"
+    assert keys[1] == "title"
+    assert keys[2] == "summary"
+    assert keys[3] == "pages"
+    assert keys[4] == "author_name"
+    assert keys.index("sender") > keys.index("location_state")
+    assert keys.index("recipient") > keys.index("sender")
+    assert keys.index("intent") > keys.index("recipient")
+
+
+def test_metadata_prompt_includes_item_type_guidance(processor: Any) -> None:
+    prompt = processor._build_metadata_prompt(
+        Path("report.md"),
+        "Report on activities and outcomes.",
+        frequent_tags=None,
+    )
+
+    assert "'item_type'" in prompt
+    assert "primary document form" in prompt
+    assert "correspondence" in prompt
+    assert "meeting_minutes" in prompt
+    assert "press_release" in prompt
+    assert "other" in prompt
+    assert "letters, cables, telegrams, messages" in prompt
+    assert "report = explanatory, advisory, analytical" in prompt
+    assert prompt.index("1. 'item_type'") < prompt.index("2. 'title'")
+
+
+def test_metadata_prompt_rule_order_matches_schema_hierarchy(processor: Any) -> None:
+    prompt = processor._build_metadata_prompt(
+        Path("document.md"),
+        "Document body.",
+        frequent_tags=None,
+    )
+
+    expected_order = [
+        "1. 'item_type'",
+        "2. 'title'",
+        "3. 'summary'",
+        "4. 'abstract'",
+        "5. 'author_name'",
+        "6. 'author_institution'",
+        "7. 'date'",
+        "8. 'archive_code'",
+        "9. IMPORTANT: Use English",
+        "10. IMPORTANT: Convert certain fields",
+        "11. Ensure 'location_state'",
+        "12. If the document is a letter or other exchanged communication",
+        "13. 'references'",
+        "14. Interpret and correct OCR errors",
+    ]
+
+    positions = [prompt.index(fragment) for fragment in expected_order]
+    assert positions == sorted(positions)
+
+
+def test_metadata_prompt_routes_generic_sources_to_primary_function(processor: Any) -> None:
+    prompt = processor._build_metadata_prompt(
+        Path("document.md"),
+        "Document with recommendations and attached report.",
+        frequent_tags=None,
+    )
+
+    assert "filename, title, headings, opening formula, structure, stated purpose" in prompt
+    assert "Choose by the primary document form, not attachments" in prompt
+    assert (
+        "report = explanatory, advisory, analytical, status, findings, activity, outcome"
+        in prompt
+    )
+    assert "note = brief notes, annotations, informal records" in prompt
+    assert "working_paper = draft, discussion" in prompt
+    assert "study = analytical or research-oriented examination" in prompt
+    assert "corrigendum = corrections or errata" in prompt
+    assert "agenda = ordered meeting topics or business" in prompt
+
+
+def test_metadata_prompt_defines_all_approved_item_types(processor: Any) -> None:
+    prompt = processor._build_metadata_prompt(
+        Path("document.md"),
+        "Document body.",
+        frequent_tags=None,
+    )
+
+    expected_fragments = [
+        "correspondence = letters",
+        "report = explanatory",
+        "study = analytical or research-oriented examination",
+        "meeting_minutes = records of meeting proceedings",
+        "working_paper = draft, discussion",
+        "schedule = timetables",
+        "corrigendum = corrections or errata",
+        "agenda = ordered meeting topics or business",
+        "press_release = public-facing press statements",
+        "note = brief notes",
+        "directive = instructions, orders",
+        "other = unclear, unsupported, damaged, fragmentary",
+    ]
+    for fragment in expected_fragments:
+        assert fragment in prompt
 
 
 def test_read_and_parse_source_stage(processor: Any, tmp_path: Path) -> None:
@@ -164,6 +259,7 @@ def test_generated_tag_stage_formats_topics_entities_and_tags(processor: Any) ->
 
 def test_render_frontmatter_and_callout_stages(processor: Any) -> None:
     metadata = {
+        "item_type": "report",
         "title": "Doc Title",
         "summary": "Summary.",
         "abstract": "Abstract body.",
@@ -178,8 +274,11 @@ def test_render_frontmatter_and_callout_stages(processor: Any) -> None:
     output = processor._assemble_output(frontmatter, callouts)
 
     assert "abstract" not in frontmatter.metadata
+    assert frontmatter.frontmatter.startswith("---\nitem_type: report\ntitle: Doc Title")
     assert "title: Doc Title" in frontmatter.frontmatter
     assert "> [!info] Metadata" in output
+    assert "≡&nbsp;item_type:" in output
+    assert output.index("≡&nbsp;item_type:") < output.index("≡&nbsp;**title**:")
     assert "> [!abstract]" in output
     assert "Abstract body." in output
     assert "> [!citing this document]" in output

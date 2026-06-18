@@ -167,12 +167,10 @@ class MetadataProcessor:
 
         # 4. Define primary field order and extract them
         primary_keys = [
+            "item_type",
             "title",
             "summary",
             "pages",
-            "sender",
-            "recipient",
-            "intent",
             "author_name",
             "author_institution",
             "date",
@@ -181,6 +179,9 @@ class MetadataProcessor:
             "language",
             "location_city",
             "location_state",
+            "sender",
+            "recipient",
+            "intent",
             "source",
             "references",
         ]
@@ -275,27 +276,53 @@ class MetadataProcessor:
             f"Source Filename: {input_file.name}\n\n"
             f"Document Content (First Part):\n\n{first_chunk}\n\n"
             "Please extract metadata following these strict rules:\n"
-            "1. 'title' must be extracted carefully in its ORIGINAL LANGUAGE. "
+            "1. 'item_type' must be exactly one of: correspondence, report, study, "
+            "meeting_minutes, working_paper, schedule, corrigendum, agenda, "
+            "press_release, note, directive, other.\n"
+            "Choose by the primary document form, not attachments, appendices, quoted "
+            "material, filing wrappers, or incidental references. Use the source "
+            "filename, title, headings, opening formula, structure, stated purpose, "
+            "and content together. Use 'other' only when no approved type is clearly "
+            "supported.\n"
+            "Prefer: report = explanatory, advisory, analytical, status, findings, "
+            "activity, outcome, or summary documents; working_paper = draft, discussion, "
+            "preparatory, or working documents for deliberation; correspondence = "
+            "letters, cables, telegrams, messages, or exchanged communications; "
+            "meeting_minutes = records of meeting proceedings, attendance, discussion, "
+            "or actions taken; agenda = ordered meeting topics or business; "
+            "corrigendum = corrections or errata; directive = instructions, orders, "
+            "requirements, or policy direction; note = brief notes, annotations, "
+            "informal records, or short observations; study = analytical or "
+            "research-oriented examination or evaluation; schedule = timetables, "
+            "calendars, program schedules, or ordered time plans; press_release = "
+            "public-facing press statements, communiques, or media releases; other = "
+            "unclear, unsupported, damaged, fragmentary, or otherwise unmatched "
+            "document forms.\n"
+            "2. 'title' must be extracted carefully in its ORIGINAL LANGUAGE. "
             "DO NOT use ALL UPPERCASE even if the source text does. You MUST use natural "
             "casing appropriate for the language: for English titles, use Title Case "
             "(e.g., 'Summary Record of a Meeting'); for French titles, use Sentence case "
             "(e.g., 'Compte rendu sommaire d'une réunion'). It is usually on the first "
             "page, but could also be part of the second page. The title should make "
             "sense in the context of the summary and abstract.\n"
-            "2. 'summary' must be exactly one sentence. It must be an independent entity.\n"
-            "3. 'abstract' must be a detailed overview, limited to at most 20 sentences. "
+            "3. 'summary' must be exactly one sentence. It must be an independent entity.\n"
+            "4. 'abstract' must be a detailed overview, limited to at most 20 sentences. "
             "It must be a superset of the summary.\n"
-            "4. 'date' must be the complete official document date (YYYY-MM-DD).\n"
-            "5. 'archive_code' should be derived using both the text and the filename.\n"
-            "6. If the document is a letter, describe 'sender', 'recipient', "
-            "and 'intent' (the specific action/request).\n"
-            "7. 'references' should contain a list of any other reference codes.\n"
-            "8. IMPORTANT: Use English for all metadata values EXCEPT 'title', "
+            "5. 'author_name' should be the officer or individual author when identified.\n"
+            "6. 'author_institution' should be the responsible organisation or institution "
+            "when identified.\n"
+            "7. 'date' must be the complete official document date (YYYY-MM-DD).\n"
+            "8. 'archive_code' should be derived using both the text and the filename.\n"
+            "9. IMPORTANT: Use English for all metadata values EXCEPT 'title', "
             "which must remain in the original language.\n"
-            "9. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
+            "10. IMPORTANT: Convert certain fields to Title Case if found in ALL CAPS. "
             "Preserve uppercase for acronyms.\n"
-            "10. Ensure 'location_state' is filled if 'location_city' is identified.\n"
-            "11. Interpret and correct OCR errors using context."
+            "11. Ensure 'location_state' is filled if 'location_city' is identified.\n"
+            "12. If the document is a letter or other exchanged communication, describe "
+            "'sender', 'recipient', "
+            "and 'intent' (the specific action/request).\n"
+            "13. 'references' should contain a list of any other reference codes.\n"
+            "14. Interpret and correct OCR errors using context."
             f"{self._metadata_context(frequent_tags)}"
         )
 

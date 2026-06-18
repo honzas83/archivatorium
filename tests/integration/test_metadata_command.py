@@ -6,6 +6,7 @@ from click.testing import CliRunner
 
 from ocrpolish.cli import cli
 from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
+from ocrpolish.utils.metadata import parse_frontmatter
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 
@@ -80,6 +81,47 @@ def test_metadata_command_basic(
         )
 
         assert result.exit_code == 0
+
+
+def test_metadata_command_outputs_leading_item_type(
+    temp_dirs: tuple[Path, Path], hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir, output_dir = temp_dirs
+    runner = CliRunner()
+
+    mock_metadata = {
+        "item_type": "correspondence",
+        "title": "Test Letter",
+        "summary": "A test correspondence item.",
+        "language": "English",
+    }
+
+    with (
+        patch("ollama.Client.chat") as mock_chat,
+        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+    ):
+        mock_chat.return_value = create_mock_ollama_response(
+            MetadataSchema(**mock_metadata).model_dump_json()
+        )
+
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+            ],
+        )
+
+    assert result.exit_code == 0
+    output_content = (output_dir / "test.md").read_text()
+    metadata, _ = parse_frontmatter(output_content)
+    assert list(metadata.keys())[:2] == ["item_type", "title"]
+    assert metadata["item_type"] == "correspondence"
 
 
 def test_metadata_command_no_non_flat_topic_mode() -> None:
