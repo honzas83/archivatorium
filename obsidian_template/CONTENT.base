@@ -12,6 +12,7 @@ views:
     order:
       - archive_code
       - formula.linked_title
+      - item_type
       - summary
       - author_institution
       - author_name

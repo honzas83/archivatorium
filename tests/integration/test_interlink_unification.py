@@ -1,4 +1,4 @@
-from ocrpolish.services.interlinking_service import InterlinkingService
+from archivatorium.services.interlinking_service import InterlinkingService
 
 
 def test_interlink_unification(tmp_path):

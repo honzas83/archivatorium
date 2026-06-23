@@ -2,8 +2,8 @@ import re
 import textwrap
 from pathlib import Path
 
-from ocrpolish.data_model import FrequencyEntry, ProcessingConfig
-from ocrpolish.utils.nlp import get_word_set
+from archivatorium.data_model import FrequencyEntry, ProcessingConfig
+from archivatorium.utils.nlp import get_word_set
 
 
 class FrequencyStore:

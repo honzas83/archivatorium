@@ -1,8 +1,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.utils.files import scan_files
+from archivatorium.processor_metadata import MetadataProcessor
+from archivatorium.utils.files import scan_files
 
 
 def test_scan_files_excludes_filtered(tmp_path: Path) -> None:

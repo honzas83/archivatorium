@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
+from archivatorium.cli import cli
 
 
 def test_vault_initialization_via_cli():
@@ -30,7 +30,7 @@ def test_vault_initialization_via_cli():
         tags_file.write_text("useful_tags: []")
 
         # Mock the MetadataProcessor to avoid actual Ollama/processing overhead
-        with patch("ocrpolish.processor_metadata.MetadataProcessor.process_file"):
+        with patch("archivatorium.processor_metadata.MetadataProcessor.process_file"):
             # We don't care about what process_file does, just that it's called (or not)
             result = runner.invoke(
                 cli,
@@ -76,7 +76,7 @@ def test_vault_initialization_skipped_in_dry_run():
         tags_file = Path("tags.yaml")
         tags_file.write_text("useful_tags: []")
 
-        with patch("ocrpolish.processor_metadata.MetadataProcessor.process_file"):
+        with patch("archivatorium.processor_metadata.MetadataProcessor.process_file"):
             result = runner.invoke(
                 cli,
                 [

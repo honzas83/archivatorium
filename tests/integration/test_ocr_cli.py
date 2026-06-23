@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
+from archivatorium.cli import cli
 
 
 @pytest.fixture
@@ -25,9 +25,9 @@ def test_ocr_command_basic(temp_ocr_dirs: tuple[Path, Path]) -> None:
     runner = CliRunner()
 
     with (
-        patch("ocrpolish.ocr_engine.PdfReader") as mock_reader_class,
-        patch("ocrpolish.ocr_engine.convert_from_path") as mock_convert,
-        patch("ocrpolish.ocr_engine.Client") as mock_client_class,
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
         patch("pathlib.Path.unlink"),
     ):
         # Setup mocks

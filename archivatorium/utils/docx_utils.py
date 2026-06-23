@@ -7,8 +7,8 @@ from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 
-from ocrpolish.data_model import PageMetadata
-from ocrpolish.utils.metadata import extract_page_number
+from archivatorium.data_model import PageMetadata
+from archivatorium.utils.metadata import extract_page_number
 
 # XML 1.0 restricted characters: \x00-\x08, \x0b-\x0c, \x0e-\x1f
 ILLEGAL_XML_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")

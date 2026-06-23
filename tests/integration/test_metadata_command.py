@@ -4,9 +4,9 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
-from ocrpolish.models.metadata import LastDateSchema, MetadataSchema
-from ocrpolish.utils.metadata import parse_frontmatter
+from archivatorium.cli import cli
+from archivatorium.models.metadata import LastDateSchema, MetadataSchema
+from archivatorium.utils.metadata import parse_frontmatter
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 
@@ -61,7 +61,7 @@ def test_metadata_command_basic(
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
@@ -98,7 +98,7 @@ def test_metadata_command_outputs_leading_item_type(
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
@@ -149,7 +149,7 @@ def test_metadata_command_large_file_date_fallback(
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         # Mock first pass (MetadataSchema) - missing date
         data1 = {"language": "English", "title": "Large Doc"}
@@ -197,7 +197,7 @@ def test_metadata_mask_enriches_only_matching_markdown(
     runner = CliRunner()
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(title="Matched").model_dump_json()
@@ -235,7 +235,7 @@ def test_metadata_filtered_sidecar_is_not_enriched(
     runner = CliRunner()
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         result = runner.invoke(
             cli,
@@ -276,7 +276,7 @@ def test_metadata_dry_run_is_non_mutating(
     runner = CliRunner()
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags") as mock_tags,
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags") as mock_tags,
     ):
         result = runner.invoke(
             cli,

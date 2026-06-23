@@ -1,8 +1,8 @@
 import re
 from pathlib import Path
 
-from ocrpolish.data_model import PageMetadata, ProcessingConfig
-from ocrpolish.processor import (
+from archivatorium.data_model import PageMetadata, ProcessingConfig
+from archivatorium.processor import (
     FrequencyStore,
     filter_lines,
     format_blocks,
@@ -10,16 +10,16 @@ from ocrpolish.processor import (
     load_filter_list,
     wrap_lines,
 )
-from ocrpolish.utils.docx_utils import create_docx_from_pages
-from ocrpolish.utils.files import (
+from archivatorium.utils.docx_utils import create_docx_from_pages
+from archivatorium.utils.files import (
     ensure_directory_exists,
     generate_frequency_report,
     get_filtered_path,
     get_output_path,
     scan_files,
 )
-from ocrpolish.utils.logging import get_logger
-from ocrpolish.utils.metadata import extract_page_number
+from archivatorium.utils.logging import get_logger
+from archivatorium.utils.metadata import extract_page_number
 
 
 def analyze_page_metadata(

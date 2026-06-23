@@ -2,12 +2,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
-from ocrpolish.ocr_engine import OCREngine
+from archivatorium.ocr_engine import OCREngine
 
 
 @pytest.fixture
 def mock_ollama_client():
-    with patch("ocrpolish.ocr_engine.Client") as mock_client_class:
+    with patch("archivatorium.ocr_engine.Client") as mock_client_class:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         yield mock_client
@@ -15,7 +15,7 @@ def mock_ollama_client():
 
 @pytest.fixture
 def mock_pdf_reader():
-    with patch("ocrpolish.ocr_engine.PdfReader") as mock_reader_class:
+    with patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class:
         mock_reader = MagicMock()
         mock_reader.pages = [MagicMock(), MagicMock()]  # 2 pages
         mock_reader_class.return_value = mock_reader
@@ -24,7 +24,7 @@ def mock_pdf_reader():
 
 @pytest.fixture
 def mock_convert_from_path():
-    with patch("ocrpolish.ocr_engine.convert_from_path") as mock_convert:
+    with patch("archivatorium.ocr_engine.convert_from_path") as mock_convert:
         mock_image = MagicMock()
         mock_convert.return_value = [mock_image]
         yield mock_convert

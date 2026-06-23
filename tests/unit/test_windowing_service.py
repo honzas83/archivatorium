@@ -1,4 +1,4 @@
-from ocrpolish.services.windowing_service import SlidingWindowService
+from archivatorium.services.windowing_service import SlidingWindowService
 
 
 def test_get_windows_basic():

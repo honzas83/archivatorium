@@ -1,4 +1,4 @@
-from ocrpolish.data_model import PageMetadata
+from archivatorium.data_model import PageMetadata
 
 
 def test_page_metadata_init() -> None:

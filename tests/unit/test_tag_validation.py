@@ -1,6 +1,6 @@
 import logging
 
-from ocrpolish.utils.tag_parser import CanonicalTagParser
+from archivatorium.utils.tag_parser import CanonicalTagParser
 
 
 class ListHandler(logging.Handler):
@@ -16,7 +16,7 @@ class ListHandler(logging.Handler):
 
 def test_malformed_entity_type() -> None:
     handler = ListHandler()
-    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger = logging.getLogger("archivatorium.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 
@@ -34,7 +34,7 @@ def test_malformed_entity_type() -> None:
 
 def test_malformed_city_tag() -> None:
     handler = ListHandler()
-    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger = logging.getLogger("archivatorium.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 
@@ -54,7 +54,7 @@ def test_malformed_city_tag() -> None:
 
 def test_malformed_person_tag() -> None:
     handler = ListHandler()
-    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger = logging.getLogger("archivatorium.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 
@@ -74,7 +74,7 @@ def test_malformed_person_tag() -> None:
 
 def test_hierarchical_conceptual_tag_is_valid() -> None:
     handler = ListHandler()
-    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger = logging.getLogger("archivatorium.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 
@@ -91,7 +91,7 @@ def test_hierarchical_conceptual_tag_is_valid() -> None:
 
 def test_malformed_empty_state_component_still_warns() -> None:
     handler = ListHandler()
-    logger = logging.getLogger("ocrpolish.utils.tag_parser")
+    logger = logging.getLogger("archivatorium.utils.tag_parser")
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
 

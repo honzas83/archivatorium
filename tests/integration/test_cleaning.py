@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.core import run_processing
-from ocrpolish.data_model import ProcessingConfig
+from archivatorium.core import run_processing
+from archivatorium.data_model import ProcessingConfig
 
 
 def test_full_cleaning_integration(tmp_path: Path) -> None:

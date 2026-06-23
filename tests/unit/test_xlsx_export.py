@@ -2,8 +2,8 @@ from pathlib import Path
 
 import openpyxl  # type: ignore
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.services.indexing_service import EntityReference, IndexEntry, IndexingService
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.services.indexing_service import EntityReference, IndexEntry, IndexingService
 
 
 def test_xlsx_generation(tmp_path: Path) -> None:

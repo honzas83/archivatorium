@@ -7,7 +7,7 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
     level = logging.DEBUG if verbose else logging.INFO
 
     # Use the root logger or a named logger that propagates to root
-    logger = logging.getLogger("ocrpolish")
+    logger = logging.getLogger("archivatorium")
     logger.setLevel(level)
 
     # Clear existing handlers to avoid duplicates
@@ -29,4 +29,4 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
 
 def get_logger() -> logging.Logger:
     """Get the application logger."""
-    return logging.getLogger("ocrpolish")
+    return logging.getLogger("archivatorium")

@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
-from ocrpolish.models.metadata import MetadataSchema
+from archivatorium.cli import cli
+from archivatorium.models.metadata import MetadataSchema
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 
@@ -26,7 +26,7 @@ def test_full_bibtex_citation_output(tmp_path, hierarchy_file, useful_tags_file)
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()

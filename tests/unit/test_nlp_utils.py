@@ -1,4 +1,4 @@
-from ocrpolish.utils.nlp import get_word_set, overlap_coefficient
+from archivatorium.utils.nlp import get_word_set, overlap_coefficient
 
 
 def test_get_word_set() -> None:

@@ -8,8 +8,8 @@ from typing import Any
 
 import yaml
 
-from ocrpolish.data_model import PageMetadata
-from ocrpolish.utils.nlp import normalize_tag_component
+from archivatorium.data_model import PageMetadata
+from archivatorium.utils.nlp import normalize_tag_component
 
 
 GENERATED_SUPPORT_FILENAMES = {

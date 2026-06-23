@@ -1,5 +1,5 @@
 [project]
-name = "ocrpolish"
+name = "archivatorium"
 version = "0.1.0"
 description = "A toolkit for cleaning, formatting, and validating OCR outputs processed by LLMs."
 readme = "README.md"
@@ -20,11 +20,11 @@ dependencies = [
 ]
 
 [project.scripts]
-ocrpolish = "ocrpolish.cli:main"
+archivatorium = "archivatorium.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["ocrpolish*"]
+include = ["archivatorium*"]
 
 [tool.ruff]
 line-length = 100
@@ -55,4 +55,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "--cov=ocrpolish --cov-report=term-missing"
+addopts = "--cov=archivatorium --cov-report=term-missing"

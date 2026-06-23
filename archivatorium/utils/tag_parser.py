@@ -2,8 +2,8 @@ import logging
 import re
 from pathlib import Path
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.utils.nlp import normalize_tag_component
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.utils.nlp import normalize_tag_component
 
 logger = logging.getLogger(__name__)
 

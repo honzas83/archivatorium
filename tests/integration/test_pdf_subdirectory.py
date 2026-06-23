@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
-from ocrpolish.models.metadata import MetadataSchema
-from ocrpolish.utils.metadata import parse_frontmatter
+from archivatorium.cli import cli
+from archivatorium.models.metadata import MetadataSchema
+from archivatorium.utils.metadata import parse_frontmatter
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 
@@ -30,7 +30,7 @@ def test_mirroring_pdf_subdirectory(tmp_path, hierarchy_file, useful_tags_file):
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
@@ -81,7 +81,7 @@ def test_mirroring_pdf_collision_reports_error(tmp_path, hierarchy_file, useful_
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
@@ -117,7 +117,7 @@ def test_mirroring_pdf_nested_source_layout(tmp_path, hierarchy_file, useful_tag
 
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"),
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()

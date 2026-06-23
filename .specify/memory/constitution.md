@@ -9,7 +9,7 @@ Sync Impact Report:
 - Follow-up TODOs: None
 -->
 
-# ocrpolish Constitution
+# archivatorium Constitution
 
 ## Core Principles
 
@@ -17,7 +17,7 @@ Sync Impact Report:
 Development MUST be performed in Python. High code quality is non-negotiable and MUST be enforced using `ruff` for linting/formatting, `flake8` with cognitive complexity checks, and `mypy` for static type checking. Testing MUST use `pytest` with `coverage` reporting to ensure robust functionality.
 
 ### II. CLI-First Interface
-The primary interface for `ocrpolish` MUST be a Command Line Interface (CLI). It MUST be designed for ease of use in both interactive sessions and automated pipelines, following standard POSIX-style argument patterns.
+The primary interface for `archivatorium` MUST be a Command Line Interface (CLI). It MUST be designed for ease of use in both interactive sessions and automated pipelines, following standard POSIX-style argument patterns.
 
 ### III. Recursive Directory Processing
 The tool MUST support recursive processing of directories. It MUST search for markdown (`*.md`) files in a specified input directory and replicate the directory structure in the output directory, ensuring that the original context is preserved.
@@ -39,12 +39,12 @@ To maintain the standards set in Principle I, the following tools MUST be config
 
 ## Project Structure
 The repository MUST follow this structure:
-- `ocrpolish/`: Core source code.
+- `archivatorium/`: Core source code.
 - `tests/`: Test suite mirroring source structure.
 - `data/`: Local data (gitignored).
 - `specs/`: Feature specifications and plans.
 
 ## Governance
-This constitution is the supreme authority on project standards for `ocrpolish`. Amendments MUST be made via the `speckit.constitution` process and require a version bump. All PRs and automated checks MUST verify compliance with these principles.
+This constitution is the supreme authority on project standards for `archivatorium`. Amendments MUST be made via the `speckit.constitution` process and require a version bump. All PRs and automated checks MUST verify compliance with these principles.
 
 **Version**: 1.1.0 | **Ratified**: 2026-02-12 | **Last Amended**: 2026-06-09

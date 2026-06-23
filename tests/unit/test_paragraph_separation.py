@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.data_model import ProcessingConfig
-from ocrpolish.processor import clean_lines
+from archivatorium.data_model import ProcessingConfig
+from archivatorium.processor import clean_lines
 
 
 def test_paragraph_separation() -> None:

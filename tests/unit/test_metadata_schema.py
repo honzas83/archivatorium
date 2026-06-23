@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ocrpolish.models.metadata import MetadataSchema
+from archivatorium.models.metadata import MetadataSchema
 
 
 def test_metadata_schema_defaults() -> None:

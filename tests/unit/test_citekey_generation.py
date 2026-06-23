@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ocrpolish.utils.metadata import generate_citekey
+from archivatorium.utils.metadata import generate_citekey
 
 
 def test_generate_citekey_default_stem() -> None:

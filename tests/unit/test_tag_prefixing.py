@@ -1,5 +1,5 @@
-from ocrpolish.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
-from ocrpolish.utils.metadata import prefix_tag
+from archivatorium.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
+from archivatorium.utils.metadata import prefix_tag
 
 
 def test_prefix_tag_with_constants():

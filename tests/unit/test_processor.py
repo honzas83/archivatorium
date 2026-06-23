@@ -1,4 +1,4 @@
-from ocrpolish.processor import is_structural_marker
+from archivatorium.processor import is_structural_marker
 
 
 def test_is_structural_marker() -> None:

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.services.indexing_service import IndexEntry, IndexingService
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.services.indexing_service import IndexEntry, IndexingService
 
 
 def test_markdown_indices_generation(tmp_path: Path) -> None:

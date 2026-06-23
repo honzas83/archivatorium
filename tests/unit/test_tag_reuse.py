@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.models.metadata import WindowTaggingResult
-from ocrpolish.services.tagging_service import TaggingService
+from archivatorium.models.metadata import WindowTaggingResult
+from archivatorium.services.tagging_service import TaggingService
 
 
 @pytest.fixture

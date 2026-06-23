@@ -6,14 +6,14 @@ from typing import Any
 
 import yaml
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.utils.metadata import (
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.utils.metadata import (
     is_generated_document_markdown,
     parse_frontmatter,
     safe_identifier,
     stringify_frontmatter,
 )
-from ocrpolish.utils.tag_parser import CanonicalTagParser
+from archivatorium.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 
@@ -668,8 +668,8 @@ class InterlinkingService:
     ) -> None:
         """Second pass: perform in-place interlinking on all files, then reparse updated ones."""
         updated_count = 0
-        from ocrpolish.utils.metadata import parse_frontmatter
-        from ocrpolish.utils.tag_parser import CanonicalTagParser
+        from archivatorium.utils.metadata import parse_frontmatter
+        from archivatorium.utils.tag_parser import CanonicalTagParser
 
         tag_parser = CanonicalTagParser()
 

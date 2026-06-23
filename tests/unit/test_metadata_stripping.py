@@ -1,4 +1,4 @@
-from ocrpolish.utils.metadata import strip_generated_sections
+from archivatorium.utils.metadata import strip_generated_sections
 
 
 def test_strip_generated_sections_all_present() -> None:

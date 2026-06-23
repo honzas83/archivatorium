@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
-from ocrpolish.data_model import TAG_PREFIX_TOPIC
-from ocrpolish.models.metadata import MetadataSchema, TopicResult, WindowTaggingResult
+from archivatorium.cli import cli
+from archivatorium.data_model import TAG_PREFIX_TOPIC
+from archivatorium.models.metadata import MetadataSchema, TopicResult, WindowTaggingResult
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ categories:
     return p
 
 
-@patch("ocrpolish.services.ollama_client.OllamaClient.extract_structured")
+@patch("archivatorium.services.ollama_client.OllamaClient.extract_structured")
 def test_cli_flat_topics_integration(
     mock_extract, input_dir, hierarchy_file, useful_tags_file, tmp_path
 ):

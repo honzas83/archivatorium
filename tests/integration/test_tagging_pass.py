@@ -2,10 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
-from ocrpolish.models.metadata import AggregatedTaggingResult, MetadataSchema
-from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.services.tagging_service import TaggingService
+from archivatorium.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
+from archivatorium.models.metadata import AggregatedTaggingResult, MetadataSchema
+from archivatorium.processor_metadata import MetadataProcessor
+from archivatorium.services.tagging_service import TaggingService
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def test_two_pass_tagging_output(tmp_path, mock_ollama, mock_tagging_service):
     mock_ollama.extract_structured.return_value = mock_metadata
 
     # Mock Step 2 Tagging extraction
-    from ocrpolish.models.metadata import TopicResult
+    from archivatorium.models.metadata import TopicResult
 
     mock_tagging_result = AggregatedTaggingResult(
         conceptual_tags=["#NATO", "#Exercise"],
@@ -105,7 +105,7 @@ def test_two_pass_tagging_output_retains_more_than_ten_topics(
         tags=[],
     )
 
-    from ocrpolish.models.metadata import TopicResult
+    from archivatorium.models.metadata import TopicResult
 
     mock_tagging_service.extract_tags.return_value = AggregatedTaggingResult(
         conceptual_tags=["#NATO", "#Exercise", "#Consultation"],

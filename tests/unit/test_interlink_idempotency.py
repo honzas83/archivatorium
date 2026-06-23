@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ocrpolish.services.interlinking_service import InterlinkingService
+from archivatorium.services.interlinking_service import InterlinkingService
 
 
 def test_idempotent_interlinking(tmp_path: Path) -> None:

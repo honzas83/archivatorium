@@ -1,4 +1,4 @@
-from ocrpolish.utils.nlp import (
+from archivatorium.utils.nlp import (
     filter_low_value_tags,
     normalize_exercise_tag,
     suppress_duplicates,

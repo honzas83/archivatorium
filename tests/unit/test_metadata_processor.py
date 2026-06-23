@@ -4,10 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.data_model import TAG_PREFIX_TOPIC
-from ocrpolish.models.metadata import AggregatedTaggingResult, TopicResult
-from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.utils.metadata import is_generated_document_markdown, parse_frontmatter
+from archivatorium.data_model import TAG_PREFIX_TOPIC
+from archivatorium.models.metadata import AggregatedTaggingResult, TopicResult
+from archivatorium.processor_metadata import MetadataProcessor
+from archivatorium.utils.metadata import is_generated_document_markdown, parse_frontmatter
 
 
 @pytest.fixture

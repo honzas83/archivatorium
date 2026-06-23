@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from docx import Document
 
-from ocrpolish.cli import main
+from archivatorium.cli import main
 
 
 def test_docx_page_number_extraction(tmp_path: Path) -> None:
@@ -21,7 +21,7 @@ def test_docx_page_number_extraction(tmp_path: Path) -> None:
     with patch.object(
         sys,
         "argv",
-        ["ocrpolish", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
+        ["archivatorium", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
     ):
         try:
             main()
@@ -62,7 +62,7 @@ def test_docx_recurring_text_remains_in_body(tmp_path: Path) -> None:
     with patch.object(
         sys,
         "argv",
-        ["ocrpolish", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
+        ["archivatorium", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
     ):
         try:
             main()

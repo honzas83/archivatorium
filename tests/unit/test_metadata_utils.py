@@ -1,4 +1,4 @@
-from ocrpolish.utils.metadata import (
+from archivatorium.utils.metadata import (
     extract_last_page_header,
     format_bibtex_citation,
     format_hierarchical_tag,

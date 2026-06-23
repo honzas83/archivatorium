@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from ocrpolish.utils.tag_parser import CanonicalTagParser
+from archivatorium.utils.tag_parser import CanonicalTagParser
 
 
 SLASH_ENTITY_TAG_TEXT = """

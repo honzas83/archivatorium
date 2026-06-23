@@ -3,8 +3,8 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Pt
 
-from ocrpolish.data_model import PageMetadata
-from ocrpolish.utils.docx_utils import (
+from archivatorium.data_model import PageMetadata
+from archivatorium.utils.docx_utils import (
     calculate_font_size,
     create_docx_from_pages,
     sanitize_xml,

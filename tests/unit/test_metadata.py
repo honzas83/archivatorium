@@ -1,5 +1,5 @@
-from ocrpolish.data_model import PageMetadata
-from ocrpolish.utils.metadata import FileMetadataAnalyzer, extract_page_number
+from archivatorium.data_model import PageMetadata
+from archivatorium.utils.metadata import FileMetadataAnalyzer, extract_page_number
 
 
 def test_extract_page_number_format_1() -> None:

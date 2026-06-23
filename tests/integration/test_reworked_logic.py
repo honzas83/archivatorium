@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from ocrpolish.cli import main
+from archivatorium.cli import main
 
 
 def test_reworked_logic_integration(tmp_path: Path) -> None:
@@ -23,7 +23,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
 
     # Run with frequency file generation
     freq_file = "my_freq.txt"
-    argv = ["ocrpolish", "clean", str(input_dir), str(output_dir), "--frequency-file", freq_file]
+    argv = ["archivatorium", "clean", str(input_dir), str(output_dir), "--frequency-file", freq_file]
     with patch.object(sys, "argv", argv):
         try:
             main()
@@ -46,7 +46,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
     output_dir_2 = tmp_path / "output_filtered"
     freq_file_filtered = "freq_after_filter.txt"
     argv_filtered = [
-        "ocrpolish",
+        "archivatorium",
         "clean",
         str(input_dir),
         str(output_dir_2),
@@ -73,7 +73,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
 
     output_dir_structural = tmp_path / "output_structural"
     with patch.object(
-        sys, "argv", ["ocrpolish", "clean", str(input_dir_structural), str(output_dir_structural)]
+        sys, "argv", ["archivatorium", "clean", str(input_dir_structural), str(output_dir_structural)]
     ):
         try:
             main()
@@ -96,7 +96,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
         sys,
         "argv",
         [
-            "ocrpolish",
+            "archivatorium",
             "clean",
             str(input_dir),
             str(output_dir_4),
@@ -121,7 +121,7 @@ def test_reworked_logic_integration(tmp_path: Path) -> None:
         sys,
         "argv",
         [
-            "ocrpolish",
+            "archivatorium",
             "clean",
             str(input_dir),
             str(output_dir_5),
@@ -150,7 +150,7 @@ def test_consecutive_short_lines(tmp_path: Path) -> None:
     content = "Line 1\nLine 2\nLine 3\n"
     (input_dir / "short.md").write_text(content)
 
-    with patch.object(sys, "argv", ["ocrpolish", "clean", str(input_dir), str(output_dir)]):
+    with patch.object(sys, "argv", ["archivatorium", "clean", str(input_dir), str(output_dir)]):
         try:
             main()
         except SystemExit:
@@ -177,7 +177,7 @@ def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
 
     # Set width to 40 to ensure wrapping
     with patch.object(
-        sys, "argv", ["ocrpolish", "clean", str(input_dir), str(output_dir), "--width", "40"]
+        sys, "argv", ["archivatorium", "clean", str(input_dir), str(output_dir), "--width", "40"]
     ):
         try:
             main()
@@ -194,7 +194,7 @@ def test_wrapping_with_blank_lines(tmp_path: Path) -> None:
     table_content = "| short | very long cell content |\n|---|---|\n| 1 | 2 |\n"
     (input_dir / "table.md").write_text(table_content)
 
-    with patch.object(sys, "argv", ["ocrpolish", "clean", str(input_dir), str(output_dir)]):
+    with patch.object(sys, "argv", ["archivatorium", "clean", str(input_dir), str(output_dir)]):
         try:
             main()
         except SystemExit:

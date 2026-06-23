@@ -7,10 +7,10 @@ from typing import Any
 import xlsxwriter  # type: ignore
 import yaml
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.utils.metadata import parse_frontmatter, safe_identifier
-from ocrpolish.utils.nlp import normalize_tag_component
-from ocrpolish.utils.tag_parser import CanonicalTagParser
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.utils.metadata import parse_frontmatter, safe_identifier
+from archivatorium.utils.nlp import normalize_tag_component
+from archivatorium.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 

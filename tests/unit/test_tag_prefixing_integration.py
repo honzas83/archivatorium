@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
-from ocrpolish.models.metadata import AggregatedTaggingResult, TopicResult
-from ocrpolish.processor_metadata import MetadataProcessor
+from archivatorium.data_model import TAG_PREFIX_ENTITY, TAG_PREFIX_TAG, TAG_PREFIX_TOPIC
+from archivatorium.models.metadata import AggregatedTaggingResult, TopicResult
+from archivatorium.processor_metadata import MetadataProcessor
 
 
 @pytest.fixture

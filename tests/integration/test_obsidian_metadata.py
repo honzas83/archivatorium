@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
-from ocrpolish.data_model import TAG_PREFIX_ENTITY
-from ocrpolish.models.metadata import AggregatedTaggingResult, MetadataSchema
-from ocrpolish.services.tagging_service import TaggingQualityError
-from ocrpolish.utils.metadata import parse_frontmatter
+from archivatorium.cli import cli
+from archivatorium.data_model import TAG_PREFIX_ENTITY
+from archivatorium.models.metadata import AggregatedTaggingResult, MetadataSchema
+from archivatorium.services.tagging_service import TaggingQualityError
+from archivatorium.utils.metadata import parse_frontmatter
 
 
 def create_mock_ollama_response(content: str) -> dict[str, dict[str, str]]:
@@ -40,7 +40,7 @@ def test_obsidian_metadata_standard(
     )
 
     runner = CliRunner()
-    with patch("ocrpolish.services.tagging_service.TaggingService.extract_tags"):
+    with patch("archivatorium.services.tagging_service.TaggingService.extract_tags"):
         result = runner.invoke(
             cli,
             [
@@ -104,7 +104,7 @@ def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> N
     runner = CliRunner()
     with (
         patch("ollama.Client.chat") as mock_chat,
-        patch("ocrpolish.services.tagging_service.TaggingService.extract_tags") as mock_extract,
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags") as mock_extract,
     ):
         mock_chat.return_value = create_mock_ollama_response(
             MetadataSchema(**mock_metadata).model_dump_json()
@@ -171,7 +171,7 @@ def test_substantive_output_includes_tags_section(
 
     runner = CliRunner()
     with patch(
-        "ocrpolish.services.tagging_service.TaggingService.extract_tags",
+        "archivatorium.services.tagging_service.TaggingService.extract_tags",
         return_value=tagging_result,
     ):
         result = runner.invoke(
@@ -209,7 +209,7 @@ def test_tagging_quality_failure_does_not_write_incomplete_output(
 
     runner = CliRunner()
     with patch(
-        "ocrpolish.services.tagging_service.TaggingService.extract_tags",
+        "archivatorium.services.tagging_service.TaggingService.extract_tags",
         side_effect=TaggingQualityError("quality failure"),
     ):
         result = runner.invoke(

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ocrpolish.utils.files import get_filtered_path
+from archivatorium.utils.files import get_filtered_path
 
 
 def test_get_filtered_path() -> None:

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ocrpolish.data_model import ProcessingConfig
+from archivatorium.data_model import ProcessingConfig
 
 
 def test_config_defaults() -> None:

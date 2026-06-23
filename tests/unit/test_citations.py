@@ -1,6 +1,6 @@
 import pytest
 
-from ocrpolish.utils.metadata import (
+from archivatorium.utils.metadata import (
     format_bibtex_citation,
     format_chicago_citation,
     format_harvard_citation,

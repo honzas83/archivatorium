@@ -1,7 +1,7 @@
 from pathlib import Path
 from collections.abc import Callable
 
-from ocrpolish.processor_metadata import MetadataProcessor
+from archivatorium.processor_metadata import MetadataProcessor
 
 
 class MockOllamaClient:

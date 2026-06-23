@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ocrpolish.services.interlinking_service import InterlinkingService
+from archivatorium.services.interlinking_service import InterlinkingService
 
 
 def test_service_initialization() -> None:

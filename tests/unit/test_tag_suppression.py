@@ -1,4 +1,4 @@
-from ocrpolish.utils.nlp import suppress_duplicates
+from archivatorium.utils.nlp import suppress_duplicates
 
 
 def test_suppress_duplicates_basic():

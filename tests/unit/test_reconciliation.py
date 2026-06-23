@@ -1,4 +1,4 @@
-from ocrpolish.utils.metadata import reconcile_metadata
+from archivatorium.utils.metadata import reconcile_metadata
 
 
 def test_reconcile_metadata_all_cases() -> None:

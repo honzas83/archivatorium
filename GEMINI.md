@@ -1,4 +1,4 @@
-# ocrpolish Development Guidelines
+# archivatorium Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2026-02-12
 
@@ -33,10 +33,10 @@ tests/
 
 cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
 
-- `ocrpolish clean <input_dir> <output_dir>`: Wrap and filter OCR files.
-- `ocrpolish metadata <input_dir> <output_dir>`: Extract metadata using LLM.
-- `ocrpolish obsidian <input_dir> <output_dir> --template-dir <template_dir>`: Generate Obsidian vault.
-- `ocrpolish interlink <vault_dir> [--force]`: Post-process vault for cross-linking (020). Use `--force` to regenerate existing links.
+- `archivatorium clean <input_dir> <output_dir>`: Wrap and filter OCR files.
+- `archivatorium metadata <input_dir> <output_dir>`: Extract metadata using LLM.
+- `archivatorium obsidian <input_dir> <output_dir> --template-dir <template_dir>`: Generate Obsidian vault.
+- `archivatorium interlink <vault_dir> [--force]`: Post-process vault for cross-linking (020). Use `--force` to regenerate existing links.
 
 ## Code Style
 

@@ -2,17 +2,17 @@ from pathlib import Path
 
 import click
 
-from ocrpolish.core import run_processing
-from ocrpolish.data_model import ProcessingConfig
-from ocrpolish.processor_metadata import MetadataProcessor
-from ocrpolish.services.indexing_service import IndexEntry, IndexingService
-from ocrpolish.services.interlinking_service import InterlinkingService
-from ocrpolish.services.ollama_client import OllamaClient
-from ocrpolish.services.tagging_service import TaggingService
-from ocrpolish.services.windowing_service import SlidingWindowService
-from ocrpolish.utils.files import initialize_vault_from_template
-from ocrpolish.utils.logging import setup_logging
-from ocrpolish.utils.metadata import mirror_file
+from archivatorium.core import run_processing
+from archivatorium.data_model import ProcessingConfig
+from archivatorium.processor_metadata import MetadataProcessor
+from archivatorium.services.indexing_service import IndexEntry, IndexingService
+from archivatorium.services.interlinking_service import InterlinkingService
+from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.tagging_service import TaggingService
+from archivatorium.services.windowing_service import SlidingWindowService
+from archivatorium.utils.files import initialize_vault_from_template
+from archivatorium.utils.logging import setup_logging
+from archivatorium.utils.metadata import mirror_file
 
 
 @click.group()
@@ -282,7 +282,7 @@ def ocr(  # noqa: PLR0913
     no_page_header: bool,
 ) -> None:
     """OCR multipage PDF files using Ollama (VLM) → Markdown."""
-    from ocrpolish.ocr_engine import OCREngine
+    from archivatorium.ocr_engine import OCREngine
 
     engine = OCREngine(
         host=host,

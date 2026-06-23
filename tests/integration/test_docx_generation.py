@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from docx import Document
 
-from ocrpolish.cli import main
+from archivatorium.cli import main
 
 
 def test_docx_generation_flag(tmp_path: Path) -> None:
@@ -20,7 +20,7 @@ def test_docx_generation_flag(tmp_path: Path) -> None:
     with patch.object(
         sys,
         "argv",
-        ["ocrpolish", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
+        ["archivatorium", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
     ):
         try:
             main()
@@ -40,7 +40,7 @@ def test_no_docx_generation_by_default(tmp_path: Path) -> None:
     test_file.write_text("Some content", encoding="utf-8")
 
     # Run CLI without --docx
-    with patch.object(sys, "argv", ["ocrpolish", "clean", str(input_dir), str(output_dir)]):
+    with patch.object(sys, "argv", ["archivatorium", "clean", str(input_dir), str(output_dir)]):
         try:
             main()
         except SystemExit:
@@ -62,7 +62,7 @@ def test_docx_page_content(tmp_path: Path) -> None:
     with patch.object(
         sys,
         "argv",
-        ["ocrpolish", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
+        ["archivatorium", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
     ):
         try:
             main()
@@ -92,7 +92,7 @@ def test_docx_sections_and_footers(tmp_path: Path) -> None:
     with patch.object(
         sys,
         "argv",
-        ["ocrpolish", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
+        ["archivatorium", "clean", str(input_dir), str(output_dir), "--docx", str(docx_dir)],
     ):
         try:
             main()

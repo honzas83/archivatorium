@@ -1,4 +1,4 @@
-from ocrpolish.markdown_parser import MarkdownPageParser
+from archivatorium.markdown_parser import MarkdownPageParser
 
 
 def test_parse_pages_basic():

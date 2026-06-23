@@ -1,6 +1,6 @@
 import pytest
 
-from ocrpolish.services.flattening_service import FlatteningService
+from archivatorium.services.flattening_service import FlatteningService
 
 
 @pytest.fixture

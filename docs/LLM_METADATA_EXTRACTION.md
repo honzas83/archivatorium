@@ -1,11 +1,11 @@
 # LLM Metadata Extraction & Flat Tagging Workflow
 
-This document describes how `ocrpolish` uses Ollama-backed LLM calls to extract
+This document describes how `archivatorium` uses Ollama-backed LLM calls to extract
 structured document metadata and production tags from OCR-processed Markdown.
 
 ## Architectural Overview
 
-`ocrpolish metadata` uses a staged workflow:
+`archivatorium metadata` uses a staged workflow:
 
 1. **Read source**: Load the source Markdown file.
 2. **Parse and strip generated sections**: Preserve user frontmatter for
@@ -26,7 +26,7 @@ structured document metadata and production tags from OCR-processed Markdown.
 The production command requires explicit taxonomy and useful-tag files:
 
 ```bash
-python -m ocrpolish.cli metadata NATO_NPG_source NATO_NPG_metadata.v5 --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml
+python -m archivatorium.cli metadata NATO_NPG_source NATO_NPG_metadata.v5 --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml
 ```
 
 When omitted, `--vault-root` and `--pdf-dir` default to the output directory for

@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from ocrpolish.cli import cli
+from archivatorium.cli import cli
 
 
 def test_interlink_command_exists():

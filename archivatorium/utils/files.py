@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ocrpolish.processor import FrequencyStore
+    from archivatorium.processor import FrequencyStore
 
 
 FREQUENCY_THRESHOLD = 5

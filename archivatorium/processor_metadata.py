@@ -6,20 +6,20 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from ocrpolish.data_model import (
+from archivatorium.data_model import (
     TAG_PREFIX_ENTITY,
     TAG_PREFIX_TAG,
     TAG_PREFIX_TOPIC,
 )
-from ocrpolish.models.metadata import (
+from archivatorium.models.metadata import (
     AggregatedTaggingResult,
     CanonicalTags,
     LastDateSchema,
     MetadataSchema,
 )
-from ocrpolish.services.ollama_client import OllamaClient
-from ocrpolish.services.tagging_service import TaggingService
-from ocrpolish.utils.metadata import (
+from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.tagging_service import TaggingService
+from archivatorium.utils.metadata import (
     extract_last_page_header,
     flatten_metadata,
     format_as_callout,
@@ -35,7 +35,7 @@ from ocrpolish.utils.metadata import (
     stringify_frontmatter,
     strip_generated_sections,
 )
-from ocrpolish.utils.tag_parser import CanonicalTagParser
+from archivatorium.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
 

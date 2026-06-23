@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.data_model import ProcessingConfig
-from ocrpolish.processor import wrap_lines
+from archivatorium.data_model import ProcessingConfig
+from archivatorium.processor import wrap_lines
 
 
 def test_table_without_leading_pipe() -> None:

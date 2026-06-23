@@ -3,14 +3,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.models.metadata import (
+from archivatorium.models.metadata import (
     AggregatedTaggingResult,
     SubstantiveWindowTaggingResult,
     TopicResult,
     WindowTaggingResult,
 )
-from ocrpolish.processor_metadata import TaggingReuseHints
-from ocrpolish.services.tagging_service import TaggingQualityError, TaggingService
+from archivatorium.processor_metadata import TaggingReuseHints
+from archivatorium.services.tagging_service import TaggingQualityError, TaggingService
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ categories:
         dump_calls += 1
         return "STATIC TAXONOMY"
 
-    monkeypatch.setattr("ocrpolish.services.tagging_service.yaml.dump", fake_dump)
+    monkeypatch.setattr("archivatorium.services.tagging_service.yaml.dump", fake_dump)
 
     service = TaggingService(mock_ollama, mock_windowing, hierarchy_file, tags_file)
 
@@ -152,7 +152,7 @@ def test_sliding_window_reuses_static_prompt_text(
         dump_calls += 1
         return "STATIC TAXONOMY"
 
-    monkeypatch.setattr("ocrpolish.services.tagging_service.yaml.dump", fake_dump)
+    monkeypatch.setattr("archivatorium.services.tagging_service.yaml.dump", fake_dump)
     service = TaggingService(
         mock_ollama, mock_windowing, hierarchy_file, tags_file, context_limit=1
     )

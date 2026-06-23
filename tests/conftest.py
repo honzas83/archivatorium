@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from ocrpolish.models.metadata import AggregatedTaggingResult, MetadataSchema, TopicResult
+from archivatorium.models.metadata import AggregatedTaggingResult, MetadataSchema, TopicResult
 from tests.unit.test_ollama_client import create_mock_ollama_response
 
 

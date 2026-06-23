@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.data_model import ProcessingConfig
-from ocrpolish.utils.files import ensure_directory_exists, get_output_path, scan_files
+from archivatorium.data_model import ProcessingConfig
+from archivatorium.utils.files import ensure_directory_exists, get_output_path, scan_files
 
 
 def test_directory_mirroring(tmp_path: Path) -> None:
@@ -39,3 +39,13 @@ def test_directory_mirroring(tmp_path: Path) -> None:
     assert (output_dir / "subdir1/file2.md").exists()
     assert (output_dir / "subdir2/nested/file3.md").exists()
     assert not (output_dir / "ignored.txt").exists()
+
+
+def test_cli_help() -> None:
+    from click.testing import CliRunner
+    from archivatorium.cli import cli
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert "A toolkit for cleaning, formatting, and validating OCR outputs" in result.output
+

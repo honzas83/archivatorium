@@ -10,7 +10,7 @@ from ollama import Client
 from pdf2image import convert_from_path
 from PyPDF2 import PdfReader
 
-logger = logging.getLogger("ocrpolish.ocr_engine")
+logger = logging.getLogger("archivatorium.ocr_engine")
 
 SYSTEM_PROMPT = (
     "You are a highly accurate OCR and document analysis assistant.\n"
@@ -167,7 +167,7 @@ class OCREngine:
         output_md: Optional[Path] = None,
         page_header: bool = True,
     ) -> str:
-        from ocrpolish.markdown_parser import MarkdownPageParser
+        from archivatorium.markdown_parser import MarkdownPageParser
 
         total_pages = self.count_pdf_pages(input_pdf)
         s = 1

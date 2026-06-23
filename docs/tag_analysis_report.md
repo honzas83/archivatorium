@@ -76,7 +76,7 @@ The `City/<state>/<city>` structure (where `<state>` represents the country) suf
 
 ## 💡 Proposed Prompt Options
 
-Below are two options for updating the tagging instructions in [tagging_service.py](../ocrpolish/services/tagging_service.py).
+Below are two options for updating the tagging instructions in [tagging_service.py](../archivatorium/services/tagging_service.py).
 
 ### Option 1: Lightweight Prompt Hardening
 This option adds concise, imperative rules to the end of the existing categories and critical rules.

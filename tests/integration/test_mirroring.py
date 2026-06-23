@@ -1,6 +1,6 @@
 import os
 
-from ocrpolish.utils.metadata import mirror_file
+from archivatorium.utils.metadata import mirror_file
 
 
 def test_mirror_file_hardlink(tmp_path):

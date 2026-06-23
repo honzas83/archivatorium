@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ocrpolish.models.metadata import CanonicalTags
-from ocrpolish.services.indexing_service import EntityReference, IndexEntry, IndexingService
+from archivatorium.models.metadata import CanonicalTags
+from archivatorium.services.indexing_service import EntityReference, IndexEntry, IndexingService
 
 
 def test_process_file_with_abstract(tmp_path: Path) -> None:

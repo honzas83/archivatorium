@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ocrpolish.processor_metadata import MetadataProcessor
+from archivatorium.processor_metadata import MetadataProcessor
 
 
 @pytest.fixture

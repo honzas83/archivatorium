@@ -6,17 +6,17 @@ from typing import Any
 
 import yaml
 
-from ocrpolish.models.metadata import (
+from archivatorium.models.metadata import (
     AggregatedTaggingResult,
     MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
     SubstantiveWindowTaggingResult,
     TopicResult,
     WindowTaggingResult,
 )
-from ocrpolish.services.flattening_service import FlatteningService
-from ocrpolish.services.ollama_client import OllamaClient
-from ocrpolish.services.windowing_service import SlidingWindowService
-from ocrpolish.utils.nlp import (
+from archivatorium.services.flattening_service import FlatteningService
+from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.windowing_service import SlidingWindowService
+from archivatorium.utils.nlp import (
     estimate_tokens,
     filter_low_value_tags,
     normalize_tag_component,

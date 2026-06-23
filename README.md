@@ -1,4 +1,4 @@
-# ocrpolish
+# archivatorium
 
 A specialized toolkit for cleaning, formatting, and validating OCR outputs processed by Large Language Models (LLMs).
 
@@ -31,7 +31,7 @@ The toolkit provides several primary commands for processing documents: `ocr`, `
 Converts multipage PDF files in `INPUT_DIR` recursively to Markdown files in `OUTPUT_DIR` using a local VLM (Ollama). Includes on-the-fly rendering and incremental per-page recovery/resumption.
 
 ```bash
-ocrpolish ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
+archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 ```
 
 #### Options
@@ -48,7 +48,7 @@ ocrpolish ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 Removes headers/footers and reformats paragraphs.
 
 ```bash
-ocrpolish clean [OPTIONS] INPUT_DIR OUTPUT_DIR
+archivatorium clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 ```
 
 #### Options
@@ -64,7 +64,7 @@ ocrpolish clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 Extracts structured data and flat production topics using a local LLM.
 
 ```bash
-ocrpolish metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml [OPTIONS]
+archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml [OPTIONS]
 ```
 
 #### Options
@@ -84,7 +84,7 @@ Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown f
 Post-processes a generated Obsidian vault in-place to cross-link documents using archive codes, generate indices, and export metadata.
 
 ```bash
-ocrpolish interlink [OPTIONS] VAULT_DIR
+archivatorium interlink [OPTIONS] VAULT_DIR
 ```
 
 #### Options
