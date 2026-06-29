@@ -114,6 +114,7 @@ def clean(  # noqa: PLR0913
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite existing output files.")
 @click.option("--dry-run", is_flag=True, help="If set, logs metadata without writing files.")
+@click.option("--host", help="Ollama server URL.")
 def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
@@ -126,6 +127,7 @@ def metadata(  # noqa: PLR0913
     citekey_mode: str,
     overwrite: bool,
     dry_run: bool,
+    host: str | None = None,
 ) -> None:
     """Extract metadata using Ollama and generate sidecar YAML files."""
     effective_vault_root = vault_root or output_dir
@@ -135,7 +137,7 @@ def metadata(  # noqa: PLR0913
     if template_dir.exists() and not dry_run:
         initialize_vault_from_template(template_dir, output_dir)
 
-    ollama_client = OllamaClient(model=model)
+    ollama_client = OllamaClient(model=model, host=host)
     windowing_service = SlidingWindowService()
     tagging_service = TaggingService(
         ollama_client=ollama_client,

@@ -14,7 +14,7 @@ OLLAMA_TIMEOUT = 300.0
 
 
 class OllamaClient:
-    def __init__(self, model: str = "gemma4:26b", host: str = "http://localhost:11434"):
+    def __init__(self, model: str = "gemma4:26b", host: str | None = None):
         self.model = model
         self.client = Client(host=host, timeout=OLLAMA_TIMEOUT)
 

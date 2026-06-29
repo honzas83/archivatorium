@@ -83,6 +83,35 @@ def test_metadata_command_basic(
         assert result.exit_code == 0
 
 
+def test_metadata_command_with_host(
+    temp_dirs: tuple[Path, Path], hierarchy_file: Path, useful_tags_file: Path
+) -> None:
+    input_dir, output_dir = temp_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.cli.OllamaClient") as mock_client_class,
+        patch("archivatorium.services.tagging_service.TaggingService.extract_tags"),
+    ):
+        result = runner.invoke(
+            cli,
+            [
+                "metadata",
+                str(input_dir),
+                str(output_dir),
+                "--hierarchy-file",
+                str(hierarchy_file),
+                "--tags-file",
+                str(useful_tags_file),
+                "--host",
+                "http://custom-ollama-host:11434",
+            ],
+        )
+
+        assert result.exit_code == 0
+        mock_client_class.assert_called_once_with(model="gemma4:31b", host="http://custom-ollama-host:11434")
+
+
 def test_metadata_command_outputs_leading_item_type(
     temp_dirs: tuple[Path, Path], hierarchy_file: Path, useful_tags_file: Path
 ) -> None:
