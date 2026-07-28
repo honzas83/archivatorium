@@ -41,6 +41,7 @@ class InterlinkingService:
         self.unifications: list[dict[str, str]] = self._load_unifications(unifications_path)
         self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
         self.documents: list[VaultDocument] = []
+        self.code_digits: dict[str, set[str]] = {}
 
     def clean_citekey(self, citekey: str) -> str:
         """
@@ -327,6 +328,16 @@ class InterlinkingService:
                 logger.warning(f"Failed to scan/parse {md_file}: {e}")
                 continue
 
+        self.precompute_digits()
+
+    def precompute_digits(self) -> None:
+        """Precomputes the digit sets for all keys to speed up matching."""
+        self.code_digits = {}
+        all_keys = set(self.code_map.keys()) | set(self.bibtex_map.keys())
+        for key in all_keys:
+            if key:
+                self.code_digits[key] = set(re.findall(r"\d+", key))
+
     def get_boundary_regex(self, code: str) -> str:
         """
         Generates a regex for matching a code at a prefix boundary.
@@ -572,38 +583,35 @@ class InterlinkingService:
         Prevents linking a document to itself.
         Returns (new_content, ordered_list_of_codes_found).
         """
-        # Alias for backward compatibility in unit tests
         cur_path = current_relative_path or current_filename
 
-        # Lazy-compilation of the static combined pattern
+        # If there are no keys in the maps, we have nothing to link
         current_keys = set(self.code_map.keys()) | set(self.bibtex_map.keys())
-        if (
-            not hasattr(self, "_combined_pattern")
-            or self._combined_pattern is None
-            or getattr(self, "_last_map_keys", None) != current_keys
-        ):
-            self._last_map_keys = current_keys
-            sorted_codes = sorted(current_keys, key=len, reverse=True)
-            if not sorted_codes:
-                self._combined_pattern = None
-            else:
-                codes_regex_parts = [self._make_flexible(c) for c in sorted_codes]
-                codes_pattern = "|".join(codes_regex_parts)
-                self._combined_pattern = re.compile(
-                    rf"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))|(?<![a-zA-Z0-9\[])({codes_pattern})(?![a-zA-Z0-9\]/])"
-                )
-
-        if not self._combined_pattern:
+        if not current_keys:
             return content, []
 
-        # Sort codes for the display-matching logic inside callbacks (also static/cached)
-        if (
-            not hasattr(self, "_sorted_codes")
-            or self._sorted_codes is None
-            or getattr(self, "_last_sorted_keys", None) != current_keys
-        ):
-            self._last_sorted_keys = current_keys
+        # 1. Extract all digits in the content
+        doc_digits = set(re.findall(r"\d+", content))
+
+        # 2. Filter self.code_digits to find active codes (subset matches)
+        if not hasattr(self, "_sorted_codes") or self._sorted_codes is None:
             self._sorted_codes = sorted(current_keys, key=len, reverse=True)
+
+        active_codes = []
+        for c in self._sorted_codes:
+            req_digits = self.code_digits.get(c, set())
+            if req_digits.issubset(doc_digits):
+                active_codes.append(c)
+
+        if not active_codes:
+            return content, []
+
+        # 3. Compile regex for active codes ONLY
+        codes_regex_parts = [self._make_flexible(c) for c in active_codes]
+        codes_pattern = "|".join(codes_regex_parts)
+        combined_pattern = re.compile(
+            rf"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))|(?<![a-zA-Z0-9\[])({codes_pattern})(?![a-zA-Z0-9\]/])"
+        )
 
         own_code_bib = safe_identifier(own_archive_code) if own_archive_code else None
 
@@ -611,19 +619,65 @@ class InterlinkingService:
         new_lines = []
         found_codes = []
 
+        # Cache check
+        if not hasattr(self, "_safe_bib_keys") or self._safe_bib_keys is None:
+            self._safe_bib_keys = {safe_identifier(k) for k in current_keys if k}
+
         for line in lines:
             if "archive_code:" in line:
                 new_lines.append(line)
                 continue
 
-            def process_code(code_text: str, display_text: str | None = None) -> str:
-                if display_text is None:
-                    display_text = code_text
+            # 1. Protect existing links (Markdown links and Wikilinks)
+            placeholders = []
+            def protect_link(m: re.Match[str]) -> str:
+                link_text = m.group(0)
+                
+                # Extract canonical codes from existing link to include in found_codes list
+                link_bib = safe_identifier(link_text)
+                for c in self._sorted_codes:
+                    bib = safe_identifier(c)
+                    if bib and bib in link_bib:
+                        canonical = self.bib_to_norm.get(bib, c)
+                        if canonical not in found_codes:
+                            found_codes.append(canonical)
+                        break
+
+                if force:
+                    # Markdown link: [text](path)
+                    md_link = re.match(r"^\[(.*?)\]\((.*?)\)$", link_text)
+                    if md_link:
+                        text = md_link.group(1)
+                        if safe_identifier(text) in self._safe_bib_keys:
+                            return text
+
+                    # Wikilink: [[target]] or [[target|display]]
+                    wiki_link = re.match(r"^\[\[(.*?)(?:\|(.*?))?\]\]$", link_text)
+                    if wiki_link:
+                        target, display = wiki_link.groups()
+                        text = display if display else target
+                        if safe_identifier(target) in self._safe_bib_keys or safe_identifier(text) in self._safe_bib_keys:
+                            return text
+
+                placeholders.append(link_text)
+                return f"___LINK_{len(placeholders)-1}___"
+
+            protected_line = re.sub(
+                r"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))",
+                protect_link,
+                line
+            )
+
+            # 2. Match and replace using the dynamically compiled regex of active codes
+            def replace_match(m: re.Match[str]) -> str:
+                if m.group(1):
+                    return m.group(1)
+
+                code_text = m.group(2)
                 bib = safe_identifier(code_text)
 
-                # Self-linking prevention
                 if own_code_bib and bib == own_code_bib:
-                    return display_text
+                    return code_text
 
                 canonical = self.bib_to_norm.get(bib, self.normalize_code(code_text))
                 if canonical not in found_codes:
@@ -632,47 +686,18 @@ class InterlinkingService:
                 link_path = self.resolve_link(code_text, source_lang)
                 if link_path and link_path != cur_path:
                     target = self._format_document_link_target(link_path)
-                    return f"[{display_text}]({target})"
-                return display_text
+                    return f"[{code_text}]({target})"
+                return code_text
 
-            def replace_match(m: re.Match[str]) -> str:
-                # 1. Existing link (Wikilink or Markdown)
-                if m.group(1):
-                    link_text = m.group(1)
-                    if force:
-                        # Markdown link: [text](path)
-                        md_link = re.match(r"^\[(.*?)\]\((.*?)\)$", link_text)
-                        if md_link:
-                            text = md_link.group(1)
-                            if safe_identifier(text) in self.bib_to_norm:
-                                return process_code(text)
+            processed_line = combined_pattern.sub(replace_match, protected_line)
 
-                        # Wikilink: [[target]] or [[target|display]]
-                        wiki_link = re.match(r"^\[\[(.*?)(?:\|(.*?))?\]\]$", link_text)
-                        if wiki_link:
-                            target, display = wiki_link.groups()
-                            text = display if display else target
-                            if safe_identifier(text) in self.bib_to_norm:
-                                return process_code(text)
-                            if safe_identifier(target) in self.bib_to_norm:
-                                return process_code(target, display_text=text)
+            # 3. Restore protected links
+            def restore_link(m: re.Match[str]) -> str:
+                idx = int(m.group(1))
+                return placeholders[idx]
 
-                    # Extract canonical codes but don't modify the link text
-                    link_bib = safe_identifier(link_text)
-                    for c in self._sorted_codes:
-                        bib = safe_identifier(c)
-                        if bib and bib in link_bib:
-                            canonical = self.bib_to_norm.get(bib, c)
-                            if canonical not in found_codes:
-                                found_codes.append(canonical)
-                            break
-                    return link_text
-
-                # 2. Raw archive code
-                return process_code(m.group(2))
-
-            processed_line = self._combined_pattern.sub(replace_match, line)
-            new_lines.append(processed_line)
+            final_line = re.sub(r"___LINK_(\d+)___", restore_link, processed_line)
+            new_lines.append(final_line)
 
         return "\n".join(new_lines), found_codes
 
