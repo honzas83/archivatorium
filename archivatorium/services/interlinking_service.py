@@ -523,6 +523,38 @@ class InterlinkingService:
         new_table_body = "\n".join(new_rows)
         return content[: match.start()] + header + new_table_body + content[match.end() :]
 
+    def _make_flexible(self, c: str) -> str:
+        # 1. Expand canonical parts to include variants from expansion_map
+        expanded = c
+        placeholders: dict[str, str] = {}
+        for canonical, variants in sorted(
+            self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True
+        ):
+            if canonical in expanded:
+                esc_canonical = re.escape(canonical)
+                all_variants = [esc_canonical] + variants
+                group = f"(?:{'|'.join(all_variants)})"
+
+                ph = f"___GROUP{len(placeholders)}___"
+                placeholders[ph] = group
+                expanded = expanded.replace(canonical, ph)
+
+        # 2. re.escape handles parentheses and other special chars
+        s = re.escape(expanded)
+
+        # 3. Replace escaped or unescaped / and - with [/ \-]*
+        s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", s)
+        s = s.replace(r"\(", r"[/ \\-]*\(").replace(r"\)", r"\)[/ \\-]*")
+
+        # 4. Restore placeholders
+        for ph, group in placeholders.items():
+            s = s.replace(re.escape(ph), group)
+
+        # 5. Collapse multiple identical patterns to keep it clean
+        while "[/ \\-]*[/ \\-]*" in s:
+            s = s.replace("[/ \\-]*[/ \\-]*", "[/ \\-]*")
+        return s
+
     def interlink_body(
         self,
         content: str,
@@ -543,60 +575,41 @@ class InterlinkingService:
         # Alias for backward compatibility in unit tests
         cur_path = current_relative_path or current_filename
 
-        # Sort codes by length descending to ensure longest match priority
-        # Include both exact codes and BibTeX-style keys
-        all_search_keys = set(self.code_map.keys()) | set(self.bibtex_map.keys())
-        sorted_codes = sorted(all_search_keys, key=len, reverse=True)
-        if not sorted_codes:
+        # Lazy-compilation of the static combined pattern
+        current_keys = set(self.code_map.keys()) | set(self.bibtex_map.keys())
+        if (
+            not hasattr(self, "_combined_pattern")
+            or self._combined_pattern is None
+            or getattr(self, "_last_map_keys", None) != current_keys
+        ):
+            self._last_map_keys = current_keys
+            sorted_codes = sorted(current_keys, key=len, reverse=True)
+            if not sorted_codes:
+                self._combined_pattern = None
+            else:
+                codes_regex_parts = [self._make_flexible(c) for c in sorted_codes]
+                codes_pattern = "|".join(codes_regex_parts)
+                self._combined_pattern = re.compile(
+                    rf"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))|(?<![a-zA-Z0-9\[])({codes_pattern})(?![a-zA-Z0-9\]/])"
+                )
+
+        if not self._combined_pattern:
             return content, []
 
-        # Build a single regex to match either any existing link or any archive code
-        # For codes, we allow /, -, and spaces interchangeably and optionally
-        def make_flexible(c: str) -> str:
-            # 1. Expand canonical parts to include variants from expansion_map
-            expanded = c
-            placeholders: dict[str, str] = {}
-            for canonical, variants in sorted(
-                self.expansion_map.items(), key=lambda x: len(x[0]), reverse=True
-            ):
-                if canonical in expanded:
-                    esc_canonical = re.escape(canonical)
-                    all_variants = [esc_canonical] + variants
-                    group = f"(?:{'|'.join(all_variants)})"
-
-                    ph = f"___GROUP{len(placeholders)}___"
-                    placeholders[ph] = group
-                    expanded = expanded.replace(canonical, ph)
-
-            # 2. re.escape handles parentheses and other special chars
-            s = re.escape(expanded)
-
-            # 3. Replace escaped or unescaped / and - with [/ \-]*
-            s = re.sub(r"\\/|/|\\-|-", r"[/ \\-]*", s)
-            s = s.replace(r"\(", r"[/ \\-]*\(").replace(r"\)", r"\)[/ \\-]*")
-
-            # 4. Restore placeholders
-            for ph, group in placeholders.items():
-                s = s.replace(re.escape(ph), group)
-
-            # 5. Collapse multiple identical patterns to keep it clean
-            while "[/ \\-]*[/ \\-]*" in s:
-                s = s.replace("[/ \\-]*[/ \\-]*", "[/ \\-]*")
-            return s
-
-        codes_regex_parts = [make_flexible(c) for c in sorted_codes]
-        codes_pattern = "|".join(codes_regex_parts)
-
-        # Single-pass regex to avoid re-linking already linked text.
-        combined_pattern = re.compile(
-            rf"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))|(?<![a-zA-Z0-9\[])({codes_pattern})(?![a-zA-Z0-9\]/])"
-        )
-
-        found_codes = []
-        lines = content.split("\n")
-        new_lines = []
+        # Sort codes for the display-matching logic inside callbacks (also static/cached)
+        if (
+            not hasattr(self, "_sorted_codes")
+            or self._sorted_codes is None
+            or getattr(self, "_last_sorted_keys", None) != current_keys
+        ):
+            self._last_sorted_keys = current_keys
+            self._sorted_codes = sorted(current_keys, key=len, reverse=True)
 
         own_code_bib = safe_identifier(own_archive_code) if own_archive_code else None
+
+        lines = content.split("\n")
+        new_lines = []
+        found_codes = []
 
         for line in lines:
             if "archive_code:" in line:
@@ -646,7 +659,7 @@ class InterlinkingService:
 
                     # Extract canonical codes but don't modify the link text
                     link_bib = safe_identifier(link_text)
-                    for c in sorted_codes:
+                    for c in self._sorted_codes:
                         bib = safe_identifier(c)
                         if bib and bib in link_bib:
                             canonical = self.bib_to_norm.get(bib, c)
@@ -658,114 +671,135 @@ class InterlinkingService:
                 # 2. Raw archive code
                 return process_code(m.group(2))
 
-            processed_line = combined_pattern.sub(replace_match, line)
+            processed_line = self._combined_pattern.sub(replace_match, line)
             new_lines.append(processed_line)
 
         return "\n".join(new_lines), found_codes
+
+    def _interlink_single_doc(
+        self,
+        doc: VaultDocument,
+        tag_parser: Any,
+        force: bool,
+        dry_run: bool,
+        verbose: bool,
+    ) -> bool:
+        md_file = doc.path
+        try:
+            content = md_file.read_text(encoding="utf-8")
+
+            # 1. Separate frontmatter from body to protect it
+            fm_match = re.match(r"^(---\s*\n.*?\n---\s*\n)(.*)$", content, re.DOTALL)
+            if fm_match:
+                frontmatter_part = stringify_frontmatter(doc.frontmatter)
+                body_part = fm_match.group(2)
+                source_lang = doc.language
+            else:
+                frontmatter_part = ""
+                body_part = content
+                source_lang = "English"
+
+            # 2. Split body part to protect metadata and citation callouts
+            metadata_callout, abstract_callout, main_body, citation_callout = self.split_body_parts(body_part)
+
+            # 3. Interlink abstract and main body (protecting metadata and citation callouts)
+            new_abstract, desc_codes_abstract = self.interlink_body(
+                abstract_callout, source_lang, doc.vault_relative_path, doc.archive_code, force=force
+            )
+            new_main, desc_codes_body = self.interlink_body(
+                main_body, source_lang, doc.vault_relative_path, doc.archive_code, force=force
+            )
+
+            # Combine discovered codes maintaining order
+            discovered_codes = []
+            for c in desc_codes_abstract + desc_codes_body:
+                if c not in discovered_codes:
+                    discovered_codes.append(c)
+
+            # 4. Interlink Metadata callout with discovered codes
+            updated_metadata_callout = self.interlink_metadata(
+                metadata_callout, source_lang, doc.vault_relative_path, discovered_codes,
+                own_archive_code=doc.archive_code
+            )
+
+            # 5. Clean citation callout (in case it is already broken)
+            cleaned_citation_callout = self.clean_citation_callout(citation_callout)
+
+            # Assemble everything back
+            new_body_parts = []
+            if updated_metadata_callout.strip():
+                new_body_parts.append(updated_metadata_callout.strip())
+            if new_abstract.strip():
+                new_body_parts.append(new_abstract.strip())
+            if new_main.strip():
+                new_body_parts.append(new_main.strip())
+
+            new_body = "\n\n".join(new_body_parts)
+            if not new_body.endswith("\n\n") and not new_body.endswith("\n"):
+                new_body += "\n\n"
+            elif new_body.endswith("\n") and not new_body.endswith("\n\n"):
+                new_body += "\n"
+
+            if cleaned_citation_callout.strip():
+                new_body += cleaned_citation_callout.strip() + "\n"
+
+            new_content = frontmatter_part + new_body
+
+            if new_content != content:
+                rel_path = doc.vault_relative_path
+                if verbose or dry_run:
+                    action = "[DRY-RUN] Would update" if dry_run else "Updating"
+                    logger.info(f"{action}: {rel_path}")
+
+                if not dry_run:
+                    md_file.write_text(new_content, encoding="utf-8")
+
+                    # Reparse the document to update in-memory record
+                    from archivatorium.utils.metadata import parse_frontmatter
+                    reparsed_content = new_content
+                    metadata, body = parse_frontmatter(reparsed_content)
+                    doc.body = body
+                    doc.frontmatter = metadata
+                    doc.archive_code = metadata.get("archive_code", "")
+                    doc.language = metadata.get("language", "English") or "English"
+
+                    raw_refs = metadata.get("references", [])
+                    if not isinstance(raw_refs, list):
+                        raw_refs = [raw_refs] if raw_refs else []
+                    doc.raw_references = raw_refs
+
+                    doc.canonical_tags = tag_parser.parse_text(
+                        reparsed_content, file_path=md_file
+                    )
+                return True
+        except Exception as e:
+            logger.error(f"Error processing {md_file}: {e}")
+        return False
 
     def interlink_all(
         self, dry_run: bool = False, verbose: bool = False, force: bool = False
     ) -> None:
         """Second pass: perform in-place interlinking on all files, then reparse updated ones."""
         updated_count = 0
-        from archivatorium.utils.metadata import parse_frontmatter
         from archivatorium.utils.tag_parser import CanonicalTagParser
 
         tag_parser = CanonicalTagParser()
 
-        for doc in self.documents:
-            md_file = doc.path
-            try:
-                content = md_file.read_text(encoding="utf-8")
-
-                # 1. Separate frontmatter from body to protect it
-                fm_match = re.match(r"^(---\s*\n.*?\n---\s*\n)(.*)$", content, re.DOTALL)
-                if fm_match:
-                    frontmatter_part = stringify_frontmatter(doc.frontmatter)
-                    body_part = fm_match.group(2)
-                    source_lang = doc.language
-                else:
-                    frontmatter_part = ""
-                    body_part = content
-                    source_lang = "English"
-
-                # 2. Split body part to protect metadata and citation callouts
-                metadata_callout, abstract_callout, main_body, citation_callout = self.split_body_parts(body_part)
-
-                # 3. Interlink abstract and main body (protecting metadata and citation callouts)
-                new_abstract, desc_codes_abstract = self.interlink_body(
-                    abstract_callout, source_lang, doc.vault_relative_path, doc.archive_code, force=force
-                )
-                new_main, desc_codes_body = self.interlink_body(
-                    main_body, source_lang, doc.vault_relative_path, doc.archive_code, force=force
-                )
-
-                # Combine discovered codes maintaining order
-                discovered_codes = []
-                for c in desc_codes_abstract + desc_codes_body:
-                    if c not in discovered_codes:
-                        discovered_codes.append(c)
-
-                # 4. Interlink Metadata callout with discovered codes
-                updated_metadata_callout = self.interlink_metadata(
-                    metadata_callout, source_lang, doc.vault_relative_path, discovered_codes,
-                    own_archive_code=doc.archive_code
-                )
-
-                # 5. Clean citation callout (in case it is already broken)
-                cleaned_citation_callout = self.clean_citation_callout(citation_callout)
-
-                # Assemble everything back
-                new_body_parts = []
-                if updated_metadata_callout.strip():
-                    new_body_parts.append(updated_metadata_callout.strip())
-                if new_abstract.strip():
-                    new_body_parts.append(new_abstract.strip())
-                if new_main.strip():
-                    new_body_parts.append(new_main.strip())
-
-                new_body = "\n\n".join(new_body_parts)
-                if not new_body.endswith("\n\n") and not new_body.endswith("\n"):
-                    new_body += "\n\n"
-                elif new_body.endswith("\n") and not new_body.endswith("\n\n"):
-                    new_body += "\n"
-
-                if cleaned_citation_callout.strip():
-                    new_body += cleaned_citation_callout.strip() + "\n"
-
-                new_content = frontmatter_part + new_body
-
-                if new_content != content:
-                    rel_path = doc.vault_relative_path
-                    if verbose or dry_run:
-                        action = "[DRY-RUN] Would update" if dry_run else "Updating"
-                        logger.info(f"{action}: {rel_path}")
-
-                    if not dry_run:
-                        md_file.write_text(new_content, encoding="utf-8")
-
-                        # Reparse the document to update in-memory record
-                        reparsed_content = new_content
-                        metadata, body = parse_frontmatter(reparsed_content)
-                        doc.body = body
-                        doc.frontmatter = metadata
-                        doc.archive_code = metadata.get("archive_code", "")
-                        doc.language = metadata.get("language", "English") or "English"
-
-                        raw_refs = metadata.get("references", [])
-                        if not isinstance(raw_refs, list):
-                            raw_refs = [raw_refs] if raw_refs else []
-                        doc.raw_references = raw_refs
-
-                        doc.canonical_tags = tag_parser.parse_text(
-                            reparsed_content, file_path=md_file
-                        )
-
+        if verbose:
+            for doc in self.documents:
+                if self._interlink_single_doc(doc, tag_parser, force, dry_run, verbose):
                     updated_count += 1
-
-            except Exception as e:
-                logger.error(f"Error processing {md_file}: {e}")
-                continue
+        else:
+            import click
+            with click.progressbar(
+                self.documents,
+                label="Interlinking documents",
+                show_eta=True,
+                show_pos=True,
+            ) as bar:
+                for doc in bar:
+                    if self._interlink_single_doc(doc, tag_parser, force, dry_run, verbose):
+                        updated_count += 1
 
         msg = f"Interlinking complete. {updated_count} files modified"
         if dry_run:

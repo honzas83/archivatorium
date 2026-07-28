@@ -126,7 +126,7 @@ def test_interlink_metadata_references_use_basename_for_nested_paths():
     )
     service.code_map = {
         "CODE1": {"English": "folder/current.md"},
-        "NPG(STUDY)/38": {"English": nested_target},
+        "NPG(STUDY)38": {"English": nested_target},
     }
 
     content = """> [!info] Metadata
