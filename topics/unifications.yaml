@@ -22,17 +22,80 @@
 
 unifications:
   # Staff Group unifications (handles variants like 'Staff-Group', 'ST ff Group', etc.)
+  # Total Occurrences: ~1,400+
   - pattern: "\\(St[af\\.]*f[ -]?Group\\)"
     replacement: "(SG)"
   
-  # Study Group unifications (handles 'Study/', 'Study Group', and French 'Etude')
-  - pattern: "[/-]?(?:Study|Etude|Étude)(?:[ -]?Group)?(?=[(/ -]|$)"
+  # Study Group unifications (simplified: combines parenthesized and slash-swallowing variants)
+  # Total Occurrences: ~700+
+  - pattern: "[/-]?\\(?(?:Study|Etude|Étude)(?:[ -]?Group)?\\)?[/-]?"
     replacement: "(STUDY)"
     
-  # Prefix typos for NPG (Common OCR variations, >= 5 occurrences verified)
-  - pattern: "(?<![a-zA-Z0-9])(?:NGP|NPC|UPG|NFG|NCG|NEG|MFG|JPG|MPQ|MYC|NGF|NFC|PCN|NG|IPG)(?=[(/ -])"
+  # NP -> NPG typo correction (specifically when followed by Staff Group or SG variants)
+  # Total Occurrences: ~25
+  - pattern: "(?<![a-zA-Z0-9])NP(?=[(/-](?:SG|StaffGroup|Staff[ -]?Group))"
     replacement: "NPG"
 
+  # Prefix typos for NPG (Common OCR variations, >= 5 occurrences verified, lookahead restricted to avoid English words)
+  # Total Occurrences: ~477 (NGP: 108, NPC: 97, NFG: 103, NEG: 26, MFG: 19, NGF: 6, NFC: 16, NG: 27, IPG: 39, NPQ: 27, MPG: 9)
+  - pattern: "(?<![a-zA-Z0-9])(?:NGP|NPC|NFG|NEG|MFG|NGF|NFC|NG|IPG|NPQ|MPG)(?=[(/-])"
+    replacement: "NPG"
+
+  # NPG-specific revision unifications (unifies verbal/parenthesized revisions to match standard -REV1/2/3 filenames)
+  # Total Occurrences: ~150+
+  - pattern: "(?<![a-zA-Z0-9])(NPG[a-zA-Z0-9\\(\\)]+)\\s*\\((?:1st\\s*)?(?:Revised|Revise)\\)"
+    replacement: "\\1-REV1"
+  - pattern: "(?<![a-zA-Z0-9])(NPG[a-zA-Z0-9\\(\\)]+)\\s*\\(2nd\\s*(?:Revise|Revision)\\)"
+    replacement: "\\1-REV2"
+  - pattern: "(?<![a-zA-Z0-9])(NPG[a-zA-Z0-9\\(\\)]+)\\s*\\(3rd\\s*(?:Revise|Revision)\\)"
+    replacement: "\\1-REV3"
+
+  # DPQ prefix typos (routes DPC typo prefixes followed by (yy) directly to DPQ, e.g. DPO(72) to DPQ(72))
+  # Total Occurrences: ~130 (DPO: 85, DPG: 32, DFC: 13)
+  - pattern: "(?<![a-zA-Z0-9])(?:DFC|DPO|DPG)(?=\\(\\d{2,4}\\)(?![/-]))"
+    replacement: "DPQ"
+
+  # DRC prefix typos (routes /DS, /WP, /N typo prefixes to DRC before general DPC fallback)
+  # Total Occurrences: ~42 (DEC: 29, DFC: 8, DGC: 5)
+  - pattern: "(?<![a-zA-Z0-9])(?:DFC|DEC|DGC)(?=[/-](?:DS|WP|N)(?=[(/ -]|$))"
+    replacement: "DRC"
+
   # Series typos (unifies Working Paper / Working File variants into standard WP)
-  - pattern: "(?<=[(/ -])(?:VP|NP|WF|NT)(?=[(/ -]|$)"
+  # Total Occurrences: ~339 (VP: 133, NP: 9, WF: 197)
+  - pattern: "(?<=[(/ -])(?:VP|NP|WF)(?=[(/ -]|$)"
     replacement: "WP"
+
+  # Prefix typos for DPC (Common OCR variations, >= 5 occurrences verified, lookahead restricted to avoid English words)
+  # Total Occurrences: ~4,014 (DFC: 1937, DEC: 193, DPO: 959, DPG: 494, DEP: 81, DGC: 51, DTC: 11, DIC: 21, DCP: 9, DFP: 15, DPP: 143)
+  - pattern: "(?<![a-zA-Z0-9])(?:DFC|DEC|DPO|DPG|DEP|DGC|DTC|DIC|DCP|DFP|DPP)(?=[(/-])"
+    replacement: "DPC"
+
+  # Format correction for DPC (handles DPC/yy/nn variants where slash is used instead of parentheses)
+  # Total Occurrences: ~200+
+  - pattern: "(?<![a-zA-Z0-9])DPC/(\\d{2})/(\\d+)(?![a-zA-Z0-9])"
+    replacement: "DPC/D(\\1)\\2"
+
+  # Format correction for DPC (handles DPC/0( or DPC/1( typos where 0 or 1 is transcribed instead of D)
+  # Total Occurrences: ~50+
+  - pattern: "(?<![a-zA-Z0-9])DPC/[01IO](?=\\()"
+    replacement: "DPC/D"
+
+  # Prefix typos for C-M (handles G-M, O-M, U-M, J-M and C-N typos, >= 5 occurrences verified)
+  # Total Occurrences: ~770 (C-N: 247, C/N: 6, G-M: 281, O-M: 226, U-M: 5, J-M: 5)
+  - pattern: "(?<![a-zA-Z0-9])(?:[GOUJ]-M|C[-/]N)(?=[(/ -]|$|\\d)"
+    replacement: "C-M"
+
+  # Prefix typos for C-R (handles G-R, O-R, U-R typos, >= 5 occurrences verified)
+  # Total Occurrences: ~159 (G-R: 74, O-R: 80, U-R: 5)
+  - pattern: "(?<![a-zA-Z0-9])[GOU]-R(?=[(/ -]|$|\\d)"
+    replacement: "C-R"
+
+  # Prefix typos for PO (handles FO and TO typos, >= 5 occurrences verified, lookahead restricted to avoid English words like 'to' or 'for')
+  # Total Occurrences: ~430 (FO: 383, TO: 47)
+  - pattern: "(?<![a-zA-Z0-9])[FT]O(?=[(/-])"
+    replacement: "PO"
+
+  # Prefix typos for AC (handles AO typos, >= 5 occurrences verified, lookahead restricted)
+  # Total Occurrences: ~44 (AO: 44)
+  - pattern: "(?<![a-zA-Z0-9])AO(?=[(/-])"
+    replacement: "AC"
