@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
-from archivatorium.ocr_engine import OCREngine, SYSTEM_PROMPT, USER_PROMPT
+from archivatorium.ocr_engine import FIRERED_USER_PROMPT, OCREngine, SYSTEM_PROMPT, USER_PROMPT
 
 
 GLM_DEFAULT_OPTIONS = {
@@ -14,6 +14,19 @@ GLM_DEFAULT_OPTIONS = {
     "repeat_last_n": 512,
     "num_predict": 8192,
 }
+
+FIRERED_EXPECTED_PROMPT = (
+    "You are an expert in converting PDF images to Markdown format.\n\n"
+    "Please convert the provided document image into Markdown while preserving the original "
+    "document structure.\n\n"
+    "Requirements:\n"
+    "- Preserve headings, paragraphs, lists, and reading order.\n"
+    "- Convert tables to HTML table format.\n"
+    "- Convert mathematical formulas to LaTeX.\n"
+    "- Ignore figures and images.\n"
+    "- Do not add, summarize, correct, or infer any content that is not present in the document.\n"
+    "- Output only the converted Markdown."
+)
 
 
 @pytest.fixture
@@ -252,6 +265,109 @@ def test_glm_resume_does_not_send_existing_neighbor_text(
     kwargs = mock_ollama_client.chat.call_args.kwargs
     assert "EXISTING PAGE SECRET" not in str(kwargs["messages"])
     assert kwargs["think"] is False
+
+
+def test_firered_single_page_uses_exact_isolated_request(
+    mock_ollama_client, ocr_response_factory, ocr_call_kwargs
+):
+    engine = OCREngine(mode="firered", model="remote/firered-ocr:latest")
+    mock_ollama_client.chat.return_value = ocr_response_factory("FireRed text")
+
+    assert FIRERED_USER_PROMPT == FIRERED_EXPECTED_PROMPT
+    assert (
+        engine.ocr_single_page(
+            image_path=Path("page.png"),
+            last_text="SECRET PREVIOUS PAGE",
+        )
+        == "FireRed text"
+    )
+
+    assert ocr_call_kwargs(mock_ollama_client) == {
+        "model": "remote/firered-ocr:latest",
+        "messages": [
+            {
+                "role": "user",
+                "content": FIRERED_EXPECTED_PROMPT,
+                "images": ["page.png"],
+            }
+        ],
+        "options": {"num_ctx": 8192, "num_predict": 4096 * 4},
+        "stream": False,
+    }
+
+
+def test_firered_retry_reuses_identical_isolated_request(mock_ollama_client, ocr_response_factory):
+    engine = OCREngine(mode="firered")
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("Recovered"),
+    ]
+
+    with patch("archivatorium.ocr_engine.time.sleep"):
+        assert (
+            engine.ocr_single_page(
+                image_path=Path("page.png"),
+                last_text="SECRET PREVIOUS PAGE",
+                retry=2,
+            )
+            == "Recovered"
+        )
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+    assert "SECRET PREVIOUS PAGE" not in str(first["messages"])
+    assert "think" not in first
+
+
+def test_firered_multipage_requests_do_not_share_recognized_text(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+):
+    engine = OCREngine(mode="firered")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("FIRST PAGE SECRET"),
+        ocr_response_factory("SECOND PAGE"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(input_pdf=Path("dummy.pdf"))
+
+    second_messages = mock_ollama_client.chat.call_args_list[1].kwargs["messages"]
+    assert "FIRST PAGE SECRET" not in str(second_messages)
+    assert second_messages[0]["content"] == FIRERED_EXPECTED_PROMPT
+
+
+def test_firered_resume_does_not_send_existing_neighbor_text(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+    tmp_path,
+):
+    engine = OCREngine(mode="firered")
+    output_md = tmp_path / "output.md"
+    output_md.write_text(
+        "---\n\n# Page 1\n\nEXISTING PAGE SECRET\n",
+        encoding="utf-8",
+    )
+    mock_ollama_client.chat.return_value = ocr_response_factory("Page 2")
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(input_pdf=Path("dummy.pdf"), output_md=output_md)
+
+    kwargs = mock_ollama_client.chat.call_args.kwargs
+    assert "EXISTING PAGE SECRET" not in str(kwargs["messages"])
+    assert kwargs["messages"][0]["content"] == FIRERED_EXPECTED_PROMPT
+    assert "think" not in kwargs
 
 
 def test_standard_request_preserves_exact_existing_shape(
