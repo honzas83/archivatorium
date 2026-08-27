@@ -51,6 +51,19 @@ USER_PROMPT = (
 
 GLM_USER_PROMPT = "Text Recognition:"
 
+FIRERED_USER_PROMPT = (
+    "You are an expert in converting PDF images to Markdown format.\n\n"
+    "Please convert the provided document image into Markdown while preserving the original "
+    "document structure.\n\n"
+    "Requirements:\n"
+    "- Preserve headings, paragraphs, lists, and reading order.\n"
+    "- Convert tables to HTML table format.\n"
+    "- Convert mathematical formulas to LaTeX.\n"
+    "- Ignore figures and images.\n"
+    "- Do not add, summarize, correct, or infer any content that is not present in the document.\n"
+    "- Output only the converted Markdown."
+)
+
 OllamaOptionValue: TypeAlias = int | float
 
 
@@ -134,6 +147,15 @@ GLM_OCR_PROFILE = OCRModeProfile(
     ),
 )
 
+FIRERED_OCR_PROFILE = OCRModeProfile(
+    name="firered",
+    system_prompt=None,
+    user_prompt=FIRERED_USER_PROMPT,
+    include_previous_page_context=False,
+    think=None,
+    inference_defaults=(("num_predict", 4096 * 4),),
+)
+
 
 def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
     """Resolve the public mode, defaulting omitted values to standard OCR."""
@@ -142,6 +164,8 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
         return STANDARD_OCR_PROFILE
     if mode == "glm":
         return GLM_OCR_PROFILE
+    if mode == "firered":
+        return FIRERED_OCR_PROFILE
     raise ValueError(f"Unsupported OCR mode: {mode}")
 
 

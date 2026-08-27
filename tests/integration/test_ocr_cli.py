@@ -7,7 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from archivatorium.cli import cli
-from archivatorium.ocr_engine import SYSTEM_PROMPT, USER_PROMPT
+from archivatorium.ocr_engine import FIRERED_USER_PROMPT, SYSTEM_PROMPT, USER_PROMPT
 
 
 def test_ocr_command_basic(temp_ocr_dirs: tuple[Path, Path]) -> None:
@@ -119,6 +119,58 @@ def test_ocr_command_glm_mode(
         "repeat_penalty": 1.1,
         "repeat_last_n": 512,
         "num_predict": 8192,
+    }
+
+
+def test_ocr_command_firered_mode_preserves_custom_model(
+    temp_ocr_dirs: tuple[Path, Path],
+    ocr_response_factory: Callable[[str], MagicMock],
+    ocr_call_kwargs: Callable[..., dict[str, Any]],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader = MagicMock()
+        mock_reader.pages = [MagicMock()]
+        mock_reader_class.return_value = mock_reader
+        mock_convert.return_value = [MagicMock()]
+        mock_client = MagicMock()
+        mock_client.chat.return_value = ocr_response_factory("FireRed transcription")
+        mock_client_class.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "ocr",
+                "--mode",
+                "firered",
+                "--model",
+                "remote/firered-ocr:latest",
+                str(input_dir),
+                str(output_dir),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert (output_dir / "test.md").read_text(encoding="utf-8").endswith("FireRed transcription")
+    kwargs = ocr_call_kwargs(mock_client)
+    assert kwargs == {
+        "model": "remote/firered-ocr:latest",
+        "messages": [
+            {
+                "role": "user",
+                "content": FIRERED_USER_PROMPT,
+                "images": [kwargs["messages"][0]["images"][0]],
+            }
+        ],
+        "options": {"num_ctx": 8192 * 3, "num_predict": 4096 * 4},
+        "stream": False,
     }
 
 

@@ -39,7 +39,7 @@ archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--user TEXT`: DigestAuth username (or environment variable `OLLAMA_USER`).
 - `--password TEXT`: DigestAuth password (or environment variable `OLLAMA_PASSWORD`).
 - `--model TEXT`: The VLM model name to use (default: `qwen3.5:9b`).
-- `--mode [standard|glm]`: OCR request profile (default: `standard`). Standard mode preserves the existing prompts and previous-page context; GLM mode uses the native `Text Recognition:` prompt, disables thinking, and recognizes every page independently.
+- `--mode [standard|glm|firered]`: OCR request profile (default: `standard`). Standard mode preserves the existing prompts and previous-page context; GLM mode uses the native `Text Recognition:` prompt, disables thinking, and recognizes every page independently; FireRed mode uses its Markdown-conversion prompt and recognizes every page without previous-page context.
 - `--temperature FLOAT`: Override the selected mode's temperature (`>= 0`).
 - `--top-p FLOAT`: Override top-p sampling (`0..1`).
 - `--top-k INTEGER`: Override top-k sampling (`>= 0`).
@@ -62,6 +62,16 @@ archivatorium ocr \
 ```
 
 Without overrides, GLM mode sends `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, `repeat_last_n=512`, and `num_predict=8192`. The wider repetition window helps prevent runaway duplication of longer OCR passages. Explicit inference options replace only their corresponding mode defaults.
+
+FireRed mode keeps the selected model and existing inference defaults, but sends its dedicated prompt without a system message or text from another page:
+
+```bash
+archivatorium ocr \
+  --host http://ollama.example:11434 \
+  --mode firered \
+  --model firered-ocr \
+  INPUT_DIR OUTPUT_DIR
+```
 
 ### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.
