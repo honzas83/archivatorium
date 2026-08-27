@@ -38,9 +38,9 @@
 
 ## Decision 4: Resolve inference options by profile, then explicit CLI override
 
-**Decision**: Define the GLM profile defaults as `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, and `num_predict=8192`. Each new CLI option defaults to `None`; only non-`None` values replace profile defaults. Preserve the current `num_ctx` behavior because it is outside the requested default set. In standard mode with no overrides, send exactly the existing options; explicit overrides may tune the same named API options without changing prompts or context behavior.
+**Decision**: Define the GLM profile defaults as `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, `repeat_last_n=512`, and `num_predict=8192`. Each new CLI option defaults to `None`; only non-`None` values replace profile defaults. Preserve the current `num_ctx` behavior because it is outside the requested default set. In standard mode with no overrides, send exactly the existing options; explicit overrides may tune the same named API options without changing prompts or context behavior.
 
-**Rationale**: `None` distinguishes omission from an intentional zero. The official [GLM-OCR configuration](https://github.com/zai-org/GLM-OCR/blob/main/glmocr/config.yaml) defines the requested prompt and values as `max_tokens`, `temperature`, `top_p`, `top_k`, and `repetition_penalty`. The native Ollama [Modelfile parameter reference](https://docs.ollama.com/modelfile) confirms the corresponding API option names `num_predict`, `temperature`, `top_p`, `top_k`, and `repeat_penalty`. A profile-first merge keeps mode responsible for defaults while preserving explicit user control.
+**Rationale**: `None` distinguishes omission from an intentional zero. The official [GLM-OCR configuration](https://github.com/zai-org/GLM-OCR/blob/main/glmocr/config.yaml) defines the requested prompt and core sampling values. The native Ollama [Modelfile parameter reference](https://docs.ollama.com/modelfile) confirms the API option names and defines `repeat_last_n` as the number of recent tokens considered by repetition prevention (`0` disables it and `-1` uses `num_ctx`). A 512-token GLM default covers repeated multi-line passages that can exceed Ollama's ordinary 64-token lookback while remaining bounded. A profile-first merge keeps mode responsible for defaults while preserving explicit user control.
 
 **Alternatives considered**:
 
@@ -50,7 +50,7 @@
 
 ## Decision 5: Use the existing CLI mechanism, not a new config store
 
-**Decision**: Expose `--temperature`, `--top-p`, `--top-k`, `--repeat-penalty`, and `--num-predict`. Precedence for this feature is CLI override over mode default. Do not introduce YAML, TOML, or new environment variables because the OCR command has no existing inference configuration loader.
+**Decision**: Expose `--temperature`, `--top-p`, `--top-k`, `--repeat-penalty`, `--repeat-last-n`, and `--num-predict`. Precedence for this feature is CLI override over mode default. Do not introduce YAML, TOML, or new environment variables because the OCR command has no existing inference configuration loader.
 
 **Rationale**: The feature asks to use existing configuration or command-line mechanisms where applicable. CLI options are the applicable existing mechanism; a new configuration subsystem would expand scope and lifecycle substantially. The constructor-level override representation can accept a future config loader without redesigning request resolution.
 
@@ -61,7 +61,7 @@
 
 ## Decision 6: Validate CLI input before any document processing
 
-**Decision**: Reject unknown modes and non-numeric values through Click before engine creation. Apply these semantic ranges in both CLI and programmatic validation: `temperature >= 0`, `0 <= top_p <= 1`, `top_k >= 0`, `repeat_penalty > 0`, and `num_predict` is either `-1` (the documented unlimited value) or a positive integer. Merge explicit zero values with `is not None`, never truthiness.
+**Decision**: Reject unknown modes and non-numeric values through Click before engine creation. Apply these semantic ranges in both CLI and programmatic validation: `temperature >= 0`, `0 <= top_p <= 1`, `top_k >= 0`, `repeat_penalty > 0`, `repeat_last_n >= -1`, and `num_predict` is either `-1` (the documented unlimited value) or a positive integer. Merge explicit zero values with `is not None`, never truthiness.
 
 **Rationale**: Early validation prevents partially processed batches. The ranges cover deterministic GLM defaults, allow meaningful zero boundaries, and preserve the documented `num_predict=-1` API value.
 

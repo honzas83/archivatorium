@@ -41,9 +41,9 @@ description: "Dependency-ordered implementation tasks for GLM OCR mode"
 
 ## Phase 3: User Story 1 - Run OCR in GLM Mode (Priority: P1) 🎯 Functional MVP
 
-**Goal**: `--mode glm` sends the native prompt, disables thinking through the remote API contract, applies the five GLM defaults, and recognizes every page without neighboring OCR context.
+**Goal**: `--mode glm` sends the native prompt, disables thinking through the remote API contract, applies the six GLM defaults, and recognizes every page without neighboring OCR context.
 
-**Independent Test**: Run the focused US1 tests for a multipage document plus resume and retry cases; every API call must contain one `Text Recognition:` user message, `think=False`, all five defaults, and no text from another page.
+**Independent Test**: Run the focused US1 tests for a multipage document plus resume and retry cases; every API call must contain one `Text Recognition:` user message, `think=False`, all six defaults, and no text from another page.
 
 ### Tests for User Story 1
 
@@ -54,7 +54,7 @@ description: "Dependency-ordered implementation tasks for GLM OCR mode"
 
 ### Implementation for User Story 1
 
-- [X] T005 [US1] Implement the GLM profile and `/api/chat` request builder with one `Text Recognition:` image message, top-level `think=False`, existing `num_ctx`, and the five required defaults in archivatorium/ocr_engine.py
+- [X] T005 [US1] Implement the GLM profile and `/api/chat` request builder with one `Text Recognition:` image message, top-level `think=False`, existing `num_ctx`, and the required defaults in archivatorium/ocr_engine.py
 - [X] T006 [US1] Enforce GLM page-context suppression in both OCREngine.run_ocr and OCREngine.ocr_single_page while preserving identical isolated payloads across retries in archivatorium/ocr_engine.py
 - [X] T007 [US1] Add optional `--mode glm` parsing and propagate the selected mode into OCREngine without changing positional arguments in archivatorium/cli.py
 - [X] T008 [US1] Run and pass the US1 scenarios in tests/unit/test_ocr_engine.py and tests/integration/test_ocr_cli.py
@@ -110,7 +110,7 @@ description: "Dependency-ordered implementation tasks for GLM OCR mode"
 
 ## Phase 6: User Story 3 - Override GLM Inference Defaults (Priority: P3)
 
-**Goal**: Five optional CLI parameters override only their matching mode defaults, preserve valid zero values, and reject invalid input before OCR processing.
+**Goal**: Six optional CLI parameters override only their matching mode defaults, preserve valid zero values, and reject invalid input before OCR processing.
 
 **Independent Test**: Parameterize each option individually and all options together; verify exact effective `options`, unchanged unspecified defaults, zero preservation, documented ranges, and early rejection without API or rendering calls.
 
@@ -119,12 +119,12 @@ description: "Dependency-ordered implementation tasks for GLM OCR mode"
 > Write these tests first and confirm they fail before override merging and validation are implemented.
 
 - [X] T018 [P] [US3] Add parameterized default, single-override, all-overrides, explicit-zero, `num_predict=-1`, and invalid programmatic-value tests in tests/unit/test_ocr_engine.py
-- [X] T019 [P] [US3] Add CLI propagation and range-rejection tests for `--temperature`, `--top-p`, `--top-k`, `--repeat-penalty`, and `--num-predict` in tests/integration/test_ocr_cli.py
+- [X] T019 [P] [US3] Add CLI propagation and range-rejection tests for `--temperature`, `--top-p`, `--top-k`, `--repeat-penalty`, `--repeat-last-n`, and `--num-predict` in tests/integration/test_ocr_cli.py
 
 ### Implementation for User Story 3
 
-- [X] T020 [US3] Implement profile-default plus non-None override merging and validate temperature, top_p, top_k, repeat_penalty, and num_predict in archivatorium/ocr_engine.py
-- [X] T021 [US3] Add the five optional Click parameters with documented ranges and pass only explicit values to OCREngine in archivatorium/cli.py
+- [X] T020 [US3] Implement profile-default plus non-None override merging and validate temperature, top_p, top_k, repeat_penalty, repeat_last_n, and num_predict in archivatorium/ocr_engine.py
+- [X] T021 [US3] Add the six optional Click parameters with documented ranges and pass only explicit values to OCREngine in archivatorium/cli.py
 - [X] T022 [US3] Run and pass inference-default, override-precedence, boundary-value, and invalid-input scenarios in tests/unit/test_ocr_engine.py and tests/integration/test_ocr_cli.py
 
 **Checkpoint**: All four user stories are independently functional and their focused tests pass.
@@ -139,6 +139,19 @@ description: "Dependency-ordered implementation tasks for GLM OCR mode"
 - [X] T024 [P] Reconcile implemented CLI help, request shape, and validation commands with specs/035-add-glm-ocr/contracts/cli.md and specs/035-add-glm-ocr/quickstart.md
 - [X] T025 Run ruff, formatting, flake8 complexity, mypy, pytest, and coverage gates configured by pyproject.toml; resolve feature-related findings in archivatorium/cli.py, archivatorium/ocr_engine.py, tests/unit/test_ocr_engine.py, and tests/integration/test_ocr_cli.py
 - [X] T026 Execute every automated and manual-safe scenario in specs/035-add-glm-ocr/quickstart.md and record any necessary corrections in specs/035-add-glm-ocr/quickstart.md
+
+---
+
+## Phase 8: Long-Window Repetition Prevention Extension
+
+**Purpose**: Prevent GLM-OCR from repeating multi-line passages that exceed the ordinary short repetition lookback.
+
+- [X] T027 [US3] Backpropagate the `repeat_last_n=512` GLM default, CLI override semantics, and validation range into spec.md, plan.md, research.md, data-model.md, contracts/cli.md, and quickstart.md
+- [X] T028 [US3] Add failing unit tests for the GLM default, explicit `repeat_last_n` overrides, valid `-1`/`0` boundaries, and invalid values in tests/unit/test_ocr_engine.py
+- [X] T029 [US3] Add failing CLI tests for `--repeat-last-n` propagation and early range rejection in tests/integration/test_ocr_cli.py
+- [X] T030 [US3] Implement the GLM `repeat_last_n=512` profile default, override merging, and programmatic validation in archivatorium/ocr_engine.py
+- [X] T031 [US3] Add and propagate the validated `--repeat-last-n` Click option in archivatorium/cli.py and document it in README.md
+- [X] T032 Run focused OCR tests and project quality gates, then verify the updated CLI help and request contract
 
 ---
 

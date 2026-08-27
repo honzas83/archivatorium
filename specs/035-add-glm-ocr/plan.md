@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add `--mode {standard,glm}` to the existing OCR command with `standard` as the default and unchanged existing behavior. The engine will resolve a small immutable mode profile that owns prompt construction, previous-page context policy, thinking control, and inference defaults, but never model selection. GLM requests will use a single `Text Recognition:` user message with the page image, send `think: false` and the five required values to the remote Ollama `/api/chat` endpoint, and suppress neighboring-page OCR context on initial, resumed, and retried recognition. Optional CLI overrides will merge over the selected profile without introducing a new configuration-file subsystem.
+Add `--mode {standard,glm}` to the existing OCR command with `standard` as the default and unchanged existing behavior. The engine will resolve a small immutable mode profile that owns prompt construction, previous-page context policy, thinking control, and inference defaults, but never model selection. GLM requests will use a single `Text Recognition:` user message with the page image, send `think: false` and six required values—including `repeat_last_n=512` to cover longer repeated passages—to the remote Ollama `/api/chat` endpoint, and suppress neighboring-page OCR context on initial, resumed, and retried recognition. Optional CLI overrides will merge over the selected profile without introducing a new configuration-file subsystem.
 
 ## Technical Context
 

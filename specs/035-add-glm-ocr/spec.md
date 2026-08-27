@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Add an explicitly selected `glm` OCR mode optimized for GLM-OCR, with its native prompt, independent page recognition, disabled reasoning, GLM-specific configurable inference defaults, independent model selection, and no changes to existing OCR behavior when the mode is not selected."
+**Input**: User description: "Add an explicitly selected `glm` OCR mode optimized for GLM-OCR, with its native prompt, independent page recognition, disabled reasoning, GLM-specific configurable inference defaults including a wider repetition lookback, independent model selection, and no changes to existing OCR behavior when the mode is not selected."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -52,8 +52,9 @@ As an advanced user, I want the GLM inference defaults to be configurable throug
 **Acceptance Scenarios**:
 
 1. **Given** GLM mode and one supported inference value overridden on the command line, **When** OCR runs, **Then** that value is used and every other unspecified inference value retains its GLM default.
-2. **Given** GLM mode and all five supported inference values supplied on the command line, **When** OCR runs, **Then** all five explicit values are used instead of their GLM defaults.
+2. **Given** GLM mode and all six supported inference values supplied on the command line, **When** OCR runs, **Then** all six explicit values are used instead of their GLM defaults.
 3. **Given** an explicit valid zero value for a setting that permits zero, **When** OCR runs in GLM mode, **Then** zero is retained as the override rather than treated as an omitted value.
+4. **Given** GLM mode without a `repeat_last_n` override, **When** OCR runs, **Then** the request checks the most recent 512 tokens for repetition to reduce duplication of longer OCR passages.
 
 ---
 
@@ -90,7 +91,7 @@ As an existing user, I want standard OCR commands to behave exactly as before so
 - **FR-004**: Every page recognition request in GLM mode MUST disable model thinking or reasoning.
 - **FR-005**: In GLM mode, every page MUST be recognized independently; no request may include recognized text or textual context derived from any previous, next, or otherwise neighboring page.
 - **FR-006**: FR-005 MUST apply to initial processing, resumed processing, missing-page recovery, and retries.
-- **FR-007**: GLM mode MUST use the following inference defaults when the corresponding setting is not overridden: `temperature = 0.0`, `top_p = 0.00001`, `top_k = 1`, `repeat_penalty = 1.1`, and `num_predict = 8192`.
+- **FR-007**: GLM mode MUST use the following inference defaults when the corresponding setting is not overridden: `temperature = 0.0`, `top_p = 0.00001`, `top_k = 1`, `repeat_penalty = 1.1`, `repeat_last_n = 512`, and `num_predict = 8192`.
 - **FR-008**: Each GLM inference default MUST be overridable through the OCR command's existing command-line option mechanism.
 - **FR-009**: A command-line inference override MUST take precedence over the selected mode's default for the same setting.
 - **FR-010**: Overriding one inference setting MUST NOT change the effective values of other, unspecified inference settings.
@@ -102,7 +103,7 @@ As an existing user, I want standard OCR commands to behave exactly as before so
 ### Key Entities
 
 - **OCR Mode Profile**: The explicitly selected recognition behavior for a run. It determines the prompt, reasoning state, page-context policy, and default inference values, but not the selected model.
-- **Inference Settings**: The effective temperature, probability threshold, candidate limit, repetition penalty, and output-token limit used for a page. Each value records its effective source: command-line override or mode default.
+- **Inference Settings**: The effective temperature, probability threshold, candidate limit, repetition penalty, repetition lookback window, and output-token limit used for a page. Each value records its effective source: command-line override or mode default.
 - **Page Recognition Request**: A single page image combined with its mode-selected prompt, reasoning state, effective inference settings, and selected model. In GLM mode it has no textual context derived from other pages.
 
 ## Success Criteria *(mandatory)*
@@ -111,7 +112,7 @@ As an existing user, I want standard OCR commands to behave exactly as before so
 
 - **SC-001**: In validation across single-page, multipage, resumed, missing-page, and retry scenarios, 100% of GLM-mode page recognitions use the exact prompt `Text Recognition:` with reasoning disabled.
 - **SC-002**: In the same validation scenarios, 100% of GLM-mode page recognition requests contain no recognized text or textual context derived from another page.
-- **SC-003**: With no overrides, 100% of observed GLM-mode page recognitions use all five specified default inference values.
+- **SC-003**: With no overrides, 100% of observed GLM-mode page recognitions use all six specified default inference values, including `repeat_last_n=512`.
 - **SC-004**: For each supported inference setting, command-line override tests produce the documented effective value and precedence in 100% of cases.
 - **SC-005**: In all model-selection tests, the explicitly selected model is used without changing GLM-mode behavior, and selecting GLM mode never changes the model on its own.
 - **SC-006**: All representative pre-existing OCR acceptance scenarios pass unchanged when mode is omitted or explicitly set to `standard`.
@@ -123,5 +124,5 @@ As an existing user, I want standard OCR commands to behave exactly as before so
 - The existing OCR pipeline remains responsible for input discovery, rendering, output assembly, resume validation, retry decisions, and error reporting.
 - “Disables thinking/reasoning” means the recognition request explicitly prevents the selected model from entering a reasoning mode when the inference provider supports that control; it does not merely omit reasoning text from the saved OCR output.
 - “Previous page OCR as context” includes both direct insertion of the prior page's text and any prompt fragment derived from that text.
-- The project has no existing OCR inference configuration-file loader; the five settings are therefore exposed through the existing command-line option mechanism, without introducing a separate configuration store.
+- The project has no existing OCR inference configuration-file loader; the six settings are therefore exposed through the existing command-line option mechanism, without introducing a separate configuration store.
 - Invalid mode names and invalid inference values are reported before processing to avoid partially processed runs caused by input errors.

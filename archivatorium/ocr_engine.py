@@ -77,6 +77,7 @@ class InferenceOverrides:
     top_p: float | None = None
     top_k: int | None = None
     repeat_penalty: float | None = None
+    repeat_last_n: int | None = None
     num_predict: int | None = None
 
     def __post_init__(self) -> None:
@@ -88,6 +89,8 @@ class InferenceOverrides:
             raise ValueError("top_k must be greater than or equal to 0")
         if self.repeat_penalty is not None and self.repeat_penalty <= 0:
             raise ValueError("repeat_penalty must be greater than 0")
+        if self.repeat_last_n is not None and self.repeat_last_n < -1:
+            raise ValueError("repeat_last_n must be greater than or equal to -1")
         if self.num_predict is not None and self.num_predict != -1 and self.num_predict < 1:
             raise ValueError("num_predict must be -1 or greater than or equal to 1")
 
@@ -99,6 +102,7 @@ class InferenceOverrides:
                 ("top_p", self.top_p),
                 ("top_k", self.top_k),
                 ("repeat_penalty", self.repeat_penalty),
+                ("repeat_last_n", self.repeat_last_n),
                 ("num_predict", self.num_predict),
             )
             if value is not None
@@ -125,6 +129,7 @@ GLM_OCR_PROFILE = OCRModeProfile(
         ("top_p", 0.00001),
         ("top_k", 1),
         ("repeat_penalty", 1.1),
+        ("repeat_last_n", 512),
         ("num_predict", 8192),
     ),
 )
@@ -153,6 +158,7 @@ class OCREngine:
         top_p: float | None = None,
         top_k: int | None = None,
         repeat_penalty: float | None = None,
+        repeat_last_n: int | None = None,
         num_predict: int | None = None,
     ):
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
@@ -167,6 +173,7 @@ class OCREngine:
             top_p=top_p,
             top_k=top_k,
             repeat_penalty=repeat_penalty,
+            repeat_last_n=repeat_last_n,
             num_predict=num_predict,
         )
         self.client = self._build_client()

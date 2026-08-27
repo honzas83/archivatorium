@@ -117,6 +117,7 @@ def test_ocr_command_glm_mode(
         "top_p": 0.00001,
         "top_k": 1,
         "repeat_penalty": 1.1,
+        "repeat_last_n": 512,
         "num_predict": 8192,
     }
 
@@ -264,6 +265,8 @@ def test_ocr_command_propagates_all_inference_overrides(
                 "0",
                 "--repeat-penalty",
                 "1.2",
+                "--repeat-last-n",
+                "-1",
                 "--num-predict",
                 "-1",
                 str(input_dir),
@@ -278,6 +281,7 @@ def test_ocr_command_propagates_all_inference_overrides(
         "top_p": 0.0,
         "top_k": 0,
         "repeat_penalty": 1.2,
+        "repeat_last_n": -1,
         "num_predict": -1,
     }
 
@@ -289,6 +293,7 @@ def test_ocr_command_propagates_all_inference_overrides(
         ("--top-p", "1.1"),
         ("--top-k", "-1"),
         ("--repeat-penalty", "0"),
+        ("--repeat-last-n", "-2"),
         ("--num-predict", "0"),
     ],
 )

@@ -220,7 +220,6 @@ def obsidian(input_dir: Path, output_dir: Path, mask: str, template_dir: Path) -
     # Leaving command as placeholder or for pure template init.
 
 
-
 @cli.command()
 @click.argument("vault_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--dry-run", is_flag=True, help="If set, logs changes without writing to files.")
@@ -303,6 +302,11 @@ def interlink(
     help="Override the selected mode's repetition penalty.",
 )
 @click.option(
+    "--repeat-last-n",
+    type=click.IntRange(min=-1),
+    help="Override how many recent tokens are checked for repetition (-1 means num_ctx).",
+)
+@click.option(
     "--num-predict",
     type=int,
     callback=_validate_num_predict,
@@ -326,6 +330,7 @@ def ocr(  # noqa: PLR0913
     top_p: float | None,
     top_k: int | None,
     repeat_penalty: float | None,
+    repeat_last_n: int | None,
     num_predict: int | None,
     dpi: int,
     no_page_header: bool,
@@ -344,6 +349,7 @@ def ocr(  # noqa: PLR0913
         top_p=top_p,
         top_k=top_k,
         repeat_penalty=repeat_penalty,
+        repeat_last_n=repeat_last_n,
         num_predict=num_predict,
     )
 

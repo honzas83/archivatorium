@@ -11,6 +11,7 @@ GLM_DEFAULT_OPTIONS = {
     "top_p": 0.00001,
     "top_k": 1,
     "repeat_penalty": 1.1,
+    "repeat_last_n": 512,
     "num_predict": 8192,
 }
 
@@ -345,6 +346,7 @@ def test_glm_profile_never_selects_or_replaces_model(
         ("top_p", 0.5),
         ("top_k", 7),
         ("repeat_penalty", 1.25),
+        ("repeat_last_n", 1024),
         ("num_predict", 4096),
     ],
 )
@@ -369,6 +371,7 @@ def test_glm_all_inference_overrides_and_zero_values_are_preserved(
         top_p=0.0,
         top_k=0,
         repeat_penalty=1.2,
+        repeat_last_n=-1,
         num_predict=-1,
     )
     mock_ollama_client.chat.return_value = ocr_response_factory("Text")
@@ -381,12 +384,13 @@ def test_glm_all_inference_overrides_and_zero_values_are_preserved(
         "top_p": 0.0,
         "top_k": 0,
         "repeat_penalty": 1.2,
+        "repeat_last_n": -1,
         "num_predict": -1,
     }
 
 
 def test_standard_mode_allows_explicit_inference_tuning(mock_ollama_client, ocr_response_factory):
-    engine = OCREngine(mode="standard", temperature=0.0, num_predict=2048)
+    engine = OCREngine(mode="standard", temperature=0.0, repeat_last_n=0, num_predict=2048)
     mock_ollama_client.chat.return_value = ocr_response_factory("Text")
 
     engine.ocr_single_page(Path("page.png"), last_text="context")
@@ -396,6 +400,7 @@ def test_standard_mode_allows_explicit_inference_tuning(mock_ollama_client, ocr_
         "num_ctx": 8192,
         "num_predict": 2048,
         "temperature": 0.0,
+        "repeat_last_n": 0,
     }
     assert kwargs["messages"][0]["role"] == "system"
     assert "context" in kwargs["messages"][-1]["content"]
@@ -410,6 +415,7 @@ def test_standard_mode_allows_explicit_inference_tuning(mock_ollama_client, ocr_
         ("top_p", 1.1, "top_p"),
         ("top_k", -1, "top_k"),
         ("repeat_penalty", 0.0, "repeat_penalty"),
+        ("repeat_last_n", -2, "repeat_last_n"),
         ("num_predict", 0, "num_predict"),
         ("num_predict", -2, "num_predict"),
     ],

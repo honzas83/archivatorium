@@ -44,6 +44,7 @@ archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--top-p FLOAT`: Override top-p sampling (`0..1`).
 - `--top-k INTEGER`: Override top-k sampling (`>= 0`).
 - `--repeat-penalty FLOAT`: Override repetition penalty (`> 0`).
+- `--repeat-last-n INTEGER`: Override how many recent tokens are checked for repetition (`-1` means the full context, `0` disables the check; GLM default: `512`).
 - `--num-predict INTEGER`: Override maximum output tokens (`-1` or `>= 1`).
 - `--dpi INTEGER`: DPI for page rendering (default: `300`).
 - `--no-page-header`: Do not include `---\n\n# Page N\n\n` markers in the output (Note: this disables page-level resuming).
@@ -60,7 +61,7 @@ archivatorium ocr \
   INPUT_DIR OUTPUT_DIR
 ```
 
-Without overrides, GLM mode sends `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, and `num_predict=8192`. Explicit inference options replace only their corresponding mode defaults.
+Without overrides, GLM mode sends `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, `repeat_last_n=512`, and `num_predict=8192`. The wider repetition window helps prevent runaway duplication of longer OCR passages. Explicit inference options replace only their corresponding mode defaults.
 
 ### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.

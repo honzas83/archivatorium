@@ -29,7 +29,7 @@ An immutable internal description of request behavior.
 | `system_prompt` | optional string | Existing OCR system prompt | Absent |
 | `include_previous_page_context` | boolean | `true` | `false` |
 | `think` | optional boolean | Unspecified/absent | `false` |
-| `inference_defaults` | Inference Settings | Existing request defaults | Five required GLM defaults |
+| `inference_defaults` | Inference Settings | Existing request defaults | Six required GLM defaults |
 
 The profile deliberately has no `model` field. It is selected once when the engine is configured and remains unchanged for the run.
 
@@ -43,6 +43,7 @@ Captures values explicitly supplied by the user. Every field is optional so omis
 | `top_p` | optional float | `0 <= value <= 1` |
 | `top_k` | optional integer | `>= 0` |
 | `repeat_penalty` | optional float | `> 0` |
+| `repeat_last_n` | optional integer | `>= -1`; `-1` means `num_ctx`, `0` disables repetition lookback |
 | `num_predict` | optional integer | `-1` or `>= 1` |
 
 ## Effective Inference Settings
@@ -53,7 +54,7 @@ The complete options sent for a page after resolution.
 
 1. Start with the selected mode profile's defaults.
 2. Replace only fields whose CLI override is not `None`.
-3. Retain the existing context-window option independently of these five fields.
+3. Retain the existing context-window option independently of these six fields.
 
 ### GLM defaults
 
@@ -63,6 +64,7 @@ The complete options sent for a page after resolution.
 | `top_p` | `0.00001` |
 | `top_k` | `1` |
 | `repeat_penalty` | `1.1` |
+| `repeat_last_n` | `512` |
 | `num_predict` | `8192` |
 
 Standard resolution with no new overrides must reproduce the existing options exactly.
@@ -76,7 +78,7 @@ Represents one call to the remote Ollama chat API.
 | `model` | string | Existing default or `--model` | Never supplied by the mode profile |
 | `messages` | ordered message list | Mode profile and current page image | Exactly one user message; no system or neighboring-page text |
 | `think` | optional boolean | Mode profile | Explicitly `false` |
-| `options` | mapping | Effective Inference Settings | Contains all five effective GLM values |
+| `options` | mapping | Effective Inference Settings | Contains all six effective GLM values |
 | `stream` | boolean | Existing request behavior | `false` |
 
 ### Relationships
