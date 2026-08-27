@@ -2,7 +2,17 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
-from archivatorium.ocr_engine import OCREngine
+from archivatorium.ocr_engine import OCREngine, SYSTEM_PROMPT, USER_PROMPT
+
+
+GLM_DEFAULT_OPTIONS = {
+    "num_ctx": 8192,
+    "temperature": 0.0,
+    "top_p": 0.00001,
+    "top_k": 1,
+    "repeat_penalty": 1.1,
+    "num_predict": 8192,
+}
 
 
 @pytest.fixture
@@ -92,6 +102,7 @@ def test_run_ocr(mock_pdf_reader, mock_convert_from_path, mock_ollama_client):
 
         assert "Page 1" in result
         assert "Page 2" in result
+        assert result.index("Page 1") < result.index("Page 2")
         assert "Page content here" in result
         assert mock_ollama_client.chat.call_count == 2
 
@@ -134,3 +145,275 @@ def test_run_ocr_resume(mock_pdf_reader, mock_convert_from_path, mock_ollama_cli
         assert "Existing content of page 1" in output_content
         assert "Page 2" in output_content
         assert "Page 2 content" in output_content
+
+
+def test_glm_single_page_uses_native_isolated_request(
+    mock_ollama_client, ocr_response_factory, ocr_call_kwargs
+):
+    engine = OCREngine(mode="glm")
+    mock_ollama_client.chat.return_value = ocr_response_factory("GLM text")
+
+    transcription = engine.ocr_single_page(
+        image_path=Path("page.png"),
+        last_text="SECRET PREVIOUS PAGE",
+    )
+
+    assert transcription == "GLM text"
+    kwargs = ocr_call_kwargs(mock_ollama_client)
+    assert kwargs == {
+        "model": "qwen3.5:9b",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Text Recognition:",
+                "images": ["page.png"],
+            }
+        ],
+        "options": GLM_DEFAULT_OPTIONS,
+        "stream": False,
+        "think": False,
+    }
+
+
+def test_glm_retry_reuses_identical_isolated_request(mock_ollama_client, ocr_response_factory):
+    engine = OCREngine(mode="glm")
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("Recovered"),
+    ]
+
+    with patch("archivatorium.ocr_engine.time.sleep"):
+        assert (
+            engine.ocr_single_page(
+                image_path=Path("page.png"),
+                last_text="SECRET PREVIOUS PAGE",
+                retry=2,
+            )
+            == "Recovered"
+        )
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+    assert first["think"] is False
+    assert "SECRET PREVIOUS PAGE" not in str(first["messages"])
+
+
+def test_glm_multipage_requests_do_not_share_recognized_text(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+):
+    engine = OCREngine(mode="glm")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("FIRST PAGE SECRET"),
+        ocr_response_factory("SECOND PAGE"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(input_pdf=Path("dummy.pdf"))
+
+    assert mock_ollama_client.chat.call_count == 2
+    second_messages = mock_ollama_client.chat.call_args_list[1].kwargs["messages"]
+    assert "FIRST PAGE SECRET" not in str(second_messages)
+    assert second_messages[0]["content"] == "Text Recognition:"
+
+
+def test_glm_resume_does_not_send_existing_neighbor_text(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+    tmp_path,
+):
+    engine = OCREngine(mode="glm")
+    output_md = tmp_path / "output.md"
+    output_md.write_text(
+        "---\n\n# Page 1\n\nEXISTING PAGE SECRET\n",
+        encoding="utf-8",
+    )
+    mock_ollama_client.chat.return_value = ocr_response_factory("Page 2")
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(
+            input_pdf=Path("dummy.pdf"),
+            output_md=output_md,
+        )
+
+    assert mock_ollama_client.chat.call_count == 1
+    kwargs = mock_ollama_client.chat.call_args.kwargs
+    assert "EXISTING PAGE SECRET" not in str(kwargs["messages"])
+    assert kwargs["think"] is False
+
+
+def test_standard_request_preserves_exact_existing_shape(
+    mock_ollama_client, ocr_response_factory, ocr_call_kwargs
+):
+    engine = OCREngine(mode="standard")
+    mock_ollama_client.chat.return_value = ocr_response_factory("Standard text")
+
+    assert (
+        engine.ocr_single_page(
+            image_path=Path("page.png"),
+            last_text="PREVIOUS STANDARD PAGE",
+        )
+        == "Standard text"
+    )
+
+    kwargs = ocr_call_kwargs(mock_ollama_client)
+    assert kwargs == {
+        "model": "qwen3.5:9b",
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    USER_PROMPT + "\n\nFor OCR context, previous transcribed page was: "
+                    "PREVIOUS STANDARD PAGE"
+                ),
+                "images": ["page.png"],
+            },
+        ],
+        "options": {"num_ctx": 8192, "num_predict": 4096 * 4},
+        "stream": False,
+    }
+    assert "think" not in kwargs
+
+
+def test_omitted_and_explicit_standard_modes_are_identical(
+    mock_ollama_client, ocr_response_factory
+):
+    mock_ollama_client.chat.return_value = ocr_response_factory("Standard text")
+    default_engine = OCREngine()
+    explicit_engine = OCREngine(mode="standard")
+
+    default_engine.ocr_single_page(Path("page.png"), last_text="previous")
+    explicit_engine.ocr_single_page(Path("page.png"), last_text="previous")
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+
+
+def test_standard_retry_keeps_context_and_request_shape(mock_ollama_client, ocr_response_factory):
+    engine = OCREngine(mode="standard")
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("Recovered"),
+    ]
+
+    with patch("archivatorium.ocr_engine.time.sleep"):
+        engine.ocr_single_page(
+            Path("page.png"),
+            last_text="STANDARD CONTEXT",
+            retry=2,
+        )
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+    assert "STANDARD CONTEXT" in first["messages"][-1]["content"]
+    assert "think" not in first
+
+
+@pytest.mark.parametrize("model", ["qwen3.5:9b", "remote/custom-glm:latest"])
+def test_glm_profile_never_selects_or_replaces_model(
+    mock_ollama_client, ocr_response_factory, model
+):
+    engine = OCREngine(mode="glm", model=model)
+    mock_ollama_client.chat.return_value = ocr_response_factory("Text")
+
+    engine.ocr_single_page(Path("page.png"))
+
+    assert not hasattr(engine.profile, "model")
+    assert engine.model == model
+    assert mock_ollama_client.chat.call_args.kwargs["model"] == model
+    assert mock_ollama_client.chat.call_args.kwargs["think"] is False
+
+
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("temperature", 0.25),
+        ("top_p", 0.5),
+        ("top_k", 7),
+        ("repeat_penalty", 1.25),
+        ("num_predict", 4096),
+    ],
+)
+def test_glm_single_inference_override_changes_only_matching_default(
+    mock_ollama_client, ocr_response_factory, option, value
+):
+    engine = OCREngine(mode="glm", **{option: value})
+    mock_ollama_client.chat.return_value = ocr_response_factory("Text")
+
+    engine.ocr_single_page(Path("page.png"))
+
+    expected = {**GLM_DEFAULT_OPTIONS, option: value}
+    assert mock_ollama_client.chat.call_args.kwargs["options"] == expected
+
+
+def test_glm_all_inference_overrides_and_zero_values_are_preserved(
+    mock_ollama_client, ocr_response_factory
+):
+    engine = OCREngine(
+        mode="glm",
+        temperature=0.0,
+        top_p=0.0,
+        top_k=0,
+        repeat_penalty=1.2,
+        num_predict=-1,
+    )
+    mock_ollama_client.chat.return_value = ocr_response_factory("Text")
+
+    engine.ocr_single_page(Path("page.png"))
+
+    assert mock_ollama_client.chat.call_args.kwargs["options"] == {
+        "num_ctx": 8192,
+        "temperature": 0.0,
+        "top_p": 0.0,
+        "top_k": 0,
+        "repeat_penalty": 1.2,
+        "num_predict": -1,
+    }
+
+
+def test_standard_mode_allows_explicit_inference_tuning(mock_ollama_client, ocr_response_factory):
+    engine = OCREngine(mode="standard", temperature=0.0, num_predict=2048)
+    mock_ollama_client.chat.return_value = ocr_response_factory("Text")
+
+    engine.ocr_single_page(Path("page.png"), last_text="context")
+
+    kwargs = mock_ollama_client.chat.call_args.kwargs
+    assert kwargs["options"] == {
+        "num_ctx": 8192,
+        "num_predict": 2048,
+        "temperature": 0.0,
+    }
+    assert kwargs["messages"][0]["role"] == "system"
+    assert "context" in kwargs["messages"][-1]["content"]
+    assert "think" not in kwargs
+
+
+@pytest.mark.parametrize(
+    ("option", "value", "message"),
+    [
+        ("temperature", -0.1, "temperature"),
+        ("top_p", -0.1, "top_p"),
+        ("top_p", 1.1, "top_p"),
+        ("top_k", -1, "top_k"),
+        ("repeat_penalty", 0.0, "repeat_penalty"),
+        ("num_predict", 0, "num_predict"),
+        ("num_predict", -2, "num_predict"),
+    ],
+)
+def test_invalid_programmatic_inference_values_are_rejected(option, value, message):
+    with pytest.raises(ValueError, match=message):
+        OCREngine(**{option: value})

@@ -15,6 +15,14 @@ from archivatorium.utils.logging import setup_logging
 from archivatorium.utils.metadata import mirror_file
 
 
+def _validate_num_predict(
+    _ctx: click.Context, _param: click.Parameter, value: int | None
+) -> int | None:
+    if value is not None and value != -1 and value < 1:
+        raise click.BadParameter("must be -1 or greater than or equal to 1")
+    return value
+
+
 @click.group()
 @click.option("-v", "--verbose", is_flag=True, help="Increase output verbosity.")
 def cli(verbose: bool) -> None:
@@ -267,6 +275,39 @@ def interlink(
 @click.option("--user", help="DigestAuth username.")
 @click.option("--password", help="DigestAuth password.")
 @click.option("--model", default="qwen3.5:9b", show_default=True, help="VLM model to use.")
+@click.option(
+    "--mode",
+    type=click.Choice(["standard", "glm"]),
+    default="standard",
+    show_default=True,
+    help="OCR request profile to use.",
+)
+@click.option(
+    "--temperature",
+    type=click.FloatRange(min=0.0),
+    help="Override the selected mode's temperature.",
+)
+@click.option(
+    "--top-p",
+    type=click.FloatRange(min=0.0, max=1.0),
+    help="Override the selected mode's top-p sampling value.",
+)
+@click.option(
+    "--top-k",
+    type=click.IntRange(min=0),
+    help="Override the selected mode's top-k sampling value.",
+)
+@click.option(
+    "--repeat-penalty",
+    type=click.FloatRange(min=0.0, min_open=True),
+    help="Override the selected mode's repetition penalty.",
+)
+@click.option(
+    "--num-predict",
+    type=int,
+    callback=_validate_num_predict,
+    help="Override maximum output tokens (-1 means unlimited).",
+)
 @click.option("--dpi", type=int, default=300, show_default=True, help="DPI for page rendering.")
 @click.option(
     "--no-page-header",
@@ -280,6 +321,12 @@ def ocr(  # noqa: PLR0913
     user: str | None,
     password: str | None,
     model: str,
+    mode: str,
+    temperature: float | None,
+    top_p: float | None,
+    top_k: int | None,
+    repeat_penalty: float | None,
+    num_predict: int | None,
     dpi: int,
     no_page_header: bool,
 ) -> None:
@@ -292,6 +339,12 @@ def ocr(  # noqa: PLR0913
         password=password,
         model=model,
         dpi=dpi,
+        mode=mode,
+        temperature=temperature,
+        top_p=top_p,
+        top_k=top_k,
+        repeat_penalty=repeat_penalty,
+        num_predict=num_predict,
     )
 
     # Recursively find pdf files

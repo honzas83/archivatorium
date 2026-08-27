@@ -2,8 +2,9 @@ import logging
 import os
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, TypeAlias
 
 import httpx
 from ollama import Client
@@ -48,6 +49,96 @@ USER_PROMPT = (
     "This output will be post-processed to extract structured information, so accuracy and layout fidelity are essential."
 )
 
+GLM_USER_PROMPT = "Text Recognition:"
+
+OllamaOptionValue: TypeAlias = int | float
+
+
+@dataclass(frozen=True)
+class OCRModeProfile:
+    """Immutable request behavior selected independently from the model."""
+
+    name: str
+    system_prompt: str | None
+    user_prompt: str
+    include_previous_page_context: bool
+    think: bool | None
+    inference_defaults: tuple[tuple[str, OllamaOptionValue], ...]
+
+    def default_options(self) -> dict[str, OllamaOptionValue]:
+        return dict(self.inference_defaults)
+
+
+@dataclass(frozen=True)
+class InferenceOverrides:
+    """Explicit runtime option overrides; ``None`` means not supplied."""
+
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    repeat_penalty: float | None = None
+    num_predict: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.temperature is not None and self.temperature < 0:
+            raise ValueError("temperature must be greater than or equal to 0")
+        if self.top_p is not None and not 0 <= self.top_p <= 1:
+            raise ValueError("top_p must be between 0 and 1")
+        if self.top_k is not None and self.top_k < 0:
+            raise ValueError("top_k must be greater than or equal to 0")
+        if self.repeat_penalty is not None and self.repeat_penalty <= 0:
+            raise ValueError("repeat_penalty must be greater than 0")
+        if self.num_predict is not None and self.num_predict != -1 and self.num_predict < 1:
+            raise ValueError("num_predict must be -1 or greater than or equal to 1")
+
+    def explicit_options(self) -> dict[str, OllamaOptionValue]:
+        return {
+            name: value
+            for name, value in (
+                ("temperature", self.temperature),
+                ("top_p", self.top_p),
+                ("top_k", self.top_k),
+                ("repeat_penalty", self.repeat_penalty),
+                ("num_predict", self.num_predict),
+            )
+            if value is not None
+        }
+
+
+STANDARD_OCR_PROFILE = OCRModeProfile(
+    name="standard",
+    system_prompt=SYSTEM_PROMPT,
+    user_prompt=USER_PROMPT,
+    include_previous_page_context=True,
+    think=None,
+    inference_defaults=(("num_predict", 4096 * 4),),
+)
+
+GLM_OCR_PROFILE = OCRModeProfile(
+    name="glm",
+    system_prompt=None,
+    user_prompt=GLM_USER_PROMPT,
+    include_previous_page_context=False,
+    think=False,
+    inference_defaults=(
+        ("temperature", 0.0),
+        ("top_p", 0.00001),
+        ("top_k", 1),
+        ("repeat_penalty", 1.1),
+        ("num_predict", 8192),
+    ),
+)
+
+
+def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
+    """Resolve the public mode, defaulting omitted values to standard OCR."""
+
+    if mode is None or mode == "standard":
+        return STANDARD_OCR_PROFILE
+    if mode == "glm":
+        return GLM_OCR_PROFILE
+    raise ValueError(f"Unsupported OCR mode: {mode}")
+
 
 class OCREngine:
     def __init__(
@@ -57,12 +148,27 @@ class OCREngine:
         password: Optional[str] = None,
         model: str = "qwen3.5:9b",
         dpi: int = 300,
+        mode: str = "standard",
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        repeat_penalty: float | None = None,
+        num_predict: int | None = None,
     ):
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.user = user or os.environ.get("OLLAMA_USER")
         self.password = password or os.environ.get("OLLAMA_PASSWORD")
         self.model = model
         self.dpi = dpi
+        self.profile = resolve_ocr_mode(mode)
+        self.mode = self.profile.name
+        self.inference_overrides = InferenceOverrides(
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repeat_penalty=repeat_penalty,
+            num_predict=num_predict,
+        )
         self.client = self._build_client()
 
     def _build_client(self) -> Client:
@@ -113,34 +219,14 @@ class OCREngine:
         retry: int = 3,
         retry_backoff: float = 2.0,
     ) -> str:
-        from typing import Any
-
-        messages: list[dict[str, Any]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": USER_PROMPT,
-                "images": [str(image_path)],
-            },
-        ]
-        if last_text:
-            messages[-1]["content"] += (
-                f"\n\nFor OCR context, previous transcribed page was: {last_text}"
-            )
+        messages = self._build_messages(image_path, last_text)
+        request_kwargs = self._build_chat_request(messages, num_ctx)
 
         last_err = None
         for attempt in range(1, retry + 1):
             try:
                 logger.info("Calling Ollama (attempt %d) for image %s", attempt, image_path.name)
-                resp = self.client.chat(
-                    model=self.model,
-                    messages=messages,
-                    options={
-                        "num_ctx": num_ctx,
-                        "num_predict": 4096 * 4,
-                    },
-                    stream=False,
-                )
+                resp = self.client.chat(**request_kwargs)
                 # handle both dict and object response formats
                 content = getattr(resp, "message", {}).get("content", "")
                 if not content and isinstance(resp, dict):
@@ -160,6 +246,36 @@ class OCREngine:
         if last_err:
             raise last_err
         return ""
+
+    def _build_messages(self, image_path: Path, last_text: str) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = []
+        if self.profile.system_prompt is not None:
+            messages.append({"role": "system", "content": self.profile.system_prompt})
+
+        user_content = self.profile.user_prompt
+        if self.profile.include_previous_page_context and last_text:
+            user_content += f"\n\nFor OCR context, previous transcribed page was: {last_text}"
+        messages.append(
+            {
+                "role": "user",
+                "content": user_content,
+                "images": [str(image_path)],
+            }
+        )
+        return messages
+
+    def _build_chat_request(self, messages: list[dict[str, Any]], num_ctx: int) -> dict[str, Any]:
+        options = {"num_ctx": num_ctx, **self.profile.default_options()}
+        options.update(self.inference_overrides.explicit_options())
+        request: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "options": options,
+            "stream": False,
+        }
+        if self.profile.think is not None:
+            request["think"] = self.profile.think
+        return request
 
     def run_ocr(
         self,
@@ -209,7 +325,9 @@ class OCREngine:
             try:
                 png_path = self.render_pdf_page_to_png(input_pdf, i)
                 # Context is the previous page's content
-                context_text = last_text or all_pages.get(i - 1, "")
+                context_text = ""
+                if self.profile.include_previous_page_context:
+                    context_text = last_text or all_pages.get(i - 1, "")
                 text = self.ocr_single_page(
                     image_path=png_path,
                     last_text=context_text,

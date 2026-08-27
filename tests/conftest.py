@@ -1,11 +1,46 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+from unittest.mock import MagicMock
 
 import pytest
 
 from archivatorium.models.metadata import AggregatedTaggingResult, MetadataSchema, TopicResult
 from tests.unit.test_ollama_client import create_mock_ollama_response
+
+
+@pytest.fixture
+def ocr_response_factory() -> Callable[[str], MagicMock]:
+    """Build an Ollama-style chat response with deterministic OCR content."""
+
+    def factory(content: str) -> MagicMock:
+        response = MagicMock()
+        response.message = {"content": content}
+        return response
+
+    return factory
+
+
+@pytest.fixture
+def ocr_call_kwargs() -> Callable[[MagicMock, int], dict[str, Any]]:
+    """Return captured keyword arguments for a mocked Ollama chat call."""
+
+    def get_call(client: MagicMock, index: int = -1) -> dict[str, Any]:
+        return cast(dict[str, Any], client.chat.call_args_list[index].kwargs)
+
+    return get_call
+
+
+@pytest.fixture
+def temp_ocr_dirs(tmp_path: Path) -> tuple[Path, Path]:
+    """Create disposable input/output directories with one placeholder PDF."""
+
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    output_dir.mkdir()
+    (input_dir / "test.pdf").write_bytes(b"dummy pdf content")
+    return input_dir, output_dir
 
 
 @pytest.fixture

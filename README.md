@@ -39,10 +39,28 @@ archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--user TEXT`: DigestAuth username (or environment variable `OLLAMA_USER`).
 - `--password TEXT`: DigestAuth password (or environment variable `OLLAMA_PASSWORD`).
 - `--model TEXT`: The VLM model name to use (default: `qwen3.5:9b`).
+- `--mode [standard|glm]`: OCR request profile (default: `standard`). Standard mode preserves the existing prompts and previous-page context; GLM mode uses the native `Text Recognition:` prompt, disables thinking, and recognizes every page independently.
+- `--temperature FLOAT`: Override the selected mode's temperature (`>= 0`).
+- `--top-p FLOAT`: Override top-p sampling (`0..1`).
+- `--top-k INTEGER`: Override top-k sampling (`>= 0`).
+- `--repeat-penalty FLOAT`: Override repetition penalty (`> 0`).
+- `--num-predict INTEGER`: Override maximum output tokens (`-1` or `>= 1`).
 - `--dpi INTEGER`: DPI for page rendering (default: `300`).
 - `--no-page-header`: Do not include `---\n\n# Page N\n\n` markers in the output (Note: this disables page-level resuming).
 
 *Note: Requires system package `poppler` (e.g. `brew install poppler` on macOS or `apt-get install poppler-utils` on Linux).*
+
+GLM mode requires an Ollama API server version 0.9.0 or newer. Mode selection and model selection are independent; select the actual remote model with `--model`:
+
+```bash
+archivatorium ocr \
+  --host http://ollama.example:11434 \
+  --mode glm \
+  --model glm-ocr \
+  INPUT_DIR OUTPUT_DIR
+```
+
+Without overrides, GLM mode sends `temperature=0.0`, `top_p=0.00001`, `top_k=1`, `repeat_penalty=1.1`, and `num_predict=8192`. Explicit inference options replace only their corresponding mode defaults.
 
 ### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.
