@@ -132,7 +132,7 @@ def test_ocr_command_logs_average_page_time(temp_ocr_dirs: tuple[Path, Path]) ->
         patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
         patch("archivatorium.ocr_engine.Client") as mock_client_class,
         patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[20.0, 25.0]),
-        patch("archivatorium.cli.perf_counter", side_effect=[18.0, 27.0]),
+        patch("archivatorium.cli.perf_counter", side_effect=[18.0, 26.0, 27.0]),
         patch("pathlib.Path.unlink"),
     ):
         mock_reader_class.return_value.pages = [MagicMock()]
@@ -147,6 +147,9 @@ def test_ocr_command_logs_average_page_time(temp_ocr_dirs: tuple[Path, Path]) ->
     assert "attempted_pages=1" in result.output
     assert "total_seconds=5.000" in result.output
     assert "average_seconds_per_page=5.000" in result.output
+    assert "attempted_pages_since_command_start=1" in result.output
+    assert "elapsed_seconds_since_command_start=8.000" in result.output
+    assert "average_seconds_per_page_since_command_start=8.000" in result.output
     assert "overall_attempted_pages=1" in result.output
     assert "overall_total_seconds=9.000" in result.output
     assert "overall_average_seconds_per_page=9.000" in result.output
@@ -167,7 +170,7 @@ def test_ocr_command_logs_overall_performance_across_pdfs(
             "archivatorium.ocr_engine.time.perf_counter",
             side_effect=[101.0, 104.0, 104.0, 110.0],
         ),
-        patch("archivatorium.cli.perf_counter", side_effect=[100.0, 112.0]),
+        patch("archivatorium.cli.perf_counter", side_effect=[100.0, 105.0, 111.0, 112.0]),
         patch("pathlib.Path.unlink"),
     ):
         mock_reader_class.return_value.pages = [MagicMock()]
@@ -179,6 +182,15 @@ def test_ocr_command_logs_overall_performance_across_pdfs(
         result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])
 
     assert result.exit_code == 0, result.output
+    assert result.output.count("OCR cumulative timing:") == 2
+    assert (
+        "attempted_pages_since_command_start=1 elapsed_seconds_since_command_start=5.000 "
+        "average_seconds_per_page_since_command_start=5.000"
+    ) in result.output
+    assert (
+        "attempted_pages_since_command_start=2 elapsed_seconds_since_command_start=11.000 "
+        "average_seconds_per_page_since_command_start=5.500"
+    ) in result.output
     assert "overall_attempted_pages=2" in result.output
     assert "overall_total_seconds=12.000" in result.output
     assert "overall_average_seconds_per_page=6.000" in result.output

@@ -57,6 +57,7 @@ As an archive operator, I want the OCR log to report both per-PDF average proces
 3. **Given** a run with zero input pages, **When** the run completes, **Then** the log reports that average page time is unavailable and the run does not fail.
 4. **Given** one OCR command processes multiple PDFs, **When** the command completes, **Then** the log reports overall attempted pages, total elapsed time since command entry, and the resulting overall average seconds per attempted page.
 5. **Given** an OCR command finds no PDFs or attempts no pages, **When** it completes, **Then** the overall average is reported as unavailable without an error.
+6. **Given** a long OCR command is still processing a batch, **When** each PDF run finishes, **Then** the log reports the cumulative attempted pages, elapsed time since command entry, and current average seconds per page without waiting for the entire command to finish.
 
 ### Edge Cases
 
@@ -90,6 +91,7 @@ As an archive operator, I want the OCR log to report both per-PDF average proces
 - **FR-015**: The OCR command MUST emit a command-wide completion log containing all pages attempted across processed PDFs, total monotonic elapsed time since entry into the OCR command, and overall average seconds per attempted page.
 - **FR-016**: Command-wide elapsed time MUST include engine initialization, recursive discovery, every per-PDF run, retry and failure handling, output writes, and CLI overhead until the command exits.
 - **FR-017**: For a command with zero attempted pages, the command-wide completion log MUST report the overall average as unavailable without raising an error.
+- **FR-018**: After every processed PDF, the OCR command MUST emit a cumulative timing log whose average is elapsed monotonic time since command entry divided by all pages attempted so far, using explicit `average_seconds_per_page_since_command_start` naming.
 
 ### Key Entities
 
@@ -109,6 +111,7 @@ As an archive operator, I want the OCR log to report both per-PDF average proces
 - **SC-005**: For test runs with known page counts and durations, the reported average time per page is mathematically correct within the displayed rounding precision.
 - **SC-006**: Existing OCR workflows continue to complete with no regression in page count, ordering, filenames, or error handling across the current regression suite.
 - **SC-007**: Every OCR command completion log reports overall attempted pages, total time since command entry, and the mathematically correct overall average, or an explicit unavailable value when no pages were attempted.
+- **SC-008**: During every multi-PDF OCR command, operators can see the current command-wide average after each PDF completes, before the final command summary.
 
 ## Assumptions
 

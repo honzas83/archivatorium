@@ -70,6 +70,7 @@ Measurements for one invocation of the `ocr` CLI command, potentially spanning m
 
 - One input PDF creates one OCR run and one timing summary.
 - One OCR command creates one command-wide timing summary and may contain zero or more per-PDF runs.
+- Each completed per-PDF run also exposes a cumulative command snapshot using elapsed time since command entry and all pages attempted so far.
 - Each per-PDF run contributes its distinct attempted-page count once to `overall_attempted_pages`, including runs that end in handled failure.
 - One attempted page may make multiple model requests because of retries but contributes one unit to `attempted_pages`.
 - One successful model response creates one normalized page text value.
