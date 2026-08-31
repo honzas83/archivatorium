@@ -94,6 +94,33 @@ def test_ocr_command_removes_reasoning_prefix_from_saved_markdown(
     assert "</think>" not in content
 
 
+def test_ocr_command_removes_shared_margin_and_preserves_relative_indent(
+    temp_ocr_dirs: tuple[Path, Path],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_response = MagicMock()
+        mock_response.message = {
+            "content": "    First line\n        Nested line\n    Final line"
+        }
+        mock_client_class.return_value.chat.return_value = mock_response
+
+        result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])
+
+    assert result.exit_code == 0, result.output
+    content = (output_dir / "test.md").read_text(encoding="utf-8")
+    assert content.endswith("First line\n    Nested line\nFinal line")
+
+
 def test_ocr_command_glm_mode(
     temp_ocr_dirs: tuple[Path, Path],
     ocr_response_factory: Callable[[str], MagicMock],

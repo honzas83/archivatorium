@@ -172,14 +172,31 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
 def normalize_ocr_response(content: str) -> str:
     """Normalize successful model text before it enters the OCR pipeline."""
     _prefix, marker, normalized = content.rpartition("</think>")
-    if not marker:
-        return content
+    if marker:
+        lines = normalized.splitlines(keepends=True)
+        first_content_line = 0
+        while first_content_line < len(lines) and not lines[first_content_line].strip():
+            first_content_line += 1
+        normalized = "".join(lines[first_content_line:])
+    else:
+        normalized = content
 
     lines = normalized.splitlines(keepends=True)
-    first_content_line = 0
-    while first_content_line < len(lines) and not lines[first_content_line].strip():
-        first_content_line += 1
-    return "".join(lines[first_content_line:])
+    nonblank_lines = [line for line in lines if line.strip()]
+    if not nonblank_lines:
+        return normalized
+
+    leading_space_counts = []
+    for line in nonblank_lines:
+        indentation = line[: len(line) - len(line.lstrip(" \t"))]
+        if "\t" in indentation:
+            return normalized
+        leading_space_counts.append(len(line) - len(line.lstrip(" ")))
+
+    shared_indent = min(leading_space_counts)
+    if shared_indent == 0:
+        return normalized
+    return "".join(line[shared_indent:] if line.strip() else line for line in lines)
 
 
 class OCREngine:

@@ -119,6 +119,36 @@ def test_normalize_ocr_response_removes_content_through_final_think_marker(
     assert normalize_ocr_response(content) == expected
 
 
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (
+            "    First line\n        Nested line\n    Final line\n",
+            "First line\n    Nested line\nFinal line\n",
+        ),
+        ("Unindented\n    Nested\n", "Unindented\n    Nested\n"),
+        ("    First\n  \n        Nested\n", "First\n  \n    Nested\n"),
+        ("    First\n\tNested\n", "    First\n\tNested\n"),
+        ("    First\n    \tNested\n", "    First\n    \tNested\n"),
+        ("", ""),
+        ("  \n\n", "  \n\n"),
+        (
+            "    First\r\n        Nested\r\n    Final\r\n",
+            "First\r\n    Nested\r\nFinal\r\n",
+        ),
+        ("    Single line\n", "Single line\n"),
+        (
+            "reasoning</think>\n\n    First\n        Nested\n",
+            "First\n    Nested\n",
+        ),
+    ],
+)
+def test_normalize_ocr_response_removes_only_shared_ascii_space_margin(
+    content, expected
+):
+    assert normalize_ocr_response(content) == expected
+
+
 def test_standard_next_page_context_uses_normalized_previous_response(
     mock_pdf_reader,
     mock_convert_from_path,

@@ -75,12 +75,12 @@
 
 > **NOTE: Write these tests first and verify they fail before implementing dedenting.**
 
-- [ ] T007 [P] [US2] Add parameterized shared-margin, relative-indent, blank-line, unindented, tab, mixed-whitespace, empty, LF, CRLF, and trailing-newline tests in `tests/unit/test_ocr_engine.py`
-- [ ] T008 [P] [US2] Add an end-to-end CLI test proving saved Markdown removes a four-space top-level margin while retaining four spaces of nested indentation in `tests/integration/test_ocr_cli.py`
+- [X] T007 [P] [US2] Add parameterized shared-margin, relative-indent, blank-line, unindented, tab, mixed-whitespace, empty, LF, CRLF, and trailing-newline tests in `tests/unit/test_ocr_engine.py`
+- [X] T008 [P] [US2] Add an end-to-end CLI test proving saved Markdown removes a four-space top-level margin while retaining four spaces of nested indentation in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Extend `normalize_ocr_response` with minimum common ASCII-space removal and whole-response tab safeguards in `archivatorium/ocr_engine.py`
+- [X] T009 [US2] Extend `normalize_ocr_response` with minimum common ASCII-space removal and whole-response tab safeguards in `archivatorium/ocr_engine.py`
 
 **Checkpoint**: User Stories 1 and 2 produce clean page text in the required order: reasoning prefix removal, separator cleanup, then safe shared-margin removal.
 
