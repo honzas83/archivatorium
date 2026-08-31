@@ -57,8 +57,8 @@ QWEN38_EXPECTED_SYSTEM_PROMPT = (
     "emphasis. Typewritten text has no Markdown styling; do not infer styling from capitalization, "
     "spacing, underlining, or position. Use explicit Markdown markers only for visible lists.\n"
     "3. Put each prose paragraph on one physical line by removing visual line wraps. Separate "
-    "distinct prose paragraphs with exactly one blank line. Keep headings, list items, table rows, "
-    "plain-text headings, list items, table rows, and fenced-block lines as separate Markdown "
+    "distinct prose paragraphs with exactly one blank line. Keep plain-text headings, list items, "
+    "table rows, and fenced-block lines as separate Markdown "
     "blocks.\n"
     "4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a "
     "fenced plain-text block. Never generate HTML.\n"
@@ -71,9 +71,12 @@ QWEN38_EXPECTED_SYSTEM_PROMPT = (
     "7. Typewriters used for these documents do not have curly braces. Never infer or normalize "
     "characters into { or }. Output a curly brace only when it is unambiguously visible in the "
     "current image.\n"
-    "8. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "8. Do not invent or modernize punctuation or symbols unavailable on the source typewriter. "
+    "Output any unusual character only when it is unambiguously visible; otherwise write "
+    "[unreadable].\n"
+    "9. Preserve meaningful whitespace inside literal content and write [unreadable] for "
     "illegible text. Return an empty transcription only when the page is truly blank.\n"
-    "9. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "10. Previous-page text, when supplied, is context only. Never copy it unless the same text "
     "is visible in the current image."
 )
 
@@ -100,6 +103,9 @@ def test_qwen38_prompt_defines_plain_typewriter_structure_and_generic_despacing(
     assert "N A T O   S E C R E T → NATO SECRET" in QWEN38_SYSTEM_PROMPT
     assert "Never infer or normalize characters into { or }" in QWEN38_SYSTEM_PROMPT
     assert "only when it is unambiguously visible" in QWEN38_SYSTEM_PROMPT
+    assert "Do not invent or modernize punctuation or symbols" in QWEN38_SYSTEM_PROMPT
+    assert "unavailable on the source typewriter" in QWEN38_SYSTEM_PROMPT
+    assert "otherwise write [unreadable]" in QWEN38_SYSTEM_PROMPT
     assert QWEN38_USER_PROMPT == (
         "Transcribe this document image according to the output contract. "
         "Return only the Markdown transcription."

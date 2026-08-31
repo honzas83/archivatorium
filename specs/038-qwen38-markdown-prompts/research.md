@@ -119,3 +119,9 @@
 - Remove every curly brace after OCR: rejected because a brace can be genuinely and unambiguously visible in non-typewritten additions or other source material.
 - Rely only on the general no-inference rule: rejected because it does not identify the observed character-normalization failure.
 - Add a deterministic brace postprocessor: rejected because output text cannot establish whether a brace was visibly present in the image.
+
+## Decision 11: Prohibit other invented non-typewriter characters
+
+**Decision**: Extend source-character fidelity beyond curly braces. The Qwen 3.8 prompt prohibits inventing or modernizing punctuation and symbols unavailable on the source typewriter. It emits an unusual character only when unambiguously visible and uses `[unreadable]` for an ambiguous glyph.
+
+**Rationale**: Curly braces are a known failure case, but the same model behavior can substitute other modern characters for ambiguous typewritten marks. A general rule prevents those substitutions while retaining the specific brace warning and preserving genuinely visible additions.

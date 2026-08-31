@@ -53,7 +53,7 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 **Goal**: Add an explicitly selectable `qwen38` mode whose dedicated prompts require Markdown-compatible structure, plain-text typewriter headings without generated heading/bold/italic styling, column-one top-level blocks, Markdown tables, source fidelity, and artificial character de-spacing anywhere in text.
 
-**Independent Test**: Select `--mode qwen38` with a custom Qwen 3.8 model identifier and inspect the outgoing mocked request. The new mode is accepted, uses its dedicated prompts, contains `#`/`##`/`###` hierarchy rules and the exact `N A T O   S E C R E T` → `NATO SECRET` generic de-spacing example, and preserves the selected model. Exact standard, GLM, and FireRed requests remain unchanged.
+**Independent Test**: Select `--mode qwen38` with a custom Qwen 3.8 model identifier and inspect the outgoing mocked request. The new mode is accepted, uses its dedicated prompts, prohibits generated heading/bold/italic markers, includes the exact `N A T O   S E C R E T` → `NATO SECRET` generic de-spacing example, and preserves the selected model. Exact standard, GLM, and FireRed requests remain unchanged.
 
 ### Tests for User Story 1
 
@@ -139,6 +139,14 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 - [X] T019 [US1] Replace ATX-heading assertions with exact plain-heading and no-bold/no-italic prompt contracts in `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, and confirm the prior prompt fails
 - [X] T020 [US1] Update the Qwen 3.8 prompt and all Feature 038 design artifacts to preserve headings as unstyled plain text, then run focused OCR tests and quality checks
+
+---
+
+## Phase 9: General Typewriter-Character Fidelity Amendment
+
+**Purpose**: Prevent Qwen 3.8 from inventing modern punctuation or symbols beyond the explicitly prohibited curly braces.
+
+- [X] T021 [US1] Generalize source-character fidelity beyond curly braces: prohibit invented or modernized punctuation and symbols unavailable on the source typewriter, require unambiguous visibility for unusual characters, and use `[unreadable]` for ambiguous glyphs; update prompt tests and Feature 038 artifacts — checkpoint: 89 focused tests passed with one unrelated PyPDF2 warning; focused Ruff, formatting, and MyPy passed
 
 ---
 

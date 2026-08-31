@@ -93,6 +93,7 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - **FR-015**: Qwen 3.8 mode instructions MUST explicitly require artificial typewriter-style inter-character spacing anywhere in recognized text to be collapsed while preserving normal word boundaries, and MUST include `N A T O   S E C R E T` → `NATO SECRET` as the canonical example.
 - **FR-016**: Qwen 3.8 mode MUST preserve visually supported headings as plain text on their own lines and MUST NOT generate Markdown heading markers (`#`, `##`, or other levels), bold markers (`**` or `__`), or italic markers (`*` or `_`) from capitalization, spacing, underlining, position, or other typewriter layout cues.
 - **FR-017**: Qwen 3.8 mode instructions MUST state that the source typewriter did not provide curly braces, MUST prohibit inferring or normalizing any character into `{` or `}`, and MUST permit either brace only when it is unambiguously visible in the source image.
+- **FR-018**: Qwen 3.8 mode MUST NOT invent or modernize punctuation or symbols unavailable on the source typewriter; unusual characters MUST be emitted only when unambiguously visible, with ambiguous characters represented as `[unreadable]`.
 
 ### Key Entities
 
@@ -113,6 +114,7 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - **SC-007**: In all validation samples using artificial inter-character spacing, spaced letters are joined into their intended words while genuine word boundaries and standalone symbols remain correct.
 - **SC-008**: In all validation samples containing typewriter headings or emphasized-looking text, no generated Markdown heading, bold, or italic markers appear.
 - **SC-009**: In all typewritten validation samples without visibly unambiguous curly braces, the recognized output introduces no `{` or `}` characters.
+- **SC-010**: In all typewritten validation samples, punctuation and symbols unavailable on the source machine are absent unless unambiguously visible; ambiguous glyphs are marked `[unreadable]`.
 
 ## Assumptions
 

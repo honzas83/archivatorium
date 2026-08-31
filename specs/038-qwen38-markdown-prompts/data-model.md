@@ -39,6 +39,7 @@ Rules governing the model's recognized page output.
 | Tables | Clear structures use pipe tables; ambiguous or fixed-width structures use fenced plain text. |
 | Artificial letter spacing | Inter-character spacing anywhere in headings, prose, labels, or table cells is collapsed semantically while intended word boundaries remain; canonical example is `N A T O   S E C R E T` → `NATO SECRET`. |
 | Curly-brace fidelity | Characters are never inferred or normalized into `{` or `}`; a brace is output only when unambiguously visible in the current image. |
+| Typewriter character fidelity | Punctuation and symbols unavailable on the source typewriter are not invented or modernized; unusual characters are emitted only when unambiguously visible, otherwise as `[unreadable]`. |
 | Fidelity | Visible wording, capitalization, punctuation, typos, numbering, meaningful whitespace, and reading order are preserved. |
 | Unreadable/blank content | Illegible text becomes `[unreadable]`; empty output is reserved for a truly blank page. |
 | Previous-page context | Context is not copied unless the same text is visible on the current page. |
@@ -68,6 +69,7 @@ Normalized page content used for output and optional subsequent-page context.
 | Alignment | No shared artificial top-level indentation remains. |
 | Letter spacing | Artificially spaced lettering is rendered as intended words with normal word boundaries. |
 | Curly braces | Typewritten glyphs are not normalized into `{` or `}` unless a brace is unambiguously visible. |
+| Other unavailable characters | Unusual punctuation or symbols are not inferred from ambiguous glyphs; use `[unreadable]` unless the character is unambiguously visible. |
 | Source fidelity | No correction, summary, paraphrase, or unsupported structure is introduced. |
 
 ## Relationships and State Flow
