@@ -29,7 +29,7 @@ Expected outcome:
 Review the exact contract and confirm it contains all of these unambiguous rules:
 
 - Output only pure Markdown transcription, without generated HTML.
-- Mark supported heading hierarchy with `#`, `##`, `###`, and subsequent ATX levels; do not mark ordinary prose as headings.
+- Keep headings as plain text on their own lines; do not generate `#` heading markers, bold, or italic emphasis from typewriter layout cues.
 - Put every prose paragraph on one physical line and separate distinct paragraphs with one blank line.
 - Start top-level Markdown blocks at column one and avoid copied page-layout indentation.
 - Use pipe tables when structure is clear and fenced plain text otherwise.
@@ -60,7 +60,7 @@ Use representative pages containing:
 
 Expected outcome:
 
-- Titles and supported sublevels use correct and consistent ATX markers; prose is not promoted to a heading.
+- Titles and subheadings remain plain text without generated Markdown heading, bold, or italic markers.
 - Each prose paragraph is a single unwrapped line, while headings, list items, and table rows remain distinct blocks.
 - Artificial spacing is removed wherever it occurs, and normal word boundaries remain. In particular, `N A T O   S E C R E T` becomes `NATO SECRET`.
 - Ambiguous typewritten glyphs do not become `{` or `}`; a curly brace appears only when it is unambiguously visible in the source.

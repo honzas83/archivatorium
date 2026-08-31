@@ -36,17 +36,17 @@
 - Preserve all source indentation: rejected because it recreates the malformed Markdown this feature is intended to prevent.
 - Add a deterministic indentation rewriter: rejected because it cannot reliably distinguish prose, nested lists, tables, and literal blocks.
 
-## Decision 4: Require explicit ATX heading hierarchy
+## Decision 4: Preserve typewriter headings without Markdown styling
 
-**Decision**: Instruct Qwen 3.8 mode to map visually supported document hierarchy to Markdown ATX headings using `#`, `##`, `###`, and subsequent levels consistently, while leaving ordinary prose unmarked.
+**Decision**: Instruct Qwen 3.8 mode to keep visually supported headings as plain text on their own lines and never generate Markdown heading, bold, or italic markers from capitalization, spacing, underlining, position, or other typewriter layout cues.
 
-**Rationale**: Generic "preserve headings" wording does not guarantee Markdown syntax or level selection. Naming the markers makes the output contract concrete and lets operators distinguish titles, sections, and subsections in downstream Markdown.
+**Rationale**: The target text was produced on typewriters and does not contain Markdown styling. Adding ATX or emphasis markers invents characters and formatting absent from the document; preserving a separate plain-text line retains the visible heading boundary without editorial markup.
 
 **Alternatives considered**:
 
-- Use bold text for headings: rejected because it loses document hierarchy.
-- Mark every visually emphasized line as a heading: rejected because emphasis alone may represent labels or ordinary prose.
-- Force sequential levels when the source hierarchy is unclear: rejected because the OCR output must not invent unsupported structure.
+- Use ATX markers for headings: rejected because `#` levels are generated editorial structure absent from typewriter text.
+- Use bold or italic emphasis: rejected because those Markdown markers are not visible source characters.
+- Collapse headings into prose: rejected because a visibly separate heading line remains a meaningful source boundary.
 
 ## Decision 5: State artificial letter-spacing normalization with an exact example
 
@@ -98,9 +98,9 @@
 
 ## Decision 9: Test exact Qwen 3.8 requests and existing-mode isolation
 
-**Decision**: Add exact Qwen 3.8 profile and request tests for its prompts, previous-page context, and `think="high"`; verify retries reuse the identical request; assert the selected model identifier passes through unchanged; and retain exact standard omission, GLM `think=False`, and FireRed omission assertions. Prompt-contract tests explicitly cover ATX heading markers and artificial spacing in headings, prose, labels, and table cells.
+**Decision**: Add exact Qwen 3.8 profile and request tests for its prompts, previous-page context, and `think="high"`; verify retries reuse the identical request; assert the selected model identifier passes through unchanged; and retain exact standard omission, GLM `think=False`, and FireRed omission assertions. Prompt-contract tests explicitly cover the prohibition on generated heading/bold/italic markers and artificial spacing in headings, prose, labels, and table cells.
 
-**Rationale**: Prompt-driven behavior is best protected by exact request-contract tests. Separate assertions for all four modes prevent the new resolver value and shared reasoning type from altering existing requests. Mocked tests remain deterministic, while the quickstart defines representative live review for heading hierarchy, Markdown, prose joining, and typewriter spacing anywhere in text.
+**Rationale**: Prompt-driven behavior is best protected by exact request-contract tests. Separate assertions for all four modes prevent the new resolver value and shared reasoning type from altering existing requests. Mocked tests remain deterministic, while the quickstart defines representative live review for plain typewriter headings, Markdown-compatible structure, prose joining, and typewriter spacing anywhere in text.
 
 **Alternatives considered**:
 

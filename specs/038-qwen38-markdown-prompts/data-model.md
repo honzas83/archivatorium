@@ -31,7 +31,7 @@ Rules governing the model's recognized page output.
 | Rule | Validation |
 |------|------------|
 | Output scope | Contains transcription only; no commentary, summary, correction, inference, or invented content. |
-| Heading hierarchy | Uses `#`, `##`, `###`, and subsequent ATX levels for visually supported hierarchy; ordinary prose remains unmarked. |
+| Typewriter headings | Visually supported headings remain plain text on separate lines; generated heading, bold, and italic Markdown markers are prohibited. |
 | Structure | Uses Markdown lists, tables, breaks, notes, and captions; generated HTML is prohibited. |
 | Top-level alignment | Top-level blocks begin at column one; page margins and layout indentation are not reproduced. |
 | Markdown whitespace | Indentation is permitted only when Markdown syntax requires nesting or within a fenced literal block. |
@@ -63,7 +63,7 @@ Normalized page content used for output and optional subsequent-page context.
 |----------|------------|
 | Reasoning-free | Separate reasoning is ignored and inline content through the final exact closing reasoning marker is removed. |
 | Markdown-native | Generated structure contains Markdown rather than HTML. |
-| Heading hierarchy | Supported title, section, and subsection levels use consistent ATX markers; prose is not promoted. |
+| Typewriter styling | Headings and emphasized-looking text remain unstyled plain text without generated heading, bold, or italic markers. |
 | Paragraph shape | Prose paragraphs are unwrapped single lines; other Markdown blocks retain their required boundaries. |
 | Alignment | No shared artificial top-level indentation remains. |
 | Letter spacing | Artificially spaced lettering is rendered as intended words with normal word boundaries. |
