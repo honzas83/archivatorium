@@ -87,3 +87,53 @@ def test_markdown_index_ignores_legacy_entity_reference_fallback(tmp_path: Path)
     indexer.generate_markdown_indices()
 
     assert not (vault_dir / "Index - States.md").exists()
+
+
+def test_index_page_capping(tmp_path: Path) -> None:
+    vault_dir = tmp_path / "vault"
+    vault_dir.mkdir()
+
+    tags = CanonicalTags()
+    tags.raw_paths.add("Tags/DefencePlanning")
+    tags.raw_paths.add("Entities/City/Belgium/Brussels")
+
+    entries = []
+    # Create 55 entries linking to the same tag/city
+    for idx in range(55):
+        entries.append(
+            IndexEntry(
+                doc_path=Path(f"doc_{idx}.md"),
+                title=f"Doc {idx}",
+                canonical_tags=tags,
+            )
+        )
+
+    indexer = IndexingService(vault_dir)
+    indexer.entries = entries
+    indexer.generate_markdown_indices()
+
+    # 1. Verify Index - Tags.md
+    tags_index_file = vault_dir / "Index - Tags.md"
+    assert tags_index_file.exists()
+    tags_content = tags_index_file.read_text(encoding="utf-8")
+
+    # Should list exactly 50 doc links
+    link_count = tags_content.count("[[doc_")
+    assert link_count == 50
+    # Should contain the suffix search query
+    assert (
+        "and 5 more. [Search in Vault](obsidian://search?vault=vault&query=tag%3A%23Tags/DefencePlanning)"
+        in tags_content
+    )
+
+    # 2. Verify Index - Cities.md
+    cities_index_file = vault_dir / "Index - Cities.md"
+    assert cities_index_file.exists()
+    cities_content = cities_index_file.read_text(encoding="utf-8")
+
+    city_link_count = cities_content.count("[[doc_")
+    assert city_link_count == 50
+    assert (
+        "and 5 more. [Search in Vault](obsidian://search?vault=vault&query=tag%3A%23Entities/City/Belgium/Brussels)"
+        in cities_content
+    )

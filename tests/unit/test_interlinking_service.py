@@ -293,7 +293,10 @@ def test_self_reference_removal():
 def test_clean_citekey():
     service = InterlinkingService(Path("/tmp"))
     assert service.clean_citekey("[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG") == "NPG-D-73-6_ENG"
-    assert service.clean_citekey("[NPG-WP-73-1](NPG-WP(73)1_ENG.md)-COR1_ENG") == "NPG-WP-73-1-COR1_ENG"
+    assert (
+        service.clean_citekey("[NPG-WP-73-1](NPG-WP(73)1_ENG.md)-COR1_ENG")
+        == "NPG-WP-73-1-COR1_ENG"
+    )
     assert service.clean_citekey("NPG-D-73-6_FRE") == "NPG-D-73-6_FRE"
     assert service.clean_citekey("") == ""
 
@@ -343,11 +346,11 @@ def test_split_body_parts():
     assert citation == "> [!citing this document]\n> Citation info\n"
 
 
-def test_interlink_all_restores_and_cleans(tmp_path: Path):
+def test_interlink_all_restores_and_cleans(tmp_path: Path) -> None:
     # Setup two language versions: one French with archive_code, one English missing archive_code and with broken citekey
     vault = tmp_path / "vault"
     vault.mkdir()
-    
+
     eng_file = vault / "NPG-D(73)6_ENG.md"
     eng_file.write_text(
         """---
@@ -368,7 +371,7 @@ Document body content.
 > Chicago:
 > https://nato-obsidian.kky.zcu.cz/[NPG-D-73-6](NPG-D(73)6_FRE.md)_ENG
 """,
-        encoding="utf-8"
+        encoding="utf-8",
     )
 
     fre_file = vault / "NPG-D(73)6_FRE.md"
@@ -393,12 +396,12 @@ Document body content.
 > Chicago:
 > https://nato-obsidian.kky.zcu.cz/NPG-D-73-6_FRE
 """,
-        encoding="utf-8"
+        encoding="utf-8",
     )
 
     service = InterlinkingService(vault)
     service.discover()
-    
+
     # Verify discover inferred archive_code for ENG file
     assert service.code_map["NPG/D(73)6"]["English"] == "NPG-D(73)6_ENG.md"
     assert service.code_map["NPG/D(73)6"]["French"] == "NPG-D(73)6_FRE.md"
@@ -415,3 +418,91 @@ Document body content.
     assert "https://nato-obsidian.kky.zcu.cz/NPG-D-73-6_ENG" in eng_content
     assert "[NPG-D-73-6]" not in eng_content
 
+
+def test_escape_other_hashtags() -> None:
+    from archivatorium.services.interlinking_service import escape_other_hashtags
+
+    # 1. Non-standard hashtags should be escaped
+    assert (
+        escape_other_hashtags("DOCUMENT DESTRUCTION MEMO. #67-87155")
+        == "DOCUMENT DESTRUCTION MEMO. \\#67-87155"
+    )
+    assert escape_other_hashtags("Marking #67-8/9/50 is here") == "Marking \\#67-8/9/50 is here"
+
+    # 2. Canonical tags must NOT be escaped
+    assert escape_other_hashtags("#Entities/Org/NATO") == "#Entities/Org/NATO"
+    assert escape_other_hashtags("#Topics/Defence/Planning") == "#Topics/Defence/Planning"
+    assert escape_other_hashtags("#Tags/PublicDisclosure") == "#Tags/PublicDisclosure"
+
+    # 3. Markdown headers must NOT be escaped
+    assert escape_other_hashtags("# Header 1\n## Header 2") == "# Header 1\n## Header 2"
+
+    # 4. Already escaped hashes must NOT be double-escaped
+    assert escape_other_hashtags("\\#67-8") == "\\#67-8"
+
+    # 5. Hashes inside inline code and code blocks must NOT be escaped
+    assert escape_other_hashtags("inline `#comment` code") == "inline `#comment` code"
+    code_block = "```python\n# Python comment\n```"
+    assert escape_other_hashtags(code_block) == code_block
+
+    # 6. Hash followed by space not at start of line is not a tag
+    assert escape_other_hashtags("this is # a test") == "this is # a test"
+
+
+def test_interlink_escapes_hashtags_end_to_end(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    vault.mkdir()
+
+    file_path = vault / "test_doc.md"
+    file_path.write_text(
+        """---
+title: Test Doc
+archive_code: NPG/D(73)6
+language: English
+---
+
+> [!info] Metadata
+> | ≡&nbsp;title: | Test Doc |
+> | ≡&nbsp;archive_code: | NPG/D(73)6 |
+
+> [!abstract]
+> Summary with tag #Topics/Defence.
+>
+> ## Entities
+> - #Entities/Org/NATO
+
+# Page 1
+DOCUMENT DESTRUCTION MEMO. #67-87155
+Already escaped: \\#67-8
+Markdown header:
+## Some Header
+
+```python
+# code comment
+```
+""",
+        encoding="utf-8",
+    )
+
+    service = InterlinkingService(vault)
+    service.discover()
+
+    # Run first pass
+    service.interlink_all()
+
+    content_first = file_path.read_text(encoding="utf-8")
+    assert "\\#67-87155" in content_first
+    assert "\\\\#67-8" not in content_first  # Make sure it didn't double escape
+    assert "\\#67-8" in content_first
+    assert "\\#Topics/Defence" not in content_first
+    assert "#Topics/Defence" in content_first
+    assert "\\#Entities/Org/NATO" not in content_first
+    assert "#Entities/Org/NATO" in content_first
+    assert "\\## Some Header" not in content_first
+    assert "## Some Header" in content_first
+    assert "\\# code comment" not in content_first
+
+    # Run second pass (idempotency check)
+    service.interlink_all()
+    content_second = file_path.read_text(encoding="utf-8")
+    assert content_first == content_second

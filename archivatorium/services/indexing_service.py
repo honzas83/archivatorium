@@ -229,9 +229,18 @@ class IndexingService:
 
             lines.append(f"### {tag}")
             sorted_docs = sorted(tag_to_entries[tag], key=lambda e: str(e.doc_path).lower())
-            for doc in sorted_docs:
+            for doc in sorted_docs[:50]:
                 title_text = doc.title or doc.doc_path.stem
                 lines.append(f"- [[{doc.doc_path}|{title_text}]]")
+
+            if len(sorted_docs) > 50:
+                import urllib.parse
+
+                remaining = len(sorted_docs) - 50
+                vault_name = urllib.parse.quote(self.input_dir.name)
+                query_val = urllib.parse.quote(f"tag:{tag}")
+                search_url = f"obsidian://search?vault={vault_name}&query={query_val}"
+                lines.append(f"- ... and {remaining} more. [Search in Vault]({search_url})")
 
         self._write_index(filename, "\n".join(lines))
 
@@ -264,9 +273,18 @@ class IndexingService:
                 sorted_docs = sorted(
                     state_to_cities[state_display][tag], key=lambda e: str(e.doc_path).lower()
                 )
-                for doc in sorted_docs:
+                for doc in sorted_docs[:50]:
                     title_text = doc.title or doc.doc_path.stem
                     lines.append(f"- [[{doc.doc_path}|{title_text}]]")
+
+                if len(sorted_docs) > 50:
+                    import urllib.parse
+
+                    remaining = len(sorted_docs) - 50
+                    vault_name = urllib.parse.quote(self.input_dir.name)
+                    query_val = urllib.parse.quote(f"tag:{tag}")
+                    search_url = f"obsidian://search?vault={vault_name}&query={query_val}"
+                    lines.append(f"- ... and {remaining} more. [Search in Vault]({search_url})")
 
         self._write_index("Index - Cities.md", "\n".join(lines))
 

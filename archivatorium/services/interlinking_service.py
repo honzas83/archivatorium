@@ -42,6 +42,8 @@ class InterlinkingService:
         self.expansion_map: dict[str, list[str]] = self._build_expansion_map()
         self.documents: list[VaultDocument] = []
         self.code_digits: dict[str, set[str]] = {}
+        self._sorted_codes: list[str] | None = None
+        self._safe_bib_keys: set[str] | None = None
 
     def clean_citekey(self, citekey: str) -> str:
         """
@@ -51,7 +53,9 @@ class InterlinkingService:
         if not citekey:
             return ""
         # Handle nested parentheses in URLs and optional suffixes like -COR1
-        match = re.match(r"^\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})$", citekey)
+        match = re.match(
+            r"^\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})$", citekey
+        )
         if match:
             text, suffix_cor, suffix_lang = match.groups()
             return f"{text}{suffix_cor}{suffix_lang}"
@@ -64,7 +68,11 @@ class InterlinkingService:
         if not citation_text:
             return ""
         # Match nested parentheses in URLs and optional suffixes like -COR1 using suffix group
-        return re.sub(r'\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})', r'\1\2\3', citation_text)
+        return re.sub(
+            r"\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)(-[a-zA-Z0-9\-]+|)(_[A-Z]{3})",
+            r"\1\2\3",
+            citation_text,
+        )
 
     def infer_archive_code(self, filename: str) -> str:
         """
@@ -74,7 +82,7 @@ class InterlinkingService:
         """
         stem = Path(filename).stem
         # Strip language suffix like _ENG, _FRE, _BIL
-        stem = re.sub(r'_(ENG|FRE|BIL)$', '', stem, flags=re.IGNORECASE)
+        stem = re.sub(r"_(ENG|FRE|BIL)$", "", stem, flags=re.IGNORECASE)
         # Replace the first dash with a slash if it's like NPG-D, NPG-WP, NPG-SG, NPG-STUDY
         for prefix in ["NPG-D", "NPG-WP", "NPG-SG", "NPG-STUDY", "MC-D", "MC-WP"]:
             if stem.startswith(prefix):
@@ -434,7 +442,9 @@ class InterlinkingService:
 
             # Clean broken citekey if found in the row
             if "citekey:" in row:
-                row_match = re.match(r"^(\s*> \| ≡&nbsp;(?:\*\*)?citekey(?:\*\*)?: \| )(.*)( \|)$", row)
+                row_match = re.match(
+                    r"^(\s*> \| ≡&nbsp;(?:\*\*)?citekey(?:\*\*)?: \| )(.*)( \|)$", row
+                )
                 if row_match:
                     prefix, citekey_val, suffix = row_match.groups()
                     clean_val = self.clean_citekey(citekey_val.strip())
@@ -594,11 +604,12 @@ class InterlinkingService:
         doc_digits = set(re.findall(r"\d+", content))
 
         # 2. Filter self.code_digits to find active codes (subset matches)
-        if not hasattr(self, "_sorted_codes") or self._sorted_codes is None:
+        if self._sorted_codes is None:
             self._sorted_codes = sorted(current_keys, key=len, reverse=True)
 
+        sorted_codes = self._sorted_codes
         active_codes = []
-        for c in self._sorted_codes:
+        for c in sorted_codes:
             req_digits = self.code_digits.get(c, set())
             if req_digits.issubset(doc_digits):
                 active_codes.append(c)
@@ -620,8 +631,12 @@ class InterlinkingService:
         found_codes = []
 
         # Cache check
-        if not hasattr(self, "_safe_bib_keys") or self._safe_bib_keys is None:
+        if self._safe_bib_keys is None:
             self._safe_bib_keys = {safe_identifier(k) for k in current_keys if k}
+
+        safe_bib_keys = self._safe_bib_keys
+        sorted_codes = self._sorted_codes
+        assert sorted_codes is not None
 
         for line in lines:
             if "archive_code:" in line:
@@ -630,12 +645,13 @@ class InterlinkingService:
 
             # 1. Protect existing links (Markdown links and Wikilinks)
             placeholders = []
+
             def protect_link(m: re.Match[str]) -> str:
                 link_text = m.group(0)
-                
+
                 # Extract canonical codes from existing link to include in found_codes list
                 link_bib = safe_identifier(link_text)
-                for c in self._sorted_codes:
+                for c in sorted_codes:
                     bib = safe_identifier(c)
                     if bib and bib in link_bib:
                         canonical = self.bib_to_norm.get(bib, c)
@@ -648,7 +664,7 @@ class InterlinkingService:
                     md_link = re.match(r"^\[(.*?)\]\((.*?)\)$", link_text)
                     if md_link:
                         text = md_link.group(1)
-                        if safe_identifier(text) in self._safe_bib_keys:
+                        if safe_identifier(text) in safe_bib_keys:
                             return text
 
                     # Wikilink: [[target]] or [[target|display]]
@@ -656,16 +672,17 @@ class InterlinkingService:
                     if wiki_link:
                         target, display = wiki_link.groups()
                         text = display if display else target
-                        if safe_identifier(target) in self._safe_bib_keys or safe_identifier(text) in self._safe_bib_keys:
+                        if (
+                            safe_identifier(target) in safe_bib_keys
+                            or safe_identifier(text) in safe_bib_keys
+                        ):
                             return text
 
                 placeholders.append(link_text)
-                return f"___LINK_{len(placeholders)-1}___"
+                return f"___LINK_{len(placeholders) - 1}___"
 
             protected_line = re.sub(
-                r"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))",
-                protect_link,
-                line
+                r"(\[\[.*?\]\]|\[[^\]]*\]\((?:[^()]|\([^()]*\))*\))", protect_link, line
             )
 
             # 2. Match and replace using the dynamically compiled regex of active codes
@@ -725,11 +742,17 @@ class InterlinkingService:
                 source_lang = "English"
 
             # 2. Split body part to protect metadata and citation callouts
-            metadata_callout, abstract_callout, main_body, citation_callout = self.split_body_parts(body_part)
+            metadata_callout, abstract_callout, main_body, citation_callout = self.split_body_parts(
+                body_part
+            )
 
             # 3. Interlink abstract and main body (protecting metadata and citation callouts)
             new_abstract, desc_codes_abstract = self.interlink_body(
-                abstract_callout, source_lang, doc.vault_relative_path, doc.archive_code, force=force
+                abstract_callout,
+                source_lang,
+                doc.vault_relative_path,
+                doc.archive_code,
+                force=force,
             )
             new_main, desc_codes_body = self.interlink_body(
                 main_body, source_lang, doc.vault_relative_path, doc.archive_code, force=force
@@ -743,8 +766,11 @@ class InterlinkingService:
 
             # 4. Interlink Metadata callout with discovered codes
             updated_metadata_callout = self.interlink_metadata(
-                metadata_callout, source_lang, doc.vault_relative_path, discovered_codes,
-                own_archive_code=doc.archive_code
+                metadata_callout,
+                source_lang,
+                doc.vault_relative_path,
+                discovered_codes,
+                own_archive_code=doc.archive_code,
             )
 
             # 5. Clean citation callout (in case it is already broken)
@@ -768,6 +794,9 @@ class InterlinkingService:
             if cleaned_citation_callout.strip():
                 new_body += cleaned_citation_callout.strip() + "\n"
 
+            # Escape raw hashtags in the body content outside YAML frontmatter
+            new_body = escape_other_hashtags(new_body)
+
             new_content = frontmatter_part + new_body
 
             if new_content != content:
@@ -781,6 +810,7 @@ class InterlinkingService:
 
                     # Reparse the document to update in-memory record
                     from archivatorium.utils.metadata import parse_frontmatter
+
                     reparsed_content = new_content
                     metadata, body = parse_frontmatter(reparsed_content)
                     doc.body = body
@@ -793,9 +823,7 @@ class InterlinkingService:
                         raw_refs = [raw_refs] if raw_refs else []
                     doc.raw_references = raw_refs
 
-                    doc.canonical_tags = tag_parser.parse_text(
-                        reparsed_content, file_path=md_file
-                    )
+                    doc.canonical_tags = tag_parser.parse_text(reparsed_content, file_path=md_file)
                 return True
         except Exception as e:
             logger.error(f"Error processing {md_file}: {e}")
@@ -816,6 +844,7 @@ class InterlinkingService:
                     updated_count += 1
         else:
             import click
+
             with click.progressbar(
                 self.documents,
                 label="Interlinking documents",
@@ -830,3 +859,74 @@ class InterlinkingService:
         if dry_run:
             msg += " (dry-run)"
         logger.info(msg)
+
+
+def escape_other_hashtags(text: str) -> str:
+    """Escapes raw hashtags in document bodies that are not canonical tags or markdown headers."""
+    if not text or "#" not in text:
+        return text
+
+    lines = text.splitlines(keepends=True)
+    in_code_block = False
+    new_lines = []
+
+    for line in lines:
+        stripped = line.lstrip()
+        # Toggle fenced code block state
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            new_lines.append(line)
+            continue
+
+        if in_code_block:
+            new_lines.append(line)
+            continue
+
+        # Check for markdown header (with optional blockquote markers)
+        h_line = line.lstrip()
+        while h_line.startswith(">"):
+            h_line = h_line[1:].lstrip()
+
+        if h_line.startswith("#"):
+            hashes = 0
+            while hashes < len(h_line) and h_line[hashes] == "#":
+                hashes += 1
+            if hashes < len(h_line) and h_line[hashes] in (" ", "\t"):
+                # Protected header line
+                new_lines.append(line)
+                continue
+
+        # Find and escape other hashtags using string find
+        idx = line.find("#")
+        while idx != -1:
+            # 1. Skip if already escaped
+            if idx > 0 and line[idx - 1] == "\\":
+                idx = line.find("#", idx + 1)
+                continue
+
+            # 2. Skip if inside inline code block (odd number of backticks before it on this line)
+            if line.count("`", 0, idx) % 2 != 0:
+                idx = line.find("#", idx + 1)
+                continue
+
+            # 3. Skip if canonical tag
+            is_canonical = False
+            for prefix in ("#Entities/", "#Topics/", "#Tags/"):
+                if line.startswith(prefix, idx):
+                    is_canonical = True
+                    break
+
+            if is_canonical:
+                idx = line.find("#", idx + 1)
+                continue
+
+            # 4. Escape if followed by non-whitespace character
+            if idx + 1 < len(line) and not line[idx + 1].isspace():
+                line = line[:idx] + "\\" + line[idx:]
+                idx = line.find("#", idx + 2)
+            else:
+                idx = line.find("#", idx + 1)
+
+        new_lines.append(line)
+
+    return "".join(new_lines)
