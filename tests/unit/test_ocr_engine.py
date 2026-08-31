@@ -3,11 +3,17 @@ from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
 from archivatorium.ocr_engine import (
+    FIRERED_OCR_PROFILE,
     FIRERED_USER_PROMPT,
+    GLM_OCR_PROFILE,
     OCREngine,
+    QWEN38_SYSTEM_PROMPT,
+    QWEN38_USER_PROMPT,
+    STANDARD_OCR_PROFILE,
     SYSTEM_PROMPT,
     USER_PROMPT,
     normalize_ocr_response,
+    resolve_ocr_mode,
 )
 
 
@@ -33,6 +39,40 @@ FIRERED_EXPECTED_PROMPT = (
     "- Do not add, summarize, correct, or infer any content that is not present in the document.\n"
     "- Output only the converted Markdown."
 )
+
+
+def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> None:
+    assert QWEN38_SYSTEM_PROMPT.startswith("You are a precise OCR transcription system.")
+    assert "Return only the Markdown transcription" in QWEN38_SYSTEM_PROMPT
+    assert "do not add commentary or generated HTML" in QWEN38_SYSTEM_PROMPT
+    assert "# for the document title, ## for sections, ### for subsections" in (
+        QWEN38_SYSTEM_PROMPT
+    )
+    assert "never mark ordinary prose as a heading" in QWEN38_SYSTEM_PROMPT
+    assert "Markdown pipe table" in QWEN38_SYSTEM_PROMPT
+    assert "fenced plain-text block" in QWEN38_SYSTEM_PROMPT
+    assert "Start every top-level block at column 1" in QWEN38_SYSTEM_PROMPT
+    assert "In any text, collapse artificial typewriter-style spacing" in (QWEN38_SYSTEM_PROMPT)
+    assert "headings, prose, labels, and table cells" in QWEN38_SYSTEM_PROMPT
+    assert "N A T O   S E C R E T → NATO SECRET" in QWEN38_SYSTEM_PROMPT
+    assert QWEN38_USER_PROMPT == (
+        "Transcribe this document image according to the output contract. "
+        "Return only the Markdown transcription."
+    )
+
+
+def test_qwen38_profile_is_distinct_without_changing_existing_profiles() -> None:
+    profile = resolve_ocr_mode("qwen38")
+
+    assert profile.name == "qwen38"
+    assert profile.system_prompt == QWEN38_SYSTEM_PROMPT
+    assert profile.user_prompt == QWEN38_USER_PROMPT
+    assert profile.include_previous_page_context is True
+    assert profile.default_options() == {"num_predict": 4096 * 4}
+    assert resolve_ocr_mode(None) is STANDARD_OCR_PROFILE
+    assert resolve_ocr_mode("standard") is STANDARD_OCR_PROFILE
+    assert resolve_ocr_mode("glm") is GLM_OCR_PROFILE
+    assert resolve_ocr_mode("firered") is FIRERED_OCR_PROFILE
 
 
 def assert_ocr_timing_log(

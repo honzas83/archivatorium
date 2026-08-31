@@ -59,13 +59,13 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 > **NOTE: Complete T003-T004 first and confirm they fail because `qwen38` and its prompts do not exist.**
 
-- [ ] T003 [P] [US1] Add unit contract tests for Qwen 3.8 prompt constants, `qwen38` profile resolution, ATX heading rules, generic heading/prose/label/table-cell de-spacing, Markdown-only structure, table fallback, and unchanged existing profiles in `tests/unit/test_ocr_engine.py`
-- [ ] T004 [P] [US1] Add CLI integration tests proving `--mode qwen38` is accepted, preserves the exact `--model` value, uses the dedicated system/user messages and previous-page behavior, and leaves standard/GLM/FireRed requests unchanged in `tests/integration/test_ocr_cli.py`
+- [X] T003 [P] [US1] Add unit contract tests for Qwen 3.8 prompt constants, `qwen38` profile resolution, ATX heading rules, generic heading/prose/label/table-cell de-spacing, Markdown-only structure, table fallback, and unchanged existing profiles in `tests/unit/test_ocr_engine.py`
+- [X] T004 [P] [US1] Add CLI integration tests proving `--mode qwen38` is accepted, preserves the exact `--model` value, uses the dedicated system/user messages and previous-page behavior, and leaves standard/GLM/FireRed requests unchanged in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Add dedicated Qwen 3.8 prompt constants and an initial `QWEN38_OCR_PROFILE`, resolve `qwen38` without changing existing profiles in `archivatorium/ocr_engine.py`, and add `qwen38` to the existing mode choice in `archivatorium/cli.py`; implement the Markdown, heading, table, alignment, fidelity, context-safety, and generic de-spacing rules while reserving the prose-line and high-reasoning additions for later stories
-- [ ] T006 [US1] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm User Story 1 and exact existing-mode isolation pass, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md`
+- [X] T005 [US1] Add dedicated Qwen 3.8 prompt constants and an initial `QWEN38_OCR_PROFILE`, resolve `qwen38` without changing existing profiles in `archivatorium/ocr_engine.py`, and add `qwen38` to the existing mode choice in `archivatorium/cli.py`; implement the Markdown, heading, table, alignment, fidelity, context-safety, and generic de-spacing rules while reserving the prose-line and high-reasoning additions for later stories
+- [X] T006 [US1] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm User Story 1 and exact existing-mode isolation pass, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 82 passed, 1 unrelated PyPDF2 deprecation warning
 
 **Checkpoint**: The new mode is a usable Markdown-native OCR MVP with correct heading markers and generic artificial-spacing normalization; all existing modes are unchanged.
 

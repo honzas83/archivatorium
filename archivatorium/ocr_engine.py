@@ -49,6 +49,37 @@ USER_PROMPT = (
     "This output will be post-processed to extract structured information, so accuracy and layout fidelity are essential."
 )
 
+QWEN38_SYSTEM_PROMPT = (
+    "You are a precise OCR transcription system. Transcribe only content visible in the current "
+    "document image, in reading order. Return only the Markdown transcription; do not add "
+    "commentary or generated HTML.\n\n"
+    "Output contract:\n"
+    "1. Preserve visible wording, capitalization, punctuation, typos, headings, paragraphs, "
+    "lists, numbering, tables, footnotes, annotations, section breaks, and legible figure "
+    "captions. Do not summarize, correct, rephrase, infer, or invent content.\n"
+    "2. Mark visually supported heading hierarchy with Markdown ATX syntax: # for the document "
+    "title, ## for sections, ### for subsections, and subsequent levels as needed. Use levels "
+    "consistently and never mark ordinary prose as a heading. Use explicit Markdown markers for "
+    "lists.\n"
+    "3. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a "
+    "fenced plain-text block. Never generate HTML.\n"
+    "4. Start every top-level block at column 1; do not reproduce page margins or layout "
+    "indentation. Use indentation only where Markdown syntax requires nested list structure or "
+    "inside a fenced literal block.\n"
+    "5. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters "
+    "while preserving word boundaries. Apply this to headings, prose, labels, and table cells. "
+    "Example: N A T O   S E C R E T → NATO SECRET.\n"
+    "6. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "illegible text. Return an empty transcription only when the page is truly blank.\n"
+    "7. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "is visible in the current image."
+)
+
+QWEN38_USER_PROMPT = (
+    "Transcribe this document image according to the output contract. "
+    "Return only the Markdown transcription."
+)
+
 GLM_USER_PROMPT = "Text Recognition:"
 
 FIRERED_USER_PROMPT = (
@@ -131,6 +162,15 @@ STANDARD_OCR_PROFILE = OCRModeProfile(
     inference_defaults=(("num_predict", 4096 * 4),),
 )
 
+QWEN38_OCR_PROFILE = OCRModeProfile(
+    name="qwen38",
+    system_prompt=QWEN38_SYSTEM_PROMPT,
+    user_prompt=QWEN38_USER_PROMPT,
+    include_previous_page_context=True,
+    think=None,
+    inference_defaults=(("num_predict", 4096 * 4),),
+)
+
 GLM_OCR_PROFILE = OCRModeProfile(
     name="glm",
     system_prompt=None,
@@ -162,6 +202,8 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
 
     if mode is None or mode == "standard":
         return STANDARD_OCR_PROFILE
+    if mode == "qwen38":
+        return QWEN38_OCR_PROFILE
     if mode == "glm":
         return GLM_OCR_PROFILE
     if mode == "firered":

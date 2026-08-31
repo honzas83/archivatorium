@@ -299,7 +299,7 @@ def interlink(
 @click.option("--model", default="qwen3.5:9b", show_default=True, help="VLM model to use.")
 @click.option(
     "--mode",
-    type=click.Choice(["standard", "glm", "firered"]),
+    type=click.Choice(["standard", "qwen38", "glm", "firered"]),
     default="standard",
     show_default=True,
     help="OCR request profile to use.",
