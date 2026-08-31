@@ -73,6 +73,14 @@ OCR overall timing: overall_attempted_pages=0 overall_total_seconds=0.250 overal
 
 `overall_total_seconds` starts when the OCR command function is entered and includes engine initialization, recursive discovery, all per-PDF work, handled failures, writes, and CLI overhead. `overall_attempted_pages` is the sum of distinct non-skipped pages attempted by every per-PDF run. The overall average equals command-wide total seconds divided by that sum and is rendered to three decimal places.
 
+During a batch, immediately after every PDF run, the command also emits the current command-wide average without waiting for final completion:
+
+```text
+OCR cumulative timing: attempted_pages_since_command_start=10 elapsed_seconds_since_command_start=54.000 average_seconds_per_page_since_command_start=5.400
+```
+
+All three cumulative fields cover the command from entry through the current PDF completion. When no page has yet been attempted, `average_seconds_per_page_since_command_start=unavailable`.
+
 ## Compatibility guarantees
 
 - Existing recognized pages remain skipped during resume and are not counted as attempted.

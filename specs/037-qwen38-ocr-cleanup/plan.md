@@ -8,7 +8,7 @@
 
 ## Summary
 
-Normalize every successful OCR response before it reaches page context or Markdown output. A pure text-normalization step will discard content through the final exact `</think>` marker, remove separator blank lines left by that marker, and remove the minimum shared ASCII-space indentation from nonblank lines while preserving relative indentation. Each per-PDF OCR run retains its monotonic timing summary, while the outer OCR command uses a second monotonic clock and aggregates attempted pages across PDFs to report whole-command performance from command entry through completion.
+Normalize every successful OCR response before it reaches page context or Markdown output. A pure text-normalization step will discard content through the final exact `</think>` marker, remove separator blank lines left by that marker, and remove the minimum shared ASCII-space indentation from nonblank lines while preserving relative indentation. Each per-PDF OCR run retains its monotonic timing summary, while the outer OCR command uses a second monotonic clock and aggregates attempted pages across PDFs to report cumulative whole-command performance after each PDF and again at command completion.
 
 ## Technical Context
 

@@ -129,6 +129,12 @@ Validation note: Feature-owned Ruff formatting and Flake8 checks pass, as do rep
 
 Validation note: The full suite passes with 321 tests and 90% application coverage. Feature-owned Ruff, formatting, Flake8, and repository-wide MyPy pass. Repository-wide formatting still reports five unrelated pre-existing test files, while repository-wide Flake8 reports two trailing-blank-line findings in those files and the pre-existing `CCR001` finding in `interlinking_service.py`.
 
+### Cumulative Visibility Follow-Up
+
+- [X] T019 Add CLI integration coverage proving command-start averages appear after each completed PDF in `tests/integration/test_ocr_cli.py`
+- [X] T020 Emit cumulative command timing after every PDF while retaining the final overall summary in `archivatorium/cli.py`
+- [X] T021 Backpropagate active-batch timing visibility into Feature 037 design artifacts and validate the focused timing scenarios
+
 ---
 
 ## Dependencies & Execution Order

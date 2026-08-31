@@ -46,6 +46,28 @@ def _log_ocr_overall_timing(started_at: float, attempted_pages: int) -> None:
         )
 
 
+def _log_ocr_cumulative_timing(started_at: float, attempted_pages: int) -> None:
+    """Report current batch throughput measured from OCR command entry."""
+    elapsed_seconds = perf_counter() - started_at
+    if attempted_pages:
+        logger.info(
+            "OCR cumulative timing: attempted_pages_since_command_start=%d "
+            "elapsed_seconds_since_command_start=%.3f "
+            "average_seconds_per_page_since_command_start=%.3f",
+            attempted_pages,
+            elapsed_seconds,
+            elapsed_seconds / attempted_pages,
+        )
+    else:
+        logger.info(
+            "OCR cumulative timing: attempted_pages_since_command_start=%d "
+            "elapsed_seconds_since_command_start=%.3f "
+            "average_seconds_per_page_since_command_start=unavailable",
+            attempted_pages,
+            elapsed_seconds,
+        )
+
+
 @click.group()
 @click.option("-v", "--verbose", is_flag=True, help="Increase output verbosity.")
 def cli(verbose: bool) -> None:
@@ -402,6 +424,7 @@ def ocr(  # noqa: PLR0913
                     click.echo(f"\nError processing {rel_path}: {e}", err=True)
                 finally:
                     overall_attempted_pages += engine.last_run_attempted_pages
+                    _log_ocr_cumulative_timing(started_at, overall_attempted_pages)
     finally:
         _log_ocr_overall_timing(started_at, overall_attempted_pages)
 
