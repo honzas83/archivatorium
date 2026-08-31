@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Validation completed in one pass. The supplied source diff is treated as implementation input; this specification states the required observable behavior and compatibility boundaries.
+- Validation completed after incorporating the dedicated `qwen38` mode boundary, generic artificial-spacing normalization, and explicit Markdown heading hierarchy. The supplied source diff remains implementation inspiration rather than a change to standard mode.
