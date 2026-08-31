@@ -96,12 +96,12 @@
 
 > **NOTE: Write these tests first and verify they fail before implementing run metrics.**
 
-- [ ] T010 [P] [US3] Add deterministic unit tests for positive averages, three-decimal formatting, retry counting, failure-path logging, resume skips, and zero-attempt runs in `tests/unit/test_ocr_engine.py`
-- [ ] T011 [P] [US3] Add a CLI integration assertion for the visible `attempted_pages`, `total_seconds`, and `average_seconds_per_page` log fields in `tests/integration/test_ocr_cli.py`
+- [X] T010 [P] [US3] Add deterministic unit tests for positive averages, three-decimal formatting, retry counting, failure-path logging, resume skips, and zero-attempt runs in `tests/unit/test_ocr_engine.py`
+- [X] T011 [P] [US3] Add a CLI integration assertion for the visible `attempted_pages`, `total_seconds`, and `average_seconds_per_page` log fields in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Measure the complete `OCREngine.run_ocr` invocation with `time.perf_counter`, count each non-skipped page once before rendering, and emit the stable INFO summary from `finally` in `archivatorium/ocr_engine.py`
+- [X] T012 [US3] Measure the complete `OCREngine.run_ocr` invocation with `time.perf_counter`, count each non-skipped page once before rendering, and emit the stable INFO summary from `finally` in `archivatorium/ocr_engine.py`
 
 **Checkpoint**: All user stories are functional, and failures or zero-attempt runs cannot suppress or break the timing summary.
 
