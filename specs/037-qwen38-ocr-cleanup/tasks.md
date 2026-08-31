@@ -27,7 +27,7 @@
 
 **Purpose**: Confirm the existing OCR pipeline is stable before introducing the shared normalization boundary.
 
-- [ ] T001 Run the focused baseline suite for `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py` using `.venv/bin/python -m pytest`
+- [X] T001 Run the focused baseline suite for `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py` using `.venv/bin/python -m pytest`
 
 ---
 
@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: Complete this phase before beginning any user story implementation.
 
-- [ ] T002 Add regression tests proving unchanged plain responses pass through every OCR mode at the `ocr_single_page` boundary in `tests/unit/test_ocr_engine.py`
-- [ ] T003 Introduce a typed identity `normalize_ocr_response` function and call it for every successful response in `OCREngine.ocr_single_page` in `archivatorium/ocr_engine.py`
+- [X] T002 Add regression tests proving unchanged plain responses pass through every OCR mode at the `ocr_single_page` boundary in `tests/unit/test_ocr_engine.py`
+- [X] T003 Introduce a typed identity `normalize_ocr_response` function and call it for every successful response in `OCREngine.ocr_single_page` in `archivatorium/ocr_engine.py`
 
 **Checkpoint**: Every successful OCR response crosses one tested cleanup seam, while request shapes and returned plain text remain unchanged.
 

@@ -2,7 +2,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
-from archivatorium.ocr_engine import FIRERED_USER_PROMPT, OCREngine, SYSTEM_PROMPT, USER_PROMPT
+from archivatorium.ocr_engine import (
+    FIRERED_USER_PROMPT,
+    OCREngine,
+    SYSTEM_PROMPT,
+    USER_PROMPT,
+    normalize_ocr_response,
+)
 
 
 GLM_DEFAULT_OPTIONS = {
@@ -82,6 +88,17 @@ def test_ocr_single_page_success(mock_ollama_client):
     )
     assert transcription == "Transcription content"
     mock_ollama_client.chat.assert_called_once()
+
+
+@pytest.mark.parametrize("mode", ["standard", "glm", "firered"])
+def test_plain_response_crosses_normalization_boundary_unchanged(
+    mock_ollama_client, ocr_response_factory, mode
+):
+    content = "Plain OCR text\nwith meaningful spacing  \n"
+    mock_ollama_client.chat.return_value = ocr_response_factory(content)
+
+    assert normalize_ocr_response(content) == content
+    assert OCREngine(mode=mode).ocr_single_page(Path("page.png")) == content
 
 
 def test_ocr_single_page_retry_success(mock_ollama_client):

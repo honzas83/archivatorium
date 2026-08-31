@@ -169,6 +169,11 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
     raise ValueError(f"Unsupported OCR mode: {mode}")
 
 
+def normalize_ocr_response(content: str) -> str:
+    """Normalize successful model text before it enters the OCR pipeline."""
+    return content
+
+
 class OCREngine:
     def __init__(
         self,
@@ -262,8 +267,11 @@ class OCREngine:
                 content = getattr(resp, "message", {}).get("content", "")
                 if not content and isinstance(resp, dict):
                     content = resp.get("message", {}).get("content", "")
-                logger.info("Received %d characters of OCR text from model", len(content or ""))
-                return content or ""
+                normalized_content = normalize_ocr_response(content or "")
+                logger.info(
+                    "Received %d characters of OCR text from model", len(normalized_content)
+                )
+                return normalized_content
             except Exception as e:
                 last_err = e
                 logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
