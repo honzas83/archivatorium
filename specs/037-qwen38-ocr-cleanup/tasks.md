@@ -118,6 +118,19 @@ Validation note: Feature-owned Ruff formatting and Flake8 checks pass, as do rep
 
 ---
 
+## Phase 7: Command-Wide Throughput Follow-Up
+
+**Purpose**: Preserve the per-PDF summary while adding overall performance measured from OCR command entry across every processed PDF.
+
+- [X] T015 Add CLI integration coverage for one-PDF, multi-PDF, and zero-attempt command-wide timing in `tests/integration/test_ocr_cli.py`
+- [X] T016 Expose each `OCREngine.run_ocr` attempted-page count without changing its string return contract in `archivatorium/ocr_engine.py`
+- [X] T017 Measure the outer OCR command lifecycle, aggregate attempted pages across successful and failed PDF runs, and emit the overall INFO summary from `finally` in `archivatorium/cli.py`
+- [X] T018 Backpropagate command-wide timing behavior into `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/ocr-output.md`, and `quickstart.md`
+
+Validation note: The full suite passes with 321 tests and 90% application coverage. Feature-owned Ruff, formatting, Flake8, and repository-wide MyPy pass. Repository-wide formatting still reports five unrelated pre-existing test files, while repository-wide Flake8 reports two trailing-blank-line findings in those files and the pre-existing `CCR001` finding in `interlinking_service.py`.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -128,6 +141,7 @@ Validation note: Feature-owned Ruff formatting and Flake8 checks pass, as do rep
 - **User Story 2 (Phase 4)**: Depends on T002-T003. It is behaviorally independent from US1, but T009 must be serialized with T006 because both edit the same function.
 - **User Story 3 (Phase 5)**: Depends on T001 and the existing engine only. T012 must be serialized with T006 and T009 because all edit `archivatorium/ocr_engine.py`.
 - **Polish (Phase 6)**: Depends on all selected story phases.
+- **Command-Wide Throughput Follow-Up (Phase 7)**: Depends on the per-PDF metrics from T012 and preserves their stable log contract.
 
 ### User Story Dependencies
 

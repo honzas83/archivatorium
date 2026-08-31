@@ -56,9 +56,21 @@ Measurements for one `run_ocr` invocation, corresponding to one input PDF.
 | Page fails and aborts its document run | Yes, once | Work through the failure; summary still logs from `finally`. |
 | PDF with zero pages or all pages skipped | No | Average is unavailable. |
 
+## OCR Command Metrics
+
+Measurements for one invocation of the `ocr` CLI command, potentially spanning multiple PDFs.
+
+| Field | Type | Validation | Meaning |
+|-------|------|------------|---------|
+| `overall_attempted_pages` | non-negative integer | Sum of `attempted_pages` from every invoked per-PDF run | Distinct non-skipped pages attempted across the command. |
+| `overall_total_seconds` | non-negative number | Monotonic command end time minus command-entry time | Engine setup, recursive discovery, all PDF runs, handled failures, writes, and CLI overhead. |
+| `overall_average_seconds_per_page` | optional non-negative number | `overall_total_seconds / overall_attempted_pages` when positive; otherwise unavailable | Effective whole-command average time for one attempted input page. |
+
 ## Relationships
 
 - One input PDF creates one OCR run and one timing summary.
+- One OCR command creates one command-wide timing summary and may contain zero or more per-PDF runs.
+- Each per-PDF run contributes its distinct attempted-page count once to `overall_attempted_pages`, including runs that end in handled failure.
 - One attempted page may make multiple model requests because of retries but contributes one unit to `attempted_pages`.
 - One successful model response creates one normalized page text value.
 - Normalized page text feeds saved Markdown and, only for modes that permit it, subsequent-page context.

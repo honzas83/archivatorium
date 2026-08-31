@@ -230,6 +230,7 @@ class OCREngine:
             repeat_last_n=repeat_last_n,
             num_predict=num_predict,
         )
+        self.last_run_attempted_pages = 0
         self.client = self._build_client()
 
     def _build_client(self) -> Client:
@@ -351,6 +352,7 @@ class OCREngine:
 
         started_at = time.perf_counter()
         attempted_pages = 0
+        self.last_run_attempted_pages = 0
         try:
             total_pages = self.count_pdf_pages(input_pdf)
             s = 1
@@ -429,6 +431,7 @@ class OCREngine:
             logger.info("OCR finished successfully")
             return merged
         finally:
+            self.last_run_attempted_pages = attempted_pages
             total_seconds = time.perf_counter() - started_at
             if attempted_pages:
                 logger.info(

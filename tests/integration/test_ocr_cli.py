@@ -126,6 +126,7 @@ def test_ocr_command_logs_average_page_time(temp_ocr_dirs: tuple[Path, Path]) ->
         patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
         patch("archivatorium.ocr_engine.Client") as mock_client_class,
         patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[20.0, 25.0]),
+        patch("archivatorium.cli.perf_counter", side_effect=[18.0, 27.0]),
         patch("pathlib.Path.unlink"),
     ):
         mock_reader_class.return_value.pages = [MagicMock()]
@@ -140,6 +141,59 @@ def test_ocr_command_logs_average_page_time(temp_ocr_dirs: tuple[Path, Path]) ->
     assert "attempted_pages=1" in result.output
     assert "total_seconds=5.000" in result.output
     assert "average_seconds_per_page=5.000" in result.output
+    assert "overall_attempted_pages=1" in result.output
+    assert "overall_total_seconds=9.000" in result.output
+    assert "overall_average_seconds_per_page=9.000" in result.output
+
+
+def test_ocr_command_logs_overall_performance_across_pdfs(
+    temp_ocr_dirs: tuple[Path, Path],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    (input_dir / "second.pdf").write_bytes(b"second dummy pdf content")
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch(
+            "archivatorium.ocr_engine.time.perf_counter",
+            side_effect=[101.0, 104.0, 104.0, 110.0],
+        ),
+        patch("archivatorium.cli.perf_counter", side_effect=[100.0, 112.0]),
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_response = MagicMock()
+        mock_response.message = {"content": "Recognized text"}
+        mock_client_class.return_value.chat.return_value = mock_response
+
+        result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "overall_attempted_pages=2" in result.output
+    assert "overall_total_seconds=12.000" in result.output
+    assert "overall_average_seconds_per_page=6.000" in result.output
+
+
+def test_ocr_command_logs_unavailable_overall_average_without_pdfs(tmp_path: Path) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.Client"),
+        patch("archivatorium.cli.perf_counter", side_effect=[30.0, 31.0]),
+    ):
+        result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])
+
+    assert result.exit_code == 0, result.output
+    assert "overall_attempted_pages=0" in result.output
+    assert "overall_total_seconds=1.000" in result.output
+    assert "overall_average_seconds_per_page=unavailable" in result.output
 
 
 def test_ocr_command_glm_mode(
