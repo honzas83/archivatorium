@@ -52,13 +52,14 @@ QWEN38_EXPECTED_SYSTEM_PROMPT = (
     "1. Preserve visible wording, capitalization, punctuation, typos, headings, paragraphs, "
     "lists, numbering, tables, footnotes, annotations, section breaks, and legible figure "
     "captions. Do not summarize, correct, rephrase, infer, or invent content.\n"
-    "2. Mark visually supported heading hierarchy with Markdown ATX syntax: # for the document "
-    "title, ## for sections, ### for subsections, and subsequent levels as needed. Use levels "
-    "consistently and never mark ordinary prose as a heading. Use explicit Markdown markers for "
-    "lists.\n"
+    "2. Keep visually supported headings as plain text on their own lines. Do not generate "
+    "Markdown heading markers (#, ##, or other levels), bold (** or __), or italic (* or _) "
+    "emphasis. Typewritten text has no Markdown styling; do not infer styling from capitalization, "
+    "spacing, underlining, or position. Use explicit Markdown markers only for visible lists.\n"
     "3. Put each prose paragraph on one physical line by removing visual line wraps. Separate "
-    "distinct prose paragraphs with exactly one blank line. Keep headings, list items, table rows, "
-    "and fenced-block lines as separate Markdown blocks.\n"
+    "distinct prose paragraphs with exactly one blank line. Keep plain-text headings, list items, "
+    "table rows, and fenced-block lines as separate Markdown "
+    "blocks.\n"
     "4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a "
     "fenced plain-text block. Never generate HTML.\n"
     "5. Start every top-level block at column 1; do not reproduce page margins or layout "
@@ -70,9 +71,12 @@ QWEN38_EXPECTED_SYSTEM_PROMPT = (
     "7. Typewriters used for these documents do not have curly braces. Never infer or normalize "
     "characters into { or }. Output a curly brace only when it is unambiguously visible in the "
     "current image.\n"
-    "8. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "8. Do not invent or modernize punctuation or symbols unavailable on the source typewriter. "
+    "Output any unusual character only when it is unambiguously visible; otherwise write "
+    "[unreadable].\n"
+    "9. Preserve meaningful whitespace inside literal content and write [unreadable] for "
     "illegible text. Return an empty transcription only when the page is truly blank.\n"
-    "9. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "10. Previous-page text, when supplied, is context only. Never copy it unless the same text "
     "is visible in the current image."
 )
 
@@ -82,14 +86,15 @@ QWEN38_EXPECTED_USER_PROMPT = (
 )
 
 
-def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> None:
+def test_qwen38_prompt_defines_plain_typewriter_structure_and_generic_despacing() -> None:
     assert QWEN38_SYSTEM_PROMPT.startswith("You are a precise OCR transcription system.")
     assert "Return only the Markdown transcription" in QWEN38_SYSTEM_PROMPT
     assert "do not add commentary or generated HTML" in QWEN38_SYSTEM_PROMPT
-    assert "# for the document title, ## for sections, ### for subsections" in (
-        QWEN38_SYSTEM_PROMPT
-    )
-    assert "never mark ordinary prose as a heading" in QWEN38_SYSTEM_PROMPT
+    assert "headings as plain text on their own lines" in QWEN38_SYSTEM_PROMPT
+    assert "Do not generate Markdown heading markers" in QWEN38_SYSTEM_PROMPT
+    assert "bold (** or __), or italic (* or _) emphasis" in QWEN38_SYSTEM_PROMPT
+    assert "Typewritten text has no Markdown styling" in QWEN38_SYSTEM_PROMPT
+    assert "# for the document title" not in QWEN38_SYSTEM_PROMPT
     assert "Markdown pipe table" in QWEN38_SYSTEM_PROMPT
     assert "fenced plain-text block" in QWEN38_SYSTEM_PROMPT
     assert "Start every top-level block at column 1" in QWEN38_SYSTEM_PROMPT
@@ -98,6 +103,9 @@ def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> Non
     assert "N A T O   S E C R E T → NATO SECRET" in QWEN38_SYSTEM_PROMPT
     assert "Never infer or normalize characters into { or }" in QWEN38_SYSTEM_PROMPT
     assert "only when it is unambiguously visible" in QWEN38_SYSTEM_PROMPT
+    assert "Do not invent or modernize punctuation or symbols" in QWEN38_SYSTEM_PROMPT
+    assert "unavailable on the source typewriter" in QWEN38_SYSTEM_PROMPT
+    assert "otherwise write [unreadable]" in QWEN38_SYSTEM_PROMPT
     assert QWEN38_USER_PROMPT == (
         "Transcribe this document image according to the output contract. "
         "Return only the Markdown transcription."
@@ -124,8 +132,8 @@ def test_qwen38_prompt_matches_complete_single_line_paragraph_contract() -> None
     assert "each prose paragraph on one physical line" in QWEN38_SYSTEM_PROMPT
     assert "distinct prose paragraphs with exactly one blank line" in QWEN38_SYSTEM_PROMPT
     assert (
-        "headings, list items, table rows, and fenced-block lines as separate Markdown blocks"
-        in QWEN38_SYSTEM_PROMPT
+        "plain-text headings, list items, table rows, and fenced-block lines as separate Markdown "
+        "blocks" in QWEN38_SYSTEM_PROMPT
     )
 
 
@@ -146,17 +154,17 @@ def test_qwen38_retry_reuses_identical_high_reasoning_request(
     engine = OCREngine(mode="qwen38", model="registry.example/qwen3.8:custom")
     mock_ollama_client.chat.side_effect = [
         RuntimeError("temporary"),
-        ocr_response_factory("# Recovered"),
+        ocr_response_factory("Recovered"),
     ]
 
     with patch("archivatorium.ocr_engine.time.sleep"):
         assert (
             engine.ocr_single_page(
                 Path("page.png"),
-                last_text="# Clean context",
+                last_text="Clean context",
                 retry=2,
             )
-            == "# Recovered"
+            == "Recovered"
         )
 
     first = mock_ollama_client.chat.call_args_list[0].kwargs
@@ -170,14 +178,14 @@ def test_qwen38_discards_separate_reasoning_field(mock_ollama_client: MagicMock)
     engine = OCREngine(mode="qwen38")
     response = MagicMock()
     response.message = {
-        "content": "# Visible transcription",
+        "content": "Visible transcription",
         "thinking": "PRIVATE CHAIN OF THOUGHT",
     }
     mock_ollama_client.chat.return_value = response
 
     transcription = engine.ocr_single_page(Path("page.png"))
 
-    assert transcription == "# Visible transcription"
+    assert transcription == "Visible transcription"
     assert "PRIVATE CHAIN OF THOUGHT" not in transcription
 
 
@@ -189,8 +197,8 @@ def test_qwen38_next_page_context_uses_content_after_final_think_marker(
 ) -> None:
     engine = OCREngine(mode="qwen38")
     mock_ollama_client.chat.side_effect = [
-        ocr_response_factory("first thought</think>second thought</think>## Page one"),
-        ocr_response_factory("## Page two"),
+        ocr_response_factory("first thought</think>second thought</think>PAGE ONE"),
+        ocr_response_factory("PAGE TWO"),
     ]
 
     with (
@@ -201,7 +209,7 @@ def test_qwen38_next_page_context_uses_content_after_final_think_marker(
 
     second_request = mock_ollama_client.chat.call_args_list[1].kwargs
     assert second_request["think"] == "high"
-    assert "## Page one" in str(second_request["messages"])
+    assert "PAGE ONE" in str(second_request["messages"])
     assert "first thought" not in str(second_request["messages"])
     assert "second thought" not in str(second_request["messages"])
     assert "</think>" not in str(second_request["messages"])

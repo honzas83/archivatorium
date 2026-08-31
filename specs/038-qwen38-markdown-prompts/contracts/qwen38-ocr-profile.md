@@ -17,19 +17,22 @@ You are a precise OCR transcription system. Transcribe only content visible in t
 
 Output contract:
 1. Preserve visible wording, capitalization, punctuation, typos, headings, paragraphs, lists, numbering, tables, footnotes, annotations, section breaks, and legible figure captions. Do not summarize, correct, rephrase, infer, or invent content.
-2. Mark visually supported heading hierarchy with Markdown ATX syntax: # for the document title, ## for sections, ### for subsections, and subsequent levels as needed. Use levels consistently and never mark ordinary prose as a heading. Use explicit Markdown markers for lists.
-3. Put each prose paragraph on one physical line by removing visual line wraps. Separate distinct prose paragraphs with exactly one blank line. Keep headings, list items, table rows, and fenced-block lines as separate Markdown blocks.
+2. Keep visually supported headings as plain text on their own lines. Do not generate Markdown heading markers (#, ##, or other levels), bold (** or __), or italic (* or _) emphasis. Typewritten text has no Markdown styling; do not infer styling from capitalization, spacing, underlining, or position. Use explicit Markdown markers only for visible lists.
+3. Put each prose paragraph on one physical line by removing visual line wraps. Separate distinct prose paragraphs with exactly one blank line. Keep plain-text headings, list items, table rows, and fenced-block lines as separate Markdown blocks.
 4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a fenced plain-text block. Never generate HTML.
 5. Start every top-level block at column 1; do not reproduce page margins or layout indentation. Use indentation only where Markdown syntax requires nested list structure or inside a fenced literal block.
 6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters while preserving word boundaries. Apply this to headings, prose, labels, and table cells. Example: N A T O   S E C R E T → NATO SECRET.
 7. Typewriters used for these documents do not have curly braces. Never infer or normalize characters into { or }. Output a curly brace only when it is unambiguously visible in the current image.
-8. Preserve meaningful whitespace inside literal content and write [unreadable] for illegible text. Return an empty transcription only when the page is truly blank.
-9. Previous-page text, when supplied, is context only. Never copy it unless the same text is visible in the current image.
+8. Do not invent or modernize punctuation or symbols unavailable on the source typewriter. Output any unusual character only when it is unambiguously visible; otherwise write [unreadable].
+9. Preserve meaningful whitespace inside literal content and write [unreadable] for illegible text. Return an empty transcription only when the page is truly blank.
+10. Previous-page text, when supplied, is context only. Never copy it unless the same text is visible in the current image.
 ```
 
 The artificial-spacing rule is semantic. It does not authorize blindly merging genuine standalone letters, initials, formula symbols, list labels, or other separate tokens. When spacing is visually ambiguous, source fidelity takes precedence over guessing.
 
 The curly-brace rule prevents typewritten glyphs from being normalized into characters unavailable on the source typewriter. Literal `{` or `}` remains valid only when the corresponding brace is unambiguously visible in the current image.
+
+The same source-fidelity rule applies to other punctuation and symbols unavailable on the source typewriter. An unusual character is valid only when unambiguously visible; an ambiguous glyph is `[unreadable]`, not a modernized guess.
 
 ## Exact Qwen 3.8 user prompt
 
@@ -72,6 +75,14 @@ Retries MUST reuse an identical request.
 | Response normalization | Retained | Retained | Retained | Retained |
 
 ## Output examples
+
+Typewriter heading without generated styling:
+
+```text
+Source heading: NATO SECRET
+Required output: NATO SECRET
+Forbidden output: # NATO SECRET or **NATO SECRET**
+```
 
 Artificial letter spacing in any kind of text:
 

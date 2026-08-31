@@ -51,15 +51,15 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 ## Phase 3: User Story 1 - Receive Markdown-native OCR output (Priority: P1) 🎯 MVP
 
-**Goal**: Add an explicitly selectable `qwen38` mode whose dedicated prompts require pure Markdown, correct ATX heading hierarchy, column-one top-level blocks, Markdown tables, source fidelity, and artificial character de-spacing anywhere in text.
+**Goal**: Add an explicitly selectable `qwen38` mode whose dedicated prompts require Markdown-compatible structure, plain-text typewriter headings without generated heading/bold/italic styling, column-one top-level blocks, Markdown tables, source fidelity, and artificial character de-spacing anywhere in text.
 
-**Independent Test**: Select `--mode qwen38` with a custom Qwen 3.8 model identifier and inspect the outgoing mocked request. The new mode is accepted, uses its dedicated prompts, contains `#`/`##`/`###` hierarchy rules and the exact `N A T O   S E C R E T` → `NATO SECRET` generic de-spacing example, and preserves the selected model. Exact standard, GLM, and FireRed requests remain unchanged.
+**Independent Test**: Select `--mode qwen38` with a custom Qwen 3.8 model identifier and inspect the outgoing mocked request. The new mode is accepted, uses its dedicated prompts, prohibits generated heading/bold/italic markers, includes the exact `N A T O   S E C R E T` → `NATO SECRET` generic de-spacing example, and preserves the selected model. Exact standard, GLM, and FireRed requests remain unchanged.
 
 ### Tests for User Story 1
 
 > **NOTE: Complete T003-T004 first and confirm they fail because `qwen38` and its prompts do not exist.**
 
-- [X] T003 [P] [US1] Add unit contract tests for Qwen 3.8 prompt constants, `qwen38` profile resolution, ATX heading rules, generic heading/prose/label/table-cell de-spacing, Markdown-only structure, table fallback, and unchanged existing profiles in `tests/unit/test_ocr_engine.py`
+- [X] T003 [P] [US1] Add unit contract tests for Qwen 3.8 prompt constants, `qwen38` profile resolution, plain typewriter heading rules, generic heading/prose/label/table-cell de-spacing, Markdown-compatible structure, table fallback, and unchanged existing profiles in `tests/unit/test_ocr_engine.py`
 - [X] T004 [P] [US1] Add CLI integration tests proving `--mode qwen38` is accepted, preserves the exact `--model` value, uses the dedicated system/user messages and previous-page behavior, and leaves standard/GLM/FireRed requests unchanged in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 1
@@ -67,7 +67,7 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 - [X] T005 [US1] Add dedicated Qwen 3.8 prompt constants and an initial `QWEN38_OCR_PROFILE`, resolve `qwen38` without changing existing profiles in `archivatorium/ocr_engine.py`, and add `qwen38` to the existing mode choice in `archivatorium/cli.py`; implement the Markdown, heading, table, alignment, fidelity, context-safety, and generic de-spacing rules while reserving the prose-line and high-reasoning additions for later stories
 - [X] T006 [US1] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm User Story 1 and exact existing-mode isolation pass, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 82 passed, 1 unrelated PyPDF2 deprecation warning
 
-**Checkpoint**: The new mode is a usable Markdown-native OCR MVP with correct heading markers and generic artificial-spacing normalization; all existing modes are unchanged.
+**Checkpoint**: The new mode is a usable Markdown-compatible OCR MVP with plain-text typewriter headings and generic artificial-spacing normalization; all existing modes are unchanged.
 
 ---
 
@@ -119,7 +119,7 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 **Purpose**: Validate the complete request contract, documented examples, dependency metadata, and constitutional quality gates.
 
-- [X] T015 Run the automated and prompt-inspection scenarios in `specs/038-qwen38-markdown-prompts/quickstart.md`, including `--help`, mode isolation, ATX headings, generic de-spacing, paragraph boundaries, tables, and reasoning cleanup, without committing live documents or model output — passed CLI help, exact prompt/mode inspection, and 30 targeted automated scenarios; no live data or model output used
+- [X] T015 Run the automated and prompt-inspection scenarios in `specs/038-qwen38-markdown-prompts/quickstart.md`, including `--help`, mode isolation, plain typewriter headings, generic de-spacing, paragraph boundaries, tables, and reasoning cleanup, without committing live documents or model output — passed CLI help, exact prompt/mode inspection, and 30 targeted automated scenarios; no live data or model output used
 - [X] T016 Run Ruff lint/format, Flake8, MyPy, the full pytest suite, and explicit coverage reporting using `pyproject.toml`, then record results and any unrelated pre-existing findings in `specs/038-qwen38-markdown-prompts/tasks.md` — Ruff and MyPy passed; Feature 038 Flake8 scope passed; full pytest passed 331 tests with one PyPDF2 warning; explicit coverage reported 95% overall (90% production coverage under pytest-cov); repository-wide Flake8 found the unrelated pre-existing `interlinking_service.py:358` complexity of 108 over 100, scheduled separately at user request
 
 ---
@@ -130,6 +130,23 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 - [X] T017 [US1] Add exact unit and CLI request assertions for the Qwen 3.8 curly-brace prohibition in `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, and confirm the existing prompt fails the new contract
 - [X] T018 [US1] Add the curly-brace source-fidelity rule to `archivatorium/ocr_engine.py`, back-propagate it through Feature 038 design artifacts, run focused OCR tests and quality checks, and record the result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 89 focused tests passed with one unrelated PyPDF2 warning; focused Ruff, Flake8, formatting, and MyPy passed
+
+---
+
+## Phase 8: Plain-Typewriter Styling Amendment
+
+**Purpose**: Prevent Qwen 3.8 from adding editorial Markdown styling absent from typewritten source text.
+
+- [X] T019 [US1] Replace ATX-heading assertions with exact plain-heading and no-bold/no-italic prompt contracts in `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, and confirm the prior prompt fails
+- [X] T020 [US1] Update the Qwen 3.8 prompt and all Feature 038 design artifacts to preserve headings as unstyled plain text, then run focused OCR tests and quality checks
+
+---
+
+## Phase 9: General Typewriter-Character Fidelity Amendment
+
+**Purpose**: Prevent Qwen 3.8 from inventing modern punctuation or symbols beyond the explicitly prohibited curly braces.
+
+- [X] T021 [US1] Generalize source-character fidelity beyond curly braces: prohibit invented or modernized punctuation and symbols unavailable on the source typewriter, require unambiguous visibility for unusual characters, and use `[unreadable]` for ambiguous glyphs; update prompt tests and Feature 038 artifacts — checkpoint: 89 focused tests passed with one unrelated PyPDF2 warning; focused Ruff, formatting, and MyPy passed
 
 ---
 
@@ -225,6 +242,6 @@ Task T012: Add visible qwen38 reasoning integration coverage in tests/integratio
 - `[US1]`, `[US2]`, and `[US3]` provide direct traceability to the specification.
 - Qwen 3.8 mode and model selection remain independent; no default model change is planned.
 - Standard, GLM, and FireRed exact prompts and reasoning fields are immutable regression contracts for this feature.
-- ATX headings, generic character de-spacing, pure Markdown, and single-line prose are prompt requirements; no heuristic output rewriter is introduced.
+- Plain typewriter headings without generated heading/bold/italic styling, generic character de-spacing, Markdown-compatible structure, and single-line prose are prompt requirements; no heuristic output rewriter is introduced.
 - Representative live inputs and outputs remain outside version control.
 - Commit each completed task or cohesive test/implementation increment without staging unrelated files.

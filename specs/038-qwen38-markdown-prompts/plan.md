@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add a dedicated `qwen38` OCR mode with one concise, non-contradictory Markdown transcription contract. The contract mandates correct `#`/`##`/`###` heading hierarchy, pure Markdown, one physical line per prose paragraph, column-one top-level blocks, Markdown-safe table fallback, source fidelity, normalization of artificial typewriter-style letter spacing anywhere in text with the explicit `N A T O   S E C R E T` → `NATO SECRET` example, and a ban on inferred curly braces unless they are unambiguously visible. Widen the profile's reasoning type to the Ollama client's supported literal levels and send `think="high"` only for the new mode. Preserve standard, GLM, and FireRed request behavior along with the existing model default, response normalization, retries, timing, and output lifecycle.
+Add a dedicated `qwen38` OCR mode with one concise, non-contradictory typewriter transcription contract. The contract mandates plain-text headings without generated Markdown heading/bold/italic styling, Markdown-compatible lists and tables, one physical line per prose paragraph, column-one top-level blocks, Markdown-safe table fallback, source fidelity, normalization of artificial typewriter-style letter spacing anywhere in text with the explicit `N A T O   S E C R E T` → `NATO SECRET` example, and a ban on inferred curly braces or other unavailable typewriter characters unless they are unambiguously visible. Widen the profile's reasoning type to the Ollama client's supported literal levels and send `think="high"` only for the new mode. Preserve standard, GLM, and FireRed request behavior along with the existing model default, response normalization, retries, timing, and output lifecycle.
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ Add a dedicated `qwen38` OCR mode with one concise, non-contradictory Markdown t
 
 **Performance Goals**: Add no model calls, renders, retries, or output-processing passes; prompt and request construction remain constant-time relative to page content
 
-**Constraints**: Qwen 3.8 mode output must use supported Markdown heading hierarchy, pure Markdown, unwrapped prose paragraphs, normalized artificial letter spacing in any text, and no inferred `{` or `}` unless a brace is unambiguously visible; high reasoning applies only to `qwen38`; prompt enforcement must not introduce a heuristic output rewriter; standard, GLM, FireRed, and the existing OCR lifecycle remain unchanged
+**Constraints**: Qwen 3.8 mode output must keep typewriter headings plain and never generate heading/bold/italic Markdown styling, while retaining Markdown-compatible lists, tables, fenced fallback, unwrapped prose paragraphs, normalized artificial letter spacing in any text, and no inferred `{`, `}`, or other unavailable punctuation or symbols unless unambiguously visible; ambiguous unusual glyphs become `[unreadable]`; high reasoning applies only to `qwen38`; prompt enforcement must not introduce a heuristic output rewriter; standard, GLM, FireRed, and the existing OCR lifecycle remain unchanged
 
 **Scale/Scope**: One new mode/profile, two new prompt constants, one reasoning field type, one CLI choice, one dependency lower bound, focused unit/integration assertions, and Feature 038 documentation; existing recursive batches of multipage PDFs remain supported
 

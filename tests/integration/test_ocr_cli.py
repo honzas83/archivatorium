@@ -288,8 +288,8 @@ def test_ocr_command_qwen38_preserves_model_prompts_and_previous_page_context(
         mock_convert.return_value = [MagicMock()]
         mock_client = MagicMock()
         mock_client.chat.side_effect = [
-            ocr_response_factory("# First page"),
-            ocr_response_factory("## Second page"),
+            ocr_response_factory("FIRST PAGE"),
+            ocr_response_factory("SECOND PAGE"),
         ]
         mock_client_class.return_value = mock_client
 
@@ -324,9 +324,9 @@ def test_ocr_command_qwen38_preserves_model_prompts_and_previous_page_context(
         "content": QWEN38_SYSTEM_PROMPT,
     }
     assert second_request["messages"][1]["content"] == (
-        QWEN38_USER_PROMPT + "\n\nFor OCR context, previous transcribed page was: # First page"
+        QWEN38_USER_PROMPT + "\n\nFor OCR context, previous transcribed page was: FIRST PAGE"
     )
-    assert (output_dir / "test.md").read_text(encoding="utf-8").endswith("## Second page")
+    assert (output_dir / "test.md").read_text(encoding="utf-8").endswith("SECOND PAGE")
 
 
 def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_blocks(
@@ -335,7 +335,7 @@ def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_bloc
 ) -> None:
     input_dir, output_dir = temp_ocr_dirs
     compliant_markdown = (
-        "# Heading\n\n"
+        "HEADING\n\n"
         "One prose paragraph on one physical line.\n\n"
         "Another distinct paragraph.\n\n"
         "- First item\n"
@@ -374,6 +374,8 @@ def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_bloc
         in (request["messages"][0]["content"])
     )
     assert "Never infer or normalize characters into { or }" in request["messages"][0]["content"]
+    assert "Do not generate Markdown heading markers" in request["messages"][0]["content"]
+    assert "bold (** or __), or italic (* or _) emphasis" in request["messages"][0]["content"]
     assert request["messages"][1]["content"] == QWEN38_USER_PROMPT
     assert (output_dir / "test.md").read_text(encoding="utf-8").endswith(compliant_markdown)
 
@@ -395,7 +397,7 @@ def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
         mock_convert.return_value = [MagicMock()]
         mock_client = MagicMock()
         mock_client.chat.return_value = ocr_response_factory(
-            "PRIVATE REASONING</think>\n\n# NATO SECRET"
+            "PRIVATE REASONING</think>\n\nNATO SECRET"
         )
         mock_client_class.return_value = mock_client
 
@@ -407,7 +409,7 @@ def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
     assert result.exit_code == 0, result.output
     assert mock_client.chat.call_args.kwargs["think"] == "high"
     saved = (output_dir / "test.md").read_text(encoding="utf-8")
-    assert saved.endswith("# NATO SECRET")
+    assert saved.endswith("NATO SECRET")
     assert "PRIVATE REASONING" not in saved
     assert "</think>" not in saved
 
