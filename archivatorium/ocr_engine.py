@@ -169,6 +169,36 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
     raise ValueError(f"Unsupported OCR mode: {mode}")
 
 
+def normalize_ocr_response(content: str) -> str:
+    """Normalize successful model text before it enters the OCR pipeline."""
+    _prefix, marker, normalized = content.rpartition("</think>")
+    if marker:
+        lines = normalized.splitlines(keepends=True)
+        first_content_line = 0
+        while first_content_line < len(lines) and not lines[first_content_line].strip():
+            first_content_line += 1
+        normalized = "".join(lines[first_content_line:])
+    else:
+        normalized = content
+
+    lines = normalized.splitlines(keepends=True)
+    nonblank_lines = [line for line in lines if line.strip()]
+    if not nonblank_lines:
+        return normalized
+
+    leading_space_counts = []
+    for line in nonblank_lines:
+        indentation = line[: len(line) - len(line.lstrip(" \t"))]
+        if "\t" in indentation:
+            return normalized
+        leading_space_counts.append(len(line) - len(line.lstrip(" ")))
+
+    shared_indent = min(leading_space_counts)
+    if shared_indent == 0:
+        return normalized
+    return "".join(line[shared_indent:] if line.strip() else line for line in lines)
+
+
 class OCREngine:
     def __init__(
         self,
@@ -262,8 +292,11 @@ class OCREngine:
                 content = getattr(resp, "message", {}).get("content", "")
                 if not content and isinstance(resp, dict):
                     content = resp.get("message", {}).get("content", "")
-                logger.info("Received %d characters of OCR text from model", len(content or ""))
-                return content or ""
+                normalized_content = normalize_ocr_response(content or "")
+                logger.info(
+                    "Received %d characters of OCR text from model", len(normalized_content)
+                )
+                return normalized_content
             except Exception as e:
                 last_err = e
                 logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
@@ -316,76 +349,99 @@ class OCREngine:
     ) -> str:
         from archivatorium.markdown_parser import MarkdownPageParser
 
-        total_pages = self.count_pdf_pages(input_pdf)
-        s = 1
-        e = total_pages
+        started_at = time.perf_counter()
+        attempted_pages = 0
+        try:
+            total_pages = self.count_pdf_pages(input_pdf)
+            s = 1
+            e = total_pages
 
-        logger.info(
-            "Starting OCR: %s, pages 1..%d of %d, DPI=%d, model=%s",
-            input_pdf,
-            total_pages,
-            total_pages,
-            self.dpi,
-            self.model,
-        )
+            logger.info(
+                "Starting OCR: %s, pages 1..%d of %d, DPI=%d, model=%s",
+                input_pdf,
+                total_pages,
+                total_pages,
+                self.dpi,
+                self.model,
+            )
 
-        # 1) Parse existing pages if output_md exists
-        existing_pages = {}
-        if output_md and output_md.exists() and page_header:
-            try:
-                existing_content = output_md.read_text(encoding="utf-8")
-                existing_pages = MarkdownPageParser.parse_pages(existing_content)
-                logger.info("Parsed %d existing pages from %s", len(existing_pages), output_md.name)
-            except Exception as ex:
-                logger.warning("Failed to parse existing output %s: %s", output_md, ex)
+            # 1) Parse existing pages if output_md exists
+            existing_pages = {}
+            if output_md and output_md.exists() and page_header:
+                try:
+                    existing_content = output_md.read_text(encoding="utf-8")
+                    existing_pages = MarkdownPageParser.parse_pages(existing_content)
+                    logger.info(
+                        "Parsed %d existing pages from %s", len(existing_pages), output_md.name
+                    )
+                except Exception as ex:
+                    logger.warning("Failed to parse existing output %s: %s", output_md, ex)
 
-        # 2) Process pages in the range
-        all_pages = dict(existing_pages)
-        last_text = ""
+            # 2) Process pages in the range
+            all_pages = dict(existing_pages)
+            last_text = ""
 
-        for i in range(s, e + 1):
-            # Check if this page is already successfully recognized
-            existing_text = all_pages.get(i, "").strip()
-            if existing_text:
-                logger.info("Skipping page %d (already recognized)", i)
-                last_text = existing_text
-                continue
+            for i in range(s, e + 1):
+                # Check if this page is already successfully recognized
+                existing_text = all_pages.get(i, "").strip()
+                if existing_text:
+                    logger.info("Skipping page %d (already recognized)", i)
+                    last_text = existing_text
+                    continue
 
-            logger.info("Processing page %d/%d", i - s + 1, e - s + 1)
-            png_path = None
-            try:
-                png_path = self.render_pdf_page_to_png(input_pdf, i)
-                # Context is the previous page's content
-                context_text = ""
-                if self.profile.include_previous_page_context:
-                    context_text = last_text or all_pages.get(i - 1, "")
-                text = self.ocr_single_page(
-                    image_path=png_path,
-                    last_text=context_text,
-                    num_ctx=8192 * 3,
+                attempted_pages += 1
+                logger.info("Processing page %d/%d", i - s + 1, e - s + 1)
+                png_path = None
+                try:
+                    png_path = self.render_pdf_page_to_png(input_pdf, i)
+                    # Context is the previous page's content
+                    context_text = ""
+                    if self.profile.include_previous_page_context:
+                        context_text = last_text or all_pages.get(i - 1, "")
+                    text = self.ocr_single_page(
+                        image_path=png_path,
+                        last_text=context_text,
+                        num_ctx=8192 * 3,
+                    )
+                    all_pages[i] = text.strip()
+                    last_text = text
+                finally:
+                    if png_path and png_path.exists():
+                        try:
+                            png_path.unlink()
+                            logger.debug("Removed temporary file %s", png_path)
+                        except Exception as ex:
+                            logger.warning("Failed to remove temporary file %s: %s", png_path, ex)
+
+            # 3) Merge and sort all pages
+            sorted_keys = sorted(all_pages.keys())
+            chunks = []
+            for k in sorted_keys:
+                header = f"\n\n---\n\n# Page {k}\n\n" if page_header else "\n\n---\n\n"
+                chunks.append(header + all_pages[k])
+
+            merged = "".join(chunks).lstrip()
+            if output_md:
+                output_md.parent.mkdir(parents=True, exist_ok=True)
+                output_md.write_text(merged, encoding="utf-8")
+                logger.info("Saved output to %s", output_md)
+
+            logger.info("OCR finished successfully")
+            return merged
+        finally:
+            total_seconds = time.perf_counter() - started_at
+            if attempted_pages:
+                logger.info(
+                    "OCR timing: attempted_pages=%d total_seconds=%.3f "
+                    "average_seconds_per_page=%.3f",
+                    attempted_pages,
+                    total_seconds,
+                    total_seconds / attempted_pages,
                 )
-                all_pages[i] = text.strip()
-                last_text = text
-            finally:
-                if png_path and png_path.exists():
-                    try:
-                        png_path.unlink()
-                        logger.debug("Removed temporary file %s", png_path)
-                    except Exception as ex:
-                        logger.warning("Failed to remove temporary file %s: %s", png_path, ex)
-
-        # 3) Merge and sort all pages
-        sorted_keys = sorted(all_pages.keys())
-        chunks = []
-        for k in sorted_keys:
-            header = f"\n\n---\n\n# Page {k}\n\n" if page_header else "\n\n---\n\n"
-            chunks.append(header + all_pages[k])
-
-        merged = "".join(chunks).lstrip()
-        if output_md:
-            output_md.parent.mkdir(parents=True, exist_ok=True)
-            output_md.write_text(merged, encoding="utf-8")
-            logger.info("Saved output to %s", output_md)
-
-        logger.info("OCR finished successfully")
-        return merged
+            else:
+                logger.info(
+                    "OCR timing: attempted_pages=%d total_seconds=%.3f "
+                    "average_seconds_per_page=unavailable",
+                    attempted_pages,
+                    total_seconds,
+                )

@@ -2,7 +2,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
-from archivatorium.ocr_engine import FIRERED_USER_PROMPT, OCREngine, SYSTEM_PROMPT, USER_PROMPT
+from archivatorium.ocr_engine import (
+    FIRERED_USER_PROMPT,
+    OCREngine,
+    SYSTEM_PROMPT,
+    USER_PROMPT,
+    normalize_ocr_response,
+)
 
 
 GLM_DEFAULT_OPTIONS = {
@@ -27,6 +33,29 @@ FIRERED_EXPECTED_PROMPT = (
     "- Do not add, summarize, correct, or infer any content that is not present in the document.\n"
     "- Output only the converted Markdown."
 )
+
+
+def assert_ocr_timing_log(
+    mock_logger: MagicMock,
+    *,
+    attempted_pages: int,
+    total_seconds: float,
+    average_seconds_per_page: float | None,
+) -> None:
+    if average_seconds_per_page is None:
+        mock_logger.assert_any_call(
+            "OCR timing: attempted_pages=%d total_seconds=%.3f "
+            "average_seconds_per_page=unavailable",
+            attempted_pages,
+            total_seconds,
+        )
+    else:
+        mock_logger.assert_any_call(
+            "OCR timing: attempted_pages=%d total_seconds=%.3f average_seconds_per_page=%.3f",
+            attempted_pages,
+            total_seconds,
+            average_seconds_per_page,
+        )
 
 
 @pytest.fixture
@@ -82,6 +111,85 @@ def test_ocr_single_page_success(mock_ollama_client):
     )
     assert transcription == "Transcription content"
     mock_ollama_client.chat.assert_called_once()
+
+
+@pytest.mark.parametrize("mode", ["standard", "glm", "firered"])
+def test_plain_response_crosses_normalization_boundary_unchanged(
+    mock_ollama_client, ocr_response_factory, mode
+):
+    content = "Plain OCR text\nwith meaningful spacing  \n"
+    mock_ollama_client.chat.return_value = ocr_response_factory(content)
+
+    assert normalize_ocr_response(content) == content
+    assert OCREngine(mode=mode).ocr_single_page(Path("page.png")) == content
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("reasoning</think>Recognized page", "Recognized page"),
+        ("</think>Recognized page", "Recognized page"),
+        ("reasoning</think>", ""),
+        ("first</think>still reasoning</think>Final OCR", "Final OCR"),
+        ("reasoning</think>\n\n  \nRecognized page", "Recognized page"),
+        ("reasoning</THINK>Recognized page", "reasoning</THINK>Recognized page"),
+        ("No reasoning marker", "No reasoning marker"),
+    ],
+)
+def test_normalize_ocr_response_removes_content_through_final_think_marker(content, expected):
+    assert normalize_ocr_response(content) == expected
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (
+            "    First line\n        Nested line\n    Final line\n",
+            "First line\n    Nested line\nFinal line\n",
+        ),
+        ("Unindented\n    Nested\n", "Unindented\n    Nested\n"),
+        ("    First\n  \n        Nested\n", "First\n  \n    Nested\n"),
+        ("    First\n\tNested\n", "    First\n\tNested\n"),
+        ("    First\n    \tNested\n", "    First\n    \tNested\n"),
+        ("", ""),
+        ("  \n\n", "  \n\n"),
+        (
+            "    First\r\n        Nested\r\n    Final\r\n",
+            "First\r\n    Nested\r\nFinal\r\n",
+        ),
+        ("    Single line\n", "Single line\n"),
+        (
+            "reasoning</think>\n\n    First\n        Nested\n",
+            "First\n    Nested\n",
+        ),
+    ],
+)
+def test_normalize_ocr_response_removes_only_shared_ascii_space_margin(content, expected):
+    assert normalize_ocr_response(content) == expected
+
+
+def test_standard_next_page_context_uses_normalized_previous_response(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+):
+    engine = OCREngine(mode="standard")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("SECRET REASONING</think>PAGE ONE OCR"),
+        ocr_response_factory("PAGE TWO OCR"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    second_messages = mock_ollama_client.chat.call_args_list[1].kwargs["messages"]
+    assert "PAGE ONE OCR" in str(second_messages)
+    assert "SECRET REASONING" not in str(second_messages)
+    assert "</think>" not in str(second_messages)
 
 
 def test_ocr_single_page_retry_success(mock_ollama_client):
@@ -159,6 +267,125 @@ def test_run_ocr_resume(mock_pdf_reader, mock_convert_from_path, mock_ollama_cli
         assert "Existing content of page 1" in output_content
         assert "Page 2" in output_content
         assert "Page 2 content" in output_content
+
+
+def test_run_ocr_logs_average_for_distinct_attempted_pages(
+    mock_pdf_reader, mock_convert_from_path, mock_ollama_client, ocr_response_factory
+):
+    engine = OCREngine()
+    mock_ollama_client.chat.return_value = ocr_response_factory("Page text")
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+        patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[10.0, 20.0]),
+        patch("archivatorium.ocr_engine.logger.info") as mock_logger,
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    assert_ocr_timing_log(
+        mock_logger,
+        attempted_pages=2,
+        total_seconds=10.0,
+        average_seconds_per_page=5.0,
+    )
+
+
+def test_run_ocr_retry_counts_page_once_and_includes_retry_time(
+    mock_convert_from_path, mock_ollama_client, ocr_response_factory
+):
+    engine = OCREngine()
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("Recovered"),
+    ]
+
+    with (
+        patch.object(engine, "count_pdf_pages", return_value=1),
+        patch("pathlib.Path.unlink"),
+        patch("archivatorium.ocr_engine.time.sleep"),
+        patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[2.0, 11.0]),
+        patch("archivatorium.ocr_engine.logger.info") as mock_logger,
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    assert mock_ollama_client.chat.call_count == 2
+    assert_ocr_timing_log(
+        mock_logger,
+        attempted_pages=1,
+        total_seconds=9.0,
+        average_seconds_per_page=9.0,
+    )
+
+
+def test_run_ocr_logs_timing_when_page_processing_fails():
+    engine = OCREngine()
+
+    with (
+        patch.object(engine, "count_pdf_pages", return_value=1),
+        patch.object(
+            engine,
+            "render_pdf_page_to_png",
+            side_effect=RuntimeError("render failed"),
+        ),
+        patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[3.0, 7.5]),
+        patch("archivatorium.ocr_engine.logger.info") as mock_logger,
+        pytest.raises(RuntimeError, match="render failed"),
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    assert_ocr_timing_log(
+        mock_logger,
+        attempted_pages=1,
+        total_seconds=4.5,
+        average_seconds_per_page=4.5,
+    )
+
+
+def test_run_ocr_resume_excludes_skipped_page_from_attempt_count(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+    tmp_path,
+):
+    engine = OCREngine()
+    output_md = tmp_path / "output.md"
+    output_md.write_text("---\n\n# Page 1\n\nExisting page\n", encoding="utf-8")
+    mock_ollama_client.chat.return_value = ocr_response_factory("New page")
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+        patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[1.0, 5.0]),
+        patch("archivatorium.ocr_engine.logger.info") as mock_logger,
+    ):
+        engine.run_ocr(Path("dummy.pdf"), output_md=output_md)
+
+    assert_ocr_timing_log(
+        mock_logger,
+        attempted_pages=1,
+        total_seconds=4.0,
+        average_seconds_per_page=4.0,
+    )
+
+
+def test_run_ocr_zero_pages_logs_unavailable_average():
+    engine = OCREngine()
+
+    with (
+        patch.object(engine, "count_pdf_pages", return_value=0),
+        patch("archivatorium.ocr_engine.time.perf_counter", side_effect=[4.0, 4.25]),
+        patch("archivatorium.ocr_engine.logger.info") as mock_logger,
+    ):
+        assert engine.run_ocr(Path("empty.pdf")) == ""
+
+    assert_ocr_timing_log(
+        mock_logger,
+        attempted_pages=0,
+        total_seconds=0.25,
+        average_seconds_per_page=None,
+    )
 
 
 def test_glm_single_page_uses_native_isolated_request(
