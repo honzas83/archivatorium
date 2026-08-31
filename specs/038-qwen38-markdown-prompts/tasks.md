@@ -33,7 +33,7 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 **Purpose**: Establish the current OCR request, cleanup, CLI, and timing baseline before Feature 038 changes.
 
-- [ ] T001 Run the focused baseline with `.venv/bin/python -m pytest -q tests/unit/test_ocr_engine.py tests/integration/test_ocr_cli.py` and record the passing count in `specs/038-qwen38-markdown-prompts/tasks.md`
+- [X] T001 Run the focused baseline with `.venv/bin/python -m pytest -q tests/unit/test_ocr_engine.py tests/integration/test_ocr_cli.py` and record the passing count in `specs/038-qwen38-markdown-prompts/tasks.md` — baseline: 79 passed, 1 unrelated PyPDF2 deprecation warning
 
 ---
 
