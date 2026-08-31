@@ -1,13 +1,23 @@
+from collections.abc import Callable
 from pathlib import Path
+from typing import Literal, get_type_hints
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
 from archivatorium.ocr_engine import (
+    FIRERED_OCR_PROFILE,
     FIRERED_USER_PROMPT,
+    GLM_OCR_PROFILE,
+    OCRModeProfile,
     OCREngine,
+    QWEN38_OCR_PROFILE,
+    QWEN38_SYSTEM_PROMPT,
+    QWEN38_USER_PROMPT,
+    STANDARD_OCR_PROFILE,
     SYSTEM_PROMPT,
     USER_PROMPT,
     normalize_ocr_response,
+    resolve_ocr_mode,
 )
 
 
@@ -33,6 +43,168 @@ FIRERED_EXPECTED_PROMPT = (
     "- Do not add, summarize, correct, or infer any content that is not present in the document.\n"
     "- Output only the converted Markdown."
 )
+
+QWEN38_EXPECTED_SYSTEM_PROMPT = (
+    "You are a precise OCR transcription system. Transcribe only content visible in the current "
+    "document image, in reading order. Return only the Markdown transcription; do not add "
+    "commentary or generated HTML.\n\n"
+    "Output contract:\n"
+    "1. Preserve visible wording, capitalization, punctuation, typos, headings, paragraphs, "
+    "lists, numbering, tables, footnotes, annotations, section breaks, and legible figure "
+    "captions. Do not summarize, correct, rephrase, infer, or invent content.\n"
+    "2. Mark visually supported heading hierarchy with Markdown ATX syntax: # for the document "
+    "title, ## for sections, ### for subsections, and subsequent levels as needed. Use levels "
+    "consistently and never mark ordinary prose as a heading. Use explicit Markdown markers for "
+    "lists.\n"
+    "3. Put each prose paragraph on one physical line by removing visual line wraps. Separate "
+    "distinct prose paragraphs with exactly one blank line. Keep headings, list items, table rows, "
+    "and fenced-block lines as separate Markdown blocks.\n"
+    "4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a "
+    "fenced plain-text block. Never generate HTML.\n"
+    "5. Start every top-level block at column 1; do not reproduce page margins or layout "
+    "indentation. Use indentation only where Markdown syntax requires nested list structure or "
+    "inside a fenced literal block.\n"
+    "6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters "
+    "while preserving word boundaries. Apply this to headings, prose, labels, and table cells. "
+    "Example: N A T O   S E C R E T → NATO SECRET.\n"
+    "7. Typewriters used for these documents do not have curly braces. Never infer or normalize "
+    "characters into { or }. Output a curly brace only when it is unambiguously visible in the "
+    "current image.\n"
+    "8. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "illegible text. Return an empty transcription only when the page is truly blank.\n"
+    "9. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "is visible in the current image."
+)
+
+QWEN38_EXPECTED_USER_PROMPT = (
+    "Transcribe this document image according to the output contract. "
+    "Return only the Markdown transcription."
+)
+
+
+def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> None:
+    assert QWEN38_SYSTEM_PROMPT.startswith("You are a precise OCR transcription system.")
+    assert "Return only the Markdown transcription" in QWEN38_SYSTEM_PROMPT
+    assert "do not add commentary or generated HTML" in QWEN38_SYSTEM_PROMPT
+    assert "# for the document title, ## for sections, ### for subsections" in (
+        QWEN38_SYSTEM_PROMPT
+    )
+    assert "never mark ordinary prose as a heading" in QWEN38_SYSTEM_PROMPT
+    assert "Markdown pipe table" in QWEN38_SYSTEM_PROMPT
+    assert "fenced plain-text block" in QWEN38_SYSTEM_PROMPT
+    assert "Start every top-level block at column 1" in QWEN38_SYSTEM_PROMPT
+    assert "In any text, collapse artificial typewriter-style spacing" in (QWEN38_SYSTEM_PROMPT)
+    assert "headings, prose, labels, and table cells" in QWEN38_SYSTEM_PROMPT
+    assert "N A T O   S E C R E T → NATO SECRET" in QWEN38_SYSTEM_PROMPT
+    assert "Never infer or normalize characters into { or }" in QWEN38_SYSTEM_PROMPT
+    assert "only when it is unambiguously visible" in QWEN38_SYSTEM_PROMPT
+    assert QWEN38_USER_PROMPT == (
+        "Transcribe this document image according to the output contract. "
+        "Return only the Markdown transcription."
+    )
+
+
+def test_qwen38_profile_is_distinct_without_changing_existing_profiles() -> None:
+    profile = resolve_ocr_mode("qwen38")
+
+    assert profile.name == "qwen38"
+    assert profile.system_prompt == QWEN38_SYSTEM_PROMPT
+    assert profile.user_prompt == QWEN38_USER_PROMPT
+    assert profile.include_previous_page_context is True
+    assert profile.default_options() == {"num_predict": 4096 * 4}
+    assert resolve_ocr_mode(None) is STANDARD_OCR_PROFILE
+    assert resolve_ocr_mode("standard") is STANDARD_OCR_PROFILE
+    assert resolve_ocr_mode("glm") is GLM_OCR_PROFILE
+    assert resolve_ocr_mode("firered") is FIRERED_OCR_PROFILE
+
+
+def test_qwen38_prompt_matches_complete_single_line_paragraph_contract() -> None:
+    assert QWEN38_SYSTEM_PROMPT == QWEN38_EXPECTED_SYSTEM_PROMPT
+    assert QWEN38_USER_PROMPT == QWEN38_EXPECTED_USER_PROMPT
+    assert "each prose paragraph on one physical line" in QWEN38_SYSTEM_PROMPT
+    assert "distinct prose paragraphs with exactly one blank line" in QWEN38_SYSTEM_PROMPT
+    assert (
+        "headings, list items, table rows, and fenced-block lines as separate Markdown blocks"
+        in QWEN38_SYSTEM_PROMPT
+    )
+
+
+def test_qwen38_profile_uses_precise_high_reasoning_type_without_changing_other_modes() -> None:
+    assert get_type_hints(OCRModeProfile)["think"] == (
+        bool | Literal["low", "medium", "high"] | None
+    )
+    assert QWEN38_OCR_PROFILE.think == "high"
+    assert STANDARD_OCR_PROFILE.think is None
+    assert GLM_OCR_PROFILE.think is False
+    assert FIRERED_OCR_PROFILE.think is None
+
+
+def test_qwen38_retry_reuses_identical_high_reasoning_request(
+    mock_ollama_client: MagicMock,
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    engine = OCREngine(mode="qwen38", model="registry.example/qwen3.8:custom")
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("# Recovered"),
+    ]
+
+    with patch("archivatorium.ocr_engine.time.sleep"):
+        assert (
+            engine.ocr_single_page(
+                Path("page.png"),
+                last_text="# Clean context",
+                retry=2,
+            )
+            == "# Recovered"
+        )
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+    assert first["model"] == "registry.example/qwen3.8:custom"
+    assert first["think"] == "high"
+
+
+def test_qwen38_discards_separate_reasoning_field(mock_ollama_client: MagicMock) -> None:
+    engine = OCREngine(mode="qwen38")
+    response = MagicMock()
+    response.message = {
+        "content": "# Visible transcription",
+        "thinking": "PRIVATE CHAIN OF THOUGHT",
+    }
+    mock_ollama_client.chat.return_value = response
+
+    transcription = engine.ocr_single_page(Path("page.png"))
+
+    assert transcription == "# Visible transcription"
+    assert "PRIVATE CHAIN OF THOUGHT" not in transcription
+
+
+def test_qwen38_next_page_context_uses_content_after_final_think_marker(
+    mock_pdf_reader: MagicMock,
+    mock_convert_from_path: MagicMock,
+    mock_ollama_client: MagicMock,
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    engine = OCREngine(mode="qwen38")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("first thought</think>second thought</think>## Page one"),
+        ocr_response_factory("## Page two"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    second_request = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert second_request["think"] == "high"
+    assert "## Page one" in str(second_request["messages"])
+    assert "first thought" not in str(second_request["messages"])
+    assert "second thought" not in str(second_request["messages"])
+    assert "</think>" not in str(second_request["messages"])
 
 
 def assert_ocr_timing_log(

@@ -7,7 +7,13 @@ import pytest
 from click.testing import CliRunner
 
 from archivatorium.cli import cli
-from archivatorium.ocr_engine import FIRERED_USER_PROMPT, SYSTEM_PROMPT, USER_PROMPT
+from archivatorium.ocr_engine import (
+    FIRERED_USER_PROMPT,
+    QWEN38_SYSTEM_PROMPT,
+    QWEN38_USER_PROMPT,
+    SYSTEM_PROMPT,
+    USER_PROMPT,
+)
 
 
 def test_ocr_command_basic(temp_ocr_dirs: tuple[Path, Path]) -> None:
@@ -251,6 +257,147 @@ def test_ocr_command_glm_mode(
         "repeat_last_n": 512,
         "num_predict": 8192,
     }
+
+
+def test_ocr_command_qwen38_preserves_model_prompts_and_previous_page_context(
+    temp_ocr_dirs: tuple[Path, Path],
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock(), MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_client = MagicMock()
+        mock_client.chat.side_effect = [
+            ocr_response_factory("# First page"),
+            ocr_response_factory("## Second page"),
+        ]
+        mock_client_class.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "ocr",
+                "--mode",
+                "qwen38",
+                "--model",
+                "registry.example/qwen3.8-ocr:custom",
+                str(input_dir),
+                str(output_dir),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert mock_client.chat.call_count == 2
+    first_request = mock_client.chat.call_args_list[0].kwargs
+    second_request = mock_client.chat.call_args_list[1].kwargs
+    assert first_request["model"] == "registry.example/qwen3.8-ocr:custom"
+    assert first_request["messages"] == [
+        {"role": "system", "content": QWEN38_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": QWEN38_USER_PROMPT,
+            "images": [first_request["messages"][1]["images"][0]],
+        },
+    ]
+    assert second_request["messages"][0] == {
+        "role": "system",
+        "content": QWEN38_SYSTEM_PROMPT,
+    }
+    assert second_request["messages"][1]["content"] == (
+        QWEN38_USER_PROMPT + "\n\nFor OCR context, previous transcribed page was: # First page"
+    )
+    assert (output_dir / "test.md").read_text(encoding="utf-8").endswith("## Second page")
+
+
+def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_blocks(
+    temp_ocr_dirs: tuple[Path, Path],
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    compliant_markdown = (
+        "# Heading\n\n"
+        "One prose paragraph on one physical line.\n\n"
+        "Another distinct paragraph.\n\n"
+        "- First item\n"
+        "- Second item\n\n"
+        "| Label | Value |\n"
+        "| --- | --- |\n"
+        "| NATO | SECRET |\n\n"
+        "```text\n"
+        "fixed width\n"
+        "```"
+    )
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_client = MagicMock()
+        mock_client.chat.return_value = ocr_response_factory(compliant_markdown)
+        mock_client_class.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            ["ocr", "--mode", "qwen38", str(input_dir), str(output_dir)],
+        )
+
+    assert result.exit_code == 0, result.output
+    request = mock_client.chat.call_args.kwargs
+    assert "each prose paragraph on one physical line" in request["messages"][0]["content"]
+    assert (
+        "distinct prose paragraphs with exactly one blank line"
+        in (request["messages"][0]["content"])
+    )
+    assert "Never infer or normalize characters into { or }" in request["messages"][0]["content"]
+    assert request["messages"][1]["content"] == QWEN38_USER_PROMPT
+    assert (output_dir / "test.md").read_text(encoding="utf-8").endswith(compliant_markdown)
+
+
+def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
+    temp_ocr_dirs: tuple[Path, Path],
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_client = MagicMock()
+        mock_client.chat.return_value = ocr_response_factory(
+            "PRIVATE REASONING</think>\n\n# NATO SECRET"
+        )
+        mock_client_class.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            ["ocr", "--mode", "qwen38", str(input_dir), str(output_dir)],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert mock_client.chat.call_args.kwargs["think"] == "high"
+    saved = (output_dir / "test.md").read_text(encoding="utf-8")
+    assert saved.endswith("# NATO SECRET")
+    assert "PRIVATE REASONING" not in saved
+    assert "</think>" not in saved
 
 
 def test_ocr_command_firered_mode_preserves_custom_model(
