@@ -60,6 +60,18 @@
 - Log one timing line per page: rejected because it adds noise and does not directly provide run throughput.
 - Add a new CLI output-format option: rejected because existing logging is sufficient.
 
+## Decision 7: Expose command-wide throughput during long batches
+
+**Decision**: After every PDF run, emit a cumulative INFO line with `attempted_pages_since_command_start`, `elapsed_seconds_since_command_start`, and `average_seconds_per_page_since_command_start`. Retain the final overall summary.
+
+**Rationale**: A final-only command summary is invisible while a long batch is still running. Updating the cumulative snapshot at the existing per-PDF boundary makes current whole-command throughput observable without adding page-level noise or changing OCR execution.
+
+**Alternatives considered**:
+
+- Emit only at command completion: rejected because operators cannot monitor an active long-running batch.
+- Emit after every input page: rejected because it requires a new engine-to-CLI callback and would add substantial log noise.
+- Replace the per-PDF summary: rejected because document-level and command-level performance answer different operational questions.
+
 ## Decision 6: Preserve existing OCR contracts
 
 **Decision**: Do not change model defaults, mode profiles, prompts, request options, retries, recursive discovery, output names, page ordering, resume semantics, or the `run_ocr` return type.

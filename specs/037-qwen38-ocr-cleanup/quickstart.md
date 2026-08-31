@@ -64,7 +64,13 @@ After the final PDF, inspect the command-wide summary:
 OCR overall timing: overall_attempted_pages=24 overall_total_seconds=132.000 overall_average_seconds_per_page=5.500
 ```
 
-Resume a fully recognized PDF and run the same command again. Expected outcome: the per-PDF summary reports `attempted_pages=0` and `average_seconds_per_page=unavailable`. A mocked retry or failed page remains one attempted page while its retry wait and failure time remain included. For multiple PDFs, the overall summary sums all attempted pages and divides the elapsed time since command entry by that count. An empty input directory reports `overall_attempted_pages=0` and `overall_average_seconds_per_page=unavailable`.
+After each PDF, including before a long batch completes, inspect the cumulative command timing:
+
+```text
+OCR cumulative timing: attempted_pages_since_command_start=10 elapsed_seconds_since_command_start=54.000 average_seconds_per_page_since_command_start=5.400
+```
+
+Resume a fully recognized PDF and run the same command again. Expected outcome: the per-PDF summary reports `attempted_pages=0` and `average_seconds_per_page=unavailable`. A mocked retry or failed page remains one attempted page while its retry wait and failure time remain included. For multiple PDFs, a cumulative summary appears after each PDF and the final overall summary sums all attempted pages; both divide elapsed time since command entry by the relevant attempted-page count. An empty input directory reports `overall_attempted_pages=0` and `overall_average_seconds_per_page=unavailable`.
 
 ## 5. Validate compatibility
 
