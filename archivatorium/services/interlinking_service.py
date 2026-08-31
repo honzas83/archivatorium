@@ -355,6 +355,52 @@ class InterlinkingService:
         escaped = re.escape(code)
         return rf"(?<![a-zA-Z0-9]){escaped}(?![a-zA-Z0-9])"
 
+    def _rewrite_references_row(
+        self,
+        row: str,
+        source_lang: str,
+        current_path: str | None,
+        discovered_codes: list[str] | None,
+        archive_code: str | None,
+    ) -> str | None:
+        """Rewrite one metadata references row, or return ``None`` for another row type."""
+        refs_re = re.compile(r"^(\s*> \| ☰&nbsp;(?:\*\*)?references(?:\*\*)?: \| )(.*)( \|)$")
+        ref_match = refs_re.match(row)
+        if not ref_match:
+            return None
+
+        prefix, values_str, suffix = ref_match.groups()
+        existing_codes: list[str] = []
+        for part in re.split(r"<br>|,", values_str):
+            stripped_part = part.strip()
+            if not stripped_part:
+                continue
+            link_match = re.match(r"^\[(.*?)\]\(.*?\)$", stripped_part)
+            raw_code = link_match.group(1) if link_match else stripped_part
+            canonical = self.bib_to_norm.get(raw_code, raw_code)
+            if canonical not in existing_codes:
+                existing_codes.append(canonical)
+
+        final_codes: list[str] = []
+        own_code_bib = safe_identifier(archive_code) if archive_code else None
+        for code in [*(discovered_codes or []), *existing_codes]:
+            if code in final_codes:
+                continue
+            if own_code_bib and safe_identifier(code) == own_code_bib:
+                continue
+            final_codes.append(code)
+
+        new_parts = []
+        for code in final_codes:
+            link_path = self.resolve_link(code, source_lang)
+            if link_path and link_path != current_path:
+                target = self._format_document_link_target(link_path)
+                new_parts.append(f"[{code}]({target})")
+            else:
+                new_parts.append(code)
+
+        return f"{prefix}{'<br>'.join(new_parts)}{suffix}"
+
     def interlink_metadata(
         self,
         content: str,
@@ -430,10 +476,9 @@ class InterlinkingService:
         # We'll handle the references row specially to ensure ordering
         found_ref_row = False
 
-        # Precise regex for detecting language and references rows (supporting optional bolding)
+        # Precise regex for detecting language rows (supporting optional bolding)
         lang_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language(?:\*\*)?: \|")
         lang_versions_re = re.compile(r"^\s*> \| ≡&nbsp;(?:\*\*)?language_versions(?:\*\*)?: \|")
-        refs_re = re.compile(r"^(\s*> \| ☰&nbsp;(?:\*\*)?references(?:\*\*)?: \| )(.*)( \|)$")
 
         for row in rows:
             # Skip existing language_versions row if present (idempotency)
@@ -450,62 +495,16 @@ class InterlinkingService:
                     clean_val = self.clean_citekey(citekey_val.strip())
                     row = f"{prefix}{clean_val}{suffix}"
 
-            # Match references row
-            ref_match = refs_re.match(row)
-            if ref_match:
+            rewritten_ref_row = self._rewrite_references_row(
+                row,
+                source_lang,
+                cur_path,
+                discovered_codes,
+                archive_code,
+            )
+            if rewritten_ref_row is not None:
                 found_ref_row = True
-                prefix, values_str, suffix = ref_match.groups()
-                # Use <br> as requested by the user
-                sep = "<br>"
-                parts = re.split(r"<br>|,", values_str)  # Support splitting both for migration
-
-                existing_codes = []
-                for part in parts:
-                    stripped_part = part.strip()
-                    if not stripped_part:
-                        continue
-                    # Extract code if it's already a link
-                    link_match = re.match(r"^\[(.*?)\]\(.*?\)$", stripped_part)
-                    raw_code = link_match.group(1) if link_match else stripped_part
-                    # Canonicalize
-                    canonical = self.bib_to_norm.get(raw_code, raw_code)
-                    if canonical not in existing_codes:
-                        existing_codes.append(canonical)
-
-                # Merge with discovered_codes (from body)
-                body_codes = discovered_codes or []
-                final_codes = []
-
-                # Normalize own archive_code for strict comparison (using BibTeX-style key)
-                own_code_bib = safe_identifier(archive_code) if archive_code else None
-
-                # First: Add all from body in order of appearance
-                for c in body_codes:
-                    if c not in final_codes:
-                        # Skip if it's the document's own archive_code (BibTeX-style fuzzy check)
-                        if own_code_bib and safe_identifier(c) == own_code_bib:
-                            continue
-                        final_codes.append(c)
-
-                # Second: Add existing ones that were NOT in body (silent references)
-                for c in existing_codes:
-                    if c not in final_codes:
-                        # Skip if it's the document's own archive_code
-                        if own_code_bib and safe_identifier(c) == own_code_bib:
-                            continue
-                        final_codes.append(c)
-
-                # Format back with links
-                new_parts = []
-                for code in final_codes:
-                    link_path = self.resolve_link(code, source_lang)
-                    if link_path and link_path != cur_path:
-                        target = self._format_document_link_target(link_path)
-                        new_parts.append(f"[{code}]({target})")
-                    else:
-                        new_parts.append(code)
-
-                new_rows.append(f"{prefix}{sep.join(new_parts)}{suffix}")
+                new_rows.append(rewritten_ref_row)
                 continue
 
             new_rows.append(row)
