@@ -81,13 +81,13 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 > **NOTE: Complete T007-T008 first and confirm the initial User Story 1 prompt lacks the complete paragraph contract.**
 
-- [ ] T007 [P] [US2] Add exact unit assertions for one-line prose, one blank line between distinct paragraphs, preserved headings/list items/table rows/fenced lines, and the complete final Qwen 3.8 system and user prompt text from `contracts/qwen38-ocr-profile.md` in `tests/unit/test_ocr_engine.py`
-- [ ] T008 [P] [US2] Add a Qwen 3.8 CLI integration test that captures the paragraph contract in the outgoing request and proves mocked compliant Markdown is saved without collapsing distinct blocks in `tests/integration/test_ocr_cli.py`
+- [X] T007 [P] [US2] Add exact unit assertions for one-line prose, one blank line between distinct paragraphs, preserved headings/list items/table rows/fenced lines, and the complete final Qwen 3.8 system and user prompt text from `contracts/qwen38-ocr-profile.md` in `tests/unit/test_ocr_engine.py`
+- [X] T008 [P] [US2] Add a Qwen 3.8 CLI integration test that captures the paragraph contract in the outgoing request and proves mocked compliant Markdown is saved without collapsing distinct blocks in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Complete the Qwen 3.8 prompt constants with the single-line prose and blank-line separation rules, preserving the exact ordered contract and all User Story 1 rules in `archivatorium/ocr_engine.py`
-- [ ] T010 [US2] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm the final prompt matches `specs/038-qwen38-markdown-prompts/contracts/qwen38-ocr-profile.md`, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md`
+- [X] T009 [US2] Complete the Qwen 3.8 prompt constants with the single-line prose and blank-line separation rules, preserving the exact ordered contract and all User Story 1 rules in `archivatorium/ocr_engine.py`
+- [X] T010 [US2] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm the final prompt matches `specs/038-qwen38-markdown-prompts/contracts/qwen38-ocr-profile.md`, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 84 passed, 1 unrelated PyPDF2 deprecation warning
 
 **Checkpoint**: Qwen 3.8 mode has the complete final Markdown prompt contract, including safe single-line paragraphs.
 

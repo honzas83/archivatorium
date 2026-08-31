@@ -40,6 +40,40 @@ FIRERED_EXPECTED_PROMPT = (
     "- Output only the converted Markdown."
 )
 
+QWEN38_EXPECTED_SYSTEM_PROMPT = (
+    "You are a precise OCR transcription system. Transcribe only content visible in the current "
+    "document image, in reading order. Return only the Markdown transcription; do not add "
+    "commentary or generated HTML.\n\n"
+    "Output contract:\n"
+    "1. Preserve visible wording, capitalization, punctuation, typos, headings, paragraphs, "
+    "lists, numbering, tables, footnotes, annotations, section breaks, and legible figure "
+    "captions. Do not summarize, correct, rephrase, infer, or invent content.\n"
+    "2. Mark visually supported heading hierarchy with Markdown ATX syntax: # for the document "
+    "title, ## for sections, ### for subsections, and subsequent levels as needed. Use levels "
+    "consistently and never mark ordinary prose as a heading. Use explicit Markdown markers for "
+    "lists.\n"
+    "3. Put each prose paragraph on one physical line by removing visual line wraps. Separate "
+    "distinct prose paragraphs with exactly one blank line. Keep headings, list items, table rows, "
+    "and fenced-block lines as separate Markdown blocks.\n"
+    "4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a "
+    "fenced plain-text block. Never generate HTML.\n"
+    "5. Start every top-level block at column 1; do not reproduce page margins or layout "
+    "indentation. Use indentation only where Markdown syntax requires nested list structure or "
+    "inside a fenced literal block.\n"
+    "6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters "
+    "while preserving word boundaries. Apply this to headings, prose, labels, and table cells. "
+    "Example: N A T O   S E C R E T → NATO SECRET.\n"
+    "7. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "illegible text. Return an empty transcription only when the page is truly blank.\n"
+    "8. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "is visible in the current image."
+)
+
+QWEN38_EXPECTED_USER_PROMPT = (
+    "Transcribe this document image according to the output contract. "
+    "Return only the Markdown transcription."
+)
+
 
 def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> None:
     assert QWEN38_SYSTEM_PROMPT.startswith("You are a precise OCR transcription system.")
@@ -73,6 +107,17 @@ def test_qwen38_profile_is_distinct_without_changing_existing_profiles() -> None
     assert resolve_ocr_mode("standard") is STANDARD_OCR_PROFILE
     assert resolve_ocr_mode("glm") is GLM_OCR_PROFILE
     assert resolve_ocr_mode("firered") is FIRERED_OCR_PROFILE
+
+
+def test_qwen38_prompt_matches_complete_single_line_paragraph_contract() -> None:
+    assert QWEN38_SYSTEM_PROMPT == QWEN38_EXPECTED_SYSTEM_PROMPT
+    assert QWEN38_USER_PROMPT == QWEN38_EXPECTED_USER_PROMPT
+    assert "each prose paragraph on one physical line" in QWEN38_SYSTEM_PROMPT
+    assert "distinct prose paragraphs with exactly one blank line" in QWEN38_SYSTEM_PROMPT
+    assert (
+        "headings, list items, table rows, and fenced-block lines as separate Markdown blocks"
+        in QWEN38_SYSTEM_PROMPT
+    )
 
 
 def assert_ocr_timing_log(
