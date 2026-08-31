@@ -171,7 +171,15 @@ def resolve_ocr_mode(mode: str | None) -> OCRModeProfile:
 
 def normalize_ocr_response(content: str) -> str:
     """Normalize successful model text before it enters the OCR pipeline."""
-    return content
+    _prefix, marker, normalized = content.rpartition("</think>")
+    if not marker:
+        return content
+
+    lines = normalized.splitlines(keepends=True)
+    first_content_line = 0
+    while first_content_line < len(lines) and not lines[first_content_line].strip():
+        first_content_line += 1
+    return "".join(lines[first_content_line:])
 
 
 class OCREngine:

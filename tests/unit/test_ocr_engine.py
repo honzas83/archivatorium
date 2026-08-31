@@ -101,6 +101,48 @@ def test_plain_response_crosses_normalization_boundary_unchanged(
     assert OCREngine(mode=mode).ocr_single_page(Path("page.png")) == content
 
 
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("reasoning</think>Recognized page", "Recognized page"),
+        ("</think>Recognized page", "Recognized page"),
+        ("reasoning</think>", ""),
+        ("first</think>still reasoning</think>Final OCR", "Final OCR"),
+        ("reasoning</think>\n\n  \nRecognized page", "Recognized page"),
+        ("reasoning</THINK>Recognized page", "reasoning</THINK>Recognized page"),
+        ("No reasoning marker", "No reasoning marker"),
+    ],
+)
+def test_normalize_ocr_response_removes_content_through_final_think_marker(
+    content, expected
+):
+    assert normalize_ocr_response(content) == expected
+
+
+def test_standard_next_page_context_uses_normalized_previous_response(
+    mock_pdf_reader,
+    mock_convert_from_path,
+    mock_ollama_client,
+    ocr_response_factory,
+):
+    engine = OCREngine(mode="standard")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("SECRET REASONING</think>PAGE ONE OCR"),
+        ocr_response_factory("PAGE TWO OCR"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    second_messages = mock_ollama_client.chat.call_args_list[1].kwargs["messages"]
+    assert "PAGE ONE OCR" in str(second_messages)
+    assert "SECRET REASONING" not in str(second_messages)
+    assert "</think>" not in str(second_messages)
+
+
 def test_ocr_single_page_retry_success(mock_ollama_client):
     engine = OCREngine()
     mock_response = MagicMock()

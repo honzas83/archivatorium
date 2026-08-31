@@ -54,12 +54,12 @@
 
 > **NOTE: Write these tests first and verify they fail before implementing marker cleanup.**
 
-- [ ] T004 [P] [US1] Add parameterized final-marker, separator-line, empty-suffix, no-marker, and normalized previous-page-context tests in `tests/unit/test_ocr_engine.py`
-- [ ] T005 [P] [US1] Add an end-to-end CLI test proving reasoning text and the final `</think>` marker are absent from saved Markdown in `tests/integration/test_ocr_cli.py`
+- [X] T004 [P] [US1] Add parameterized final-marker, separator-line, empty-suffix, no-marker, and normalized previous-page-context tests in `tests/unit/test_ocr_engine.py`
+- [X] T005 [P] [US1] Add an end-to-end CLI test proving reasoning text and the final `</think>` marker are absent from saved Markdown in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement exact case-sensitive final-marker partitioning and post-marker leading-blank-line removal in `normalize_ocr_response` in `archivatorium/ocr_engine.py`
+- [X] T006 [US1] Implement exact case-sensitive final-marker partitioning and post-marker leading-blank-line removal in `normalize_ocr_response` in `archivatorium/ocr_engine.py`
 
 **Checkpoint**: User Story 1 passes independently for direct page recognition, contextual multipage recognition, and CLI persistence.
 
