@@ -43,7 +43,7 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 **⚠️ CRITICAL**: No user story implementation begins until the dependency contract is established.
 
-- [ ] T002 Require the locally verified Ollama client version `ollama>=0.6.1` in `pyproject.toml` and verify project metadata still installs and type-checks
+- [X] T002 Require the locally verified Ollama client version `ollama>=0.6.1` in `pyproject.toml` and verify project metadata still installs and type-checks — verified installed Ollama 0.6.1, editable-install metadata dry-run, and focused MyPy
 
 **Checkpoint**: The dependency contract supports the precise `low`/`medium`/`high` reasoning levels required later by User Story 3.
 
