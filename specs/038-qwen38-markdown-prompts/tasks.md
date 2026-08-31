@@ -119,8 +119,8 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 **Purpose**: Validate the complete request contract, documented examples, dependency metadata, and constitutional quality gates.
 
-- [ ] T015 Run the automated and prompt-inspection scenarios in `specs/038-qwen38-markdown-prompts/quickstart.md`, including `--help`, mode isolation, ATX headings, generic de-spacing, paragraph boundaries, tables, and reasoning cleanup, without committing live documents or model output
-- [ ] T016 Run Ruff lint/format, Flake8, MyPy, the full pytest suite, and explicit coverage reporting using `pyproject.toml`, then record results and any unrelated pre-existing findings in `specs/038-qwen38-markdown-prompts/tasks.md`
+- [X] T015 Run the automated and prompt-inspection scenarios in `specs/038-qwen38-markdown-prompts/quickstart.md`, including `--help`, mode isolation, ATX headings, generic de-spacing, paragraph boundaries, tables, and reasoning cleanup, without committing live documents or model output — passed CLI help, exact prompt/mode inspection, and 30 targeted automated scenarios; no live data or model output used
+- [X] T016 Run Ruff lint/format, Flake8, MyPy, the full pytest suite, and explicit coverage reporting using `pyproject.toml`, then record results and any unrelated pre-existing findings in `specs/038-qwen38-markdown-prompts/tasks.md` — Ruff and MyPy passed; Feature 038 Flake8 scope passed; full pytest passed 331 tests with one PyPDF2 warning; explicit coverage reported 95% overall (90% production coverage under pytest-cov); repository-wide Flake8 found the unrelated pre-existing `interlinking_service.py:358` complexity of 108 over 100, scheduled separately at user request
 
 ---
 
