@@ -133,8 +133,47 @@ if [ -z "$_commit_msg" ]; then
     _commit_msg="[Spec Kit] Auto-commit ${_phase} ${_command_name}"
 fi
 
-# Stage and commit
-_git_out=$(git add . 2>&1) || { echo "[specify] Error: git add failed: $_git_out" >&2; exit 1; }
-_git_out=$(git commit -q -m "$_commit_msg" 2>&1) || { echo "[specify] Error: git commit failed: $_git_out" >&2; exit 1; }
+# Specification output is deliberately path-scoped. A repository may contain
+# unrelated working-tree changes or large local datasets, and an automatic
+# `git add .` must never include those in a specification commit.
+if [ "$EVENT_NAME" = "after_specify" ]; then
+    _feature_state="$REPO_ROOT/.specify/feature.json"
+    _feature_dir=""
+
+    if [ -f "$_feature_state" ]; then
+        if command -v jq >/dev/null 2>&1; then
+            _feature_dir=$(jq -r '.feature_directory // empty' "$_feature_state" 2>/dev/null || true)
+        elif command -v python3 >/dev/null 2>&1; then
+            _feature_dir=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("feature_directory", ""))' "$_feature_state" 2>/dev/null || true)
+        fi
+    fi
+
+    case "$_feature_dir" in
+        specs/*)
+            case "/$_feature_dir/" in
+                */../*|*/./*)
+                    echo "[specify] Error: unsafe feature directory in .specify/feature.json: $_feature_dir" >&2
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            echo "[specify] Error: valid specs/<feature> directory not found in .specify/feature.json" >&2
+            exit 1
+            ;;
+    esac
+
+    _commit_paths=(.specify/feature.json "$_feature_dir")
+    if [ -z "$(git status --porcelain -- "${_commit_paths[@]}" 2>/dev/null)" ]; then
+        echo "[specify] No specification changes to commit after $EVENT_NAME" >&2
+        exit 0
+    fi
+
+    _git_out=$(git add -- "${_commit_paths[@]}" 2>&1) || { echo "[specify] Error: git add failed: $_git_out" >&2; exit 1; }
+    _git_out=$(git commit --only -q -m "$_commit_msg" -- "${_commit_paths[@]}" 2>&1) || { echo "[specify] Error: git commit failed: $_git_out" >&2; exit 1; }
+else
+    _git_out=$(git add . 2>&1) || { echo "[specify] Error: git add failed: $_git_out" >&2; exit 1; }
+    _git_out=$(git commit -q -m "$_commit_msg" 2>&1) || { echo "[specify] Error: git commit failed: $_git_out" >&2; exit 1; }
+fi
 
 echo "[OK] Changes committed ${_phase} ${_command_name}" >&2
