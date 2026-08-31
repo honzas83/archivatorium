@@ -80,9 +80,7 @@ def test_ocr_command_removes_reasoning_prefix_from_saved_markdown(
         mock_reader_class.return_value.pages = [MagicMock()]
         mock_convert.return_value = [MagicMock()]
         mock_response = MagicMock()
-        mock_response.message = {
-            "content": "private reasoning</think>\n\nRecognized archival text"
-        }
+        mock_response.message = {"content": "private reasoning</think>\n\nRecognized archival text"}
         mock_client_class.return_value.chat.return_value = mock_response
 
         result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])
@@ -109,9 +107,7 @@ def test_ocr_command_removes_shared_margin_and_preserves_relative_indent(
         mock_reader_class.return_value.pages = [MagicMock()]
         mock_convert.return_value = [MagicMock()]
         mock_response = MagicMock()
-        mock_response.message = {
-            "content": "    First line\n        Nested line\n    Final line"
-        }
+        mock_response.message = {"content": "    First line\n        Nested line\n    Final line"}
         mock_client_class.return_value.chat.return_value = mock_response
 
         result = runner.invoke(cli, ["ocr", str(input_dir), str(output_dir)])

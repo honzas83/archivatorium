@@ -51,8 +51,7 @@ def assert_ocr_timing_log(
         )
     else:
         mock_logger.assert_any_call(
-            "OCR timing: attempted_pages=%d total_seconds=%.3f "
-            "average_seconds_per_page=%.3f",
+            "OCR timing: attempted_pages=%d total_seconds=%.3f average_seconds_per_page=%.3f",
             attempted_pages,
             total_seconds,
             average_seconds_per_page,
@@ -137,9 +136,7 @@ def test_plain_response_crosses_normalization_boundary_unchanged(
         ("No reasoning marker", "No reasoning marker"),
     ],
 )
-def test_normalize_ocr_response_removes_content_through_final_think_marker(
-    content, expected
-):
+def test_normalize_ocr_response_removes_content_through_final_think_marker(content, expected):
     assert normalize_ocr_response(content) == expected
 
 
@@ -167,9 +164,7 @@ def test_normalize_ocr_response_removes_content_through_final_think_marker(
         ),
     ],
 )
-def test_normalize_ocr_response_removes_only_shared_ascii_space_margin(
-    content, expected
-):
+def test_normalize_ocr_response_removes_only_shared_ascii_space_margin(content, expected):
     assert normalize_ocr_response(content) == expected
 
 

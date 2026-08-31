@@ -111,8 +111,10 @@
 
 **Purpose**: Verify the combined behavior, performance constraints, and constitutional quality gates.
 
-- [ ] T013 Run the mocked automated scenarios in `specs/037-qwen38-ocr-cleanup/quickstart.md` and verify its manual command expectations against `specs/037-qwen38-ocr-cleanup/contracts/ocr-output.md` without requiring archival data or a live model
-- [ ] T014 Run `ruff check .`, `ruff format --check .`, `flake8`, `mypy .`, the full pytest suite, and coverage reporting using the configurations in `pyproject.toml` and `.flake8`
+- [X] T013 Run the mocked automated scenarios in `specs/037-qwen38-ocr-cleanup/quickstart.md` and verify its manual command expectations against `specs/037-qwen38-ocr-cleanup/contracts/ocr-output.md` without requiring archival data or a live model
+- [X] T014 Run `ruff check .`, `ruff format --check .`, `flake8`, `mypy .`, the full pytest suite, and coverage reporting using the configurations in `pyproject.toml` and `.flake8`
+
+Validation note: Feature-owned Ruff formatting and Flake8 checks pass, as do repository-wide Ruff lint, MyPy, pytest, and coverage. Repository-wide Ruff formatting also reports four pre-existing untracked Spec Kit helper scripts, and repository-wide Flake8 reports the pre-existing `CCR001` complexity finding in `archivatorium/services/interlinking_service.py`; neither unrelated area was modified by this feature.
 
 ---
 
