@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Create a new `qwen38` OCR mode with streamlined prompts, high reasoning, mandatory Markdown and single-line paragraphs, correct `#`/`##` heading hierarchy, and generic de-spacing such as `N A T O   S E C R E T` → `NATO SECRET`; do not modify standard mode."
+**Input**: User description: "Create a new `qwen38` OCR mode with streamlined prompts, high reasoning, mandatory Markdown and single-line paragraphs, correct `#`/`##` heading hierarchy, generic de-spacing such as `N A T O   S E C R E T` → `NATO SECRET`, and no inferred curly braces from typewritten source; do not modify standard mode."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -25,6 +25,7 @@ As an archive operator, I want Qwen 3.8 OCR output expressed as clean Markdown s
 3. **Given** content that could be represented with HTML or Markdown, **When** the page is recognized, **Then** the generated structural markup uses Markdown and contains no generated HTML elements.
 4. **Given** visually nested content, **When** the page is recognized, **Then** nesting is represented with Markdown constructs rather than global or layout-derived indentation.
 5. **Given** any heading, label, table cell, or prose text printed with artificial spacing between characters, such as `N A T O   S E C R E T`, **When** it is recognized, **Then** the output restores normal lettering and word boundaries as `NATO SECRET`.
+6. **Given** a typewritten character that could be misrecognized or normalized as a curly brace, **When** it is recognized in Qwen 3.8 mode, **Then** the output does not contain `{` or `}` unless the corresponding brace is unambiguously visible in the source.
 
 ---
 
@@ -68,6 +69,7 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - A paragraph may contain inline emphasis, links, punctuation, or OCR uncertainty markers that must remain on the same line.
 - Genuine standalone letters or symbols may appear near artificially spaced words and must not be merged into unrelated text.
 - A model may return reasoning text even when the saved output contract excludes it.
+- A typewritten glyph may resemble a curly brace even though the source typewriter did not provide curly braces; ambiguous glyphs must retain source fidelity without being normalized into `{` or `}`.
 - A page may be blank, unreadable, or contain only an image with no recognizable text.
 
 ## Requirements *(mandatory)*
@@ -90,6 +92,7 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - **FR-014**: Existing model selection, retries, page ordering, resume behavior, output naming, response cleanup, and timing logs MUST remain unchanged.
 - **FR-015**: Qwen 3.8 mode instructions MUST explicitly require artificial typewriter-style inter-character spacing anywhere in recognized text to be collapsed while preserving normal word boundaries, and MUST include `N A T O   S E C R E T` → `NATO SECRET` as the canonical example.
 - **FR-016**: Qwen 3.8 mode MUST mark visually supported heading hierarchy with Markdown ATX syntax (`#`, `##`, `###`, and subsequent levels), use levels consistently within a page, and MUST NOT mark ordinary prose as a heading.
+- **FR-017**: Qwen 3.8 mode instructions MUST state that the source typewriter did not provide curly braces, MUST prohibit inferring or normalizing any character into `{` or `}`, and MUST permit either brace only when it is unambiguously visible in the source image.
 
 ### Key Entities
 
@@ -109,6 +112,7 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - **SC-006**: Reviewers can determine the complete Qwen 3.8 mode formatting contract from one concise instruction set without contradictory or duplicated rules.
 - **SC-007**: In all validation samples using artificial inter-character spacing, spaced letters are joined into their intended words while genuine word boundaries and standalone symbols remain correct.
 - **SC-008**: In all validation samples with visually distinct heading levels, every supported heading is emitted with the correct Markdown heading marker and no ordinary prose line is incorrectly marked as a heading.
+- **SC-009**: In all typewritten validation samples without visibly unambiguous curly braces, the recognized output introduces no `{` or `}` characters.
 
 ## Assumptions
 
@@ -119,3 +123,4 @@ As an archive operator, I want a dedicated Qwen 3.8 OCR mode to use high reasoni
 - Existing response normalization continues to remove leaked reasoning before content is reused as context or saved.
 - Prompt streamlining may change wording and ordering as long as every mandatory output rule remains explicit and testable.
 - Artificial typewriter-style spacing may occur anywhere in a page, including generic prose, headings, labels, and table cells. It is visually distinguishable from genuine sequences of standalone one-character tokens; ambiguous cases retain the visible text rather than guessing.
+- The typewriters used for the target documents did not provide curly braces. A brace visibly introduced by another process or present in non-typewritten source content may be transcribed only when its shape is unambiguous.

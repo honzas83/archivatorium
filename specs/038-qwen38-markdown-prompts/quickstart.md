@@ -34,6 +34,7 @@ Review the exact contract and confirm it contains all of these unambiguous rules
 - Start top-level Markdown blocks at column one and avoid copied page-layout indentation.
 - Use pipe tables when structure is clear and fenced plain text otherwise.
 - Apply artificial character de-spacing anywhere in text, with the exact example `N A T O   S E C R E T` → `NATO SECRET`.
+- Never infer or normalize typewritten characters into `{` or `}`; output a curly brace only when it is unambiguously visible.
 - Preserve source content and avoid copying previous-page context that is absent from the current image.
 
 ## 3. Run a disposable Qwen 3.8 sample
@@ -55,12 +56,14 @@ Use representative pages containing:
 3. Artificially spaced text in multiple contexts: a heading, an ordinary sentence, a label, and a table cell.
 4. A clear table and an ambiguous or fixed-width layout.
 5. Literal HTML-like source text, unreadable text, and a blank page.
+6. Ambiguous typewritten glyphs that might otherwise be normalized into curly braces, plus any genuinely visible brace available for a positive control.
 
 Expected outcome:
 
 - Titles and supported sublevels use correct and consistent ATX markers; prose is not promoted to a heading.
 - Each prose paragraph is a single unwrapped line, while headings, list items, and table rows remain distinct blocks.
 - Artificial spacing is removed wherever it occurs, and normal word boundaries remain. In particular, `N A T O   S E C R E T` becomes `NATO SECRET`.
+- Ambiguous typewritten glyphs do not become `{` or `}`; a curly brace appears only when it is unambiguously visible in the source.
 - Generated structure contains no HTML and no copied page-margin indentation.
 - Tables use the required Markdown representation, source text remains faithful, and reasoning is absent.
 

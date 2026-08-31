@@ -124,6 +124,15 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 ---
 
+## Phase 7: Source-Fidelity Amendment
+
+**Purpose**: Prevent Qwen 3.8 from inventing curly braces that were unavailable on the source typewriter while preserving braces that are unambiguously visible.
+
+- [X] T017 [US1] Add exact unit and CLI request assertions for the Qwen 3.8 curly-brace prohibition in `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, and confirm the existing prompt fails the new contract
+- [X] T018 [US1] Add the curly-brace source-fidelity rule to `archivatorium/ocr_engine.py`, back-propagate it through Feature 038 design artifacts, run focused OCR tests and quality checks, and record the result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 89 focused tests passed with one unrelated PyPDF2 warning; focused Ruff, Flake8, formatting, and MyPy passed
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

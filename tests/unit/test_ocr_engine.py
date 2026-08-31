@@ -67,9 +67,12 @@ QWEN38_EXPECTED_SYSTEM_PROMPT = (
     "6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters "
     "while preserving word boundaries. Apply this to headings, prose, labels, and table cells. "
     "Example: N A T O   S E C R E T → NATO SECRET.\n"
-    "7. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "7. Typewriters used for these documents do not have curly braces. Never infer or normalize "
+    "characters into { or }. Output a curly brace only when it is unambiguously visible in the "
+    "current image.\n"
+    "8. Preserve meaningful whitespace inside literal content and write [unreadable] for "
     "illegible text. Return an empty transcription only when the page is truly blank.\n"
-    "8. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "9. Previous-page text, when supplied, is context only. Never copy it unless the same text "
     "is visible in the current image."
 )
 
@@ -93,6 +96,8 @@ def test_qwen38_prompt_defines_markdown_structure_and_generic_despacing() -> Non
     assert "In any text, collapse artificial typewriter-style spacing" in (QWEN38_SYSTEM_PROMPT)
     assert "headings, prose, labels, and table cells" in QWEN38_SYSTEM_PROMPT
     assert "N A T O   S E C R E T → NATO SECRET" in QWEN38_SYSTEM_PROMPT
+    assert "Never infer or normalize characters into { or }" in QWEN38_SYSTEM_PROMPT
+    assert "only when it is unambiguously visible" in QWEN38_SYSTEM_PROMPT
     assert QWEN38_USER_PROMPT == (
         "Transcribe this document image according to the output contract. "
         "Return only the Markdown transcription."

@@ -72,9 +72,12 @@ QWEN38_SYSTEM_PROMPT = (
     "6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters "
     "while preserving word boundaries. Apply this to headings, prose, labels, and table cells. "
     "Example: N A T O   S E C R E T → NATO SECRET.\n"
-    "7. Preserve meaningful whitespace inside literal content and write [unreadable] for "
+    "7. Typewriters used for these documents do not have curly braces. Never infer or normalize "
+    "characters into { or }. Output a curly brace only when it is unambiguously visible in the "
+    "current image.\n"
+    "8. Preserve meaningful whitespace inside literal content and write [unreadable] for "
     "illegible text. Return an empty transcription only when the page is truly blank.\n"
-    "8. Previous-page text, when supplied, is context only. Never copy it unless the same text "
+    "9. Previous-page text, when supplied, is context only. Never copy it unless the same text "
     "is visible in the current image."
 )
 

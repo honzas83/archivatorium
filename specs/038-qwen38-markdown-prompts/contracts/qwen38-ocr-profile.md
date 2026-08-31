@@ -22,11 +22,14 @@ Output contract:
 4. Use a Markdown pipe table when the table structure is clear. Otherwise preserve it in a fenced plain-text block. Never generate HTML.
 5. Start every top-level block at column 1; do not reproduce page margins or layout indentation. Use indentation only where Markdown syntax requires nested list structure or inside a fenced literal block.
 6. IMPORTANT: In any text, collapse artificial typewriter-style spacing between letters while preserving word boundaries. Apply this to headings, prose, labels, and table cells. Example: N A T O   S E C R E T → NATO SECRET.
-7. Preserve meaningful whitespace inside literal content and write [unreadable] for illegible text. Return an empty transcription only when the page is truly blank.
-8. Previous-page text, when supplied, is context only. Never copy it unless the same text is visible in the current image.
+7. Typewriters used for these documents do not have curly braces. Never infer or normalize characters into { or }. Output a curly brace only when it is unambiguously visible in the current image.
+8. Preserve meaningful whitespace inside literal content and write [unreadable] for illegible text. Return an empty transcription only when the page is truly blank.
+9. Previous-page text, when supplied, is context only. Never copy it unless the same text is visible in the current image.
 ```
 
 The artificial-spacing rule is semantic. It does not authorize blindly merging genuine standalone letters, initials, formula symbols, list labels, or other separate tokens. When spacing is visually ambiguous, source fidelity takes precedence over guessing.
+
+The curly-brace rule prevents typewritten glyphs from being normalized into characters unavailable on the source typewriter. Literal `{` or `}` remains valid only when the corresponding brace is unambiguously visible in the current image.
 
 ## Exact Qwen 3.8 user prompt
 
@@ -86,6 +89,13 @@ This is the next visually distinct paragraph.
 ```
 
 The paragraph rule does not join headings, separate list items, pipe-table rows, or lines inside a fenced literal block.
+
+Ambiguous typewritten glyphs:
+
+```text
+Source: no unambiguous curly brace is visible
+Required output: do not invent { or }
+```
 
 ## Compatibility guarantees
 

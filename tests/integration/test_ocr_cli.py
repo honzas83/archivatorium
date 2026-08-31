@@ -361,6 +361,7 @@ def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_bloc
         "distinct prose paragraphs with exactly one blank line"
         in (request["messages"][0]["content"])
     )
+    assert "Never infer or normalize characters into { or }" in request["messages"][0]["content"]
     assert request["messages"][1]["content"] == QWEN38_USER_PROMPT
     assert (output_dir / "test.md").read_text(encoding="utf-8").endswith(compliant_markdown)
 

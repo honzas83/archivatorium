@@ -107,3 +107,15 @@
 - Test only prompt substrings: rejected because removed or contradictory rules could return unnoticed.
 - Test only live model output: rejected because model output is nondeterministic and requires external service state.
 - Snapshot every unrelated OCR workflow: rejected because existing focused regression tests already cover those contracts.
+
+## Decision 10: Prohibit inferred curly braces in typewritten source
+
+**Decision**: State in the Qwen 3.8 prompt that the target typewriters did not provide curly braces. Never infer or normalize a source character into `{` or `}`; output a curly brace only when it is unambiguously visible in the current image.
+
+**Rationale**: A vision model can normalize an ambiguous typewritten glyph into a modern character that was unavailable on the source machine. The explicit negative rule protects documentary fidelity while the visibility exception preserves genuinely printed, stamped, handwritten, or otherwise present braces.
+
+**Alternatives considered**:
+
+- Remove every curly brace after OCR: rejected because a brace can be genuinely and unambiguously visible in non-typewritten additions or other source material.
+- Rely only on the general no-inference rule: rejected because it does not identify the observed character-normalization failure.
+- Add a deterministic brace postprocessor: rejected because output text cannot establish whether a brace was visibly present in the image.
