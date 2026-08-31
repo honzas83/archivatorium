@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from pathlib import Path
+from typing import Literal, get_type_hints
 from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
@@ -6,7 +8,9 @@ from archivatorium.ocr_engine import (
     FIRERED_OCR_PROFILE,
     FIRERED_USER_PROMPT,
     GLM_OCR_PROFILE,
+    OCRModeProfile,
     OCREngine,
+    QWEN38_OCR_PROFILE,
     QWEN38_SYSTEM_PROMPT,
     QWEN38_USER_PROMPT,
     STANDARD_OCR_PROFILE,
@@ -118,6 +122,84 @@ def test_qwen38_prompt_matches_complete_single_line_paragraph_contract() -> None
         "headings, list items, table rows, and fenced-block lines as separate Markdown blocks"
         in QWEN38_SYSTEM_PROMPT
     )
+
+
+def test_qwen38_profile_uses_precise_high_reasoning_type_without_changing_other_modes() -> None:
+    assert get_type_hints(OCRModeProfile)["think"] == (
+        bool | Literal["low", "medium", "high"] | None
+    )
+    assert QWEN38_OCR_PROFILE.think == "high"
+    assert STANDARD_OCR_PROFILE.think is None
+    assert GLM_OCR_PROFILE.think is False
+    assert FIRERED_OCR_PROFILE.think is None
+
+
+def test_qwen38_retry_reuses_identical_high_reasoning_request(
+    mock_ollama_client: MagicMock,
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    engine = OCREngine(mode="qwen38", model="registry.example/qwen3.8:custom")
+    mock_ollama_client.chat.side_effect = [
+        RuntimeError("temporary"),
+        ocr_response_factory("# Recovered"),
+    ]
+
+    with patch("archivatorium.ocr_engine.time.sleep"):
+        assert (
+            engine.ocr_single_page(
+                Path("page.png"),
+                last_text="# Clean context",
+                retry=2,
+            )
+            == "# Recovered"
+        )
+
+    first = mock_ollama_client.chat.call_args_list[0].kwargs
+    second = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert first == second
+    assert first["model"] == "registry.example/qwen3.8:custom"
+    assert first["think"] == "high"
+
+
+def test_qwen38_discards_separate_reasoning_field(mock_ollama_client: MagicMock) -> None:
+    engine = OCREngine(mode="qwen38")
+    response = MagicMock()
+    response.message = {
+        "content": "# Visible transcription",
+        "thinking": "PRIVATE CHAIN OF THOUGHT",
+    }
+    mock_ollama_client.chat.return_value = response
+
+    transcription = engine.ocr_single_page(Path("page.png"))
+
+    assert transcription == "# Visible transcription"
+    assert "PRIVATE CHAIN OF THOUGHT" not in transcription
+
+
+def test_qwen38_next_page_context_uses_content_after_final_think_marker(
+    mock_pdf_reader: MagicMock,
+    mock_convert_from_path: MagicMock,
+    mock_ollama_client: MagicMock,
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    engine = OCREngine(mode="qwen38")
+    mock_ollama_client.chat.side_effect = [
+        ocr_response_factory("first thought</think>second thought</think>## Page one"),
+        ocr_response_factory("## Page two"),
+    ]
+
+    with (
+        patch("builtins.open", mock_open(read_data=b"dummy")),
+        patch("pathlib.Path.unlink"),
+    ):
+        engine.run_ocr(Path("dummy.pdf"))
+
+    second_request = mock_ollama_client.chat.call_args_list[1].kwargs
+    assert second_request["think"] == "high"
+    assert "## Page one" in str(second_request["messages"])
+    assert "first thought" not in str(second_request["messages"])
+    assert "second thought" not in str(second_request["messages"])
+    assert "</think>" not in str(second_request["messages"])
 
 
 def assert_ocr_timing_log(

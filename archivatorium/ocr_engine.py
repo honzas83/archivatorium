@@ -4,7 +4,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, TypeAlias
+from typing import Any, Literal, Optional, TypeAlias
 
 import httpx
 from ollama import Client
@@ -109,7 +109,7 @@ class OCRModeProfile:
     system_prompt: str | None
     user_prompt: str
     include_previous_page_context: bool
-    think: bool | None
+    think: bool | Literal["low", "medium", "high"] | None
     inference_defaults: tuple[tuple[str, OllamaOptionValue], ...]
 
     def default_options(self) -> dict[str, OllamaOptionValue]:
@@ -170,7 +170,7 @@ QWEN38_OCR_PROFILE = OCRModeProfile(
     system_prompt=QWEN38_SYSTEM_PROMPT,
     user_prompt=QWEN38_USER_PROMPT,
     include_previous_page_context=True,
-    think=None,
+    think="high",
     inference_defaults=(("num_predict", 4096 * 4),),
 )
 

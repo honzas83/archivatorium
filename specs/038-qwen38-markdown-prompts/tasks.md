@@ -103,13 +103,13 @@ description: "Task list for the Qwen 3.8 Markdown OCR mode"
 
 > **NOTE: Complete T011-T012 first and confirm Qwen 3.8 requests do not yet carry high reasoning.**
 
-- [ ] T011 [P] [US3] Add unit tests for the precise named reasoning type, Qwen 3.8 `think="high"`, identical retry requests, separate response reasoning isolation, inline final-`</think>` cleanup, clean previous-page context, and unchanged standard/GLM/FireRed reasoning fields in `tests/unit/test_ocr_engine.py`
-- [ ] T012 [P] [US3] Add CLI integration tests proving Qwen 3.8 sends `think="high"`, leaked reasoning is absent from saved Markdown, and standard still omits the reasoning field in `tests/integration/test_ocr_cli.py`
+- [X] T011 [P] [US3] Add unit tests for the precise named reasoning type, Qwen 3.8 `think="high"`, identical retry requests, separate response reasoning isolation, inline final-`</think>` cleanup, clean previous-page context, and unchanged standard/GLM/FireRed reasoning fields in `tests/unit/test_ocr_engine.py`
+- [X] T012 [P] [US3] Add CLI integration tests proving Qwen 3.8 sends `think="high"`, leaked reasoning is absent from saved Markdown, and standard still omits the reasoning field in `tests/integration/test_ocr_cli.py`
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Introduce a precise `bool | Literal["low", "medium", "high"] | None` profile reasoning type, set only `QWEN38_OCR_PROFILE` to `"high"`, and preserve existing response extraction and normalization in `archivatorium/ocr_engine.py`
-- [ ] T014 [US3] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm reasoning isolation and all four mode contracts pass, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md`
+- [X] T013 [US3] Introduce a precise `bool | Literal["low", "medium", "high"] | None` profile reasoning type, set only `QWEN38_OCR_PROFILE` to `"high"`, and preserve existing response extraction and normalization in `archivatorium/ocr_engine.py`
+- [X] T014 [US3] Run `tests/unit/test_ocr_engine.py` and `tests/integration/test_ocr_cli.py`, confirm reasoning isolation and all four mode contracts pass, and record the checkpoint result in `specs/038-qwen38-markdown-prompts/tasks.md` — checkpoint: 89 passed, 1 unrelated PyPDF2 deprecation warning
 
 **Checkpoint**: All three stories are complete and independently observable through the new mode without regressions to existing OCR modes.
 

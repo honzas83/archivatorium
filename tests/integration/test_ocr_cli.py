@@ -365,6 +365,40 @@ def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_bloc
     assert (output_dir / "test.md").read_text(encoding="utf-8").endswith(compliant_markdown)
 
 
+def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
+    temp_ocr_dirs: tuple[Path, Path],
+    ocr_response_factory: Callable[[str], MagicMock],
+) -> None:
+    input_dir, output_dir = temp_ocr_dirs
+    runner = CliRunner()
+
+    with (
+        patch("archivatorium.ocr_engine.PdfReader") as mock_reader_class,
+        patch("archivatorium.ocr_engine.convert_from_path") as mock_convert,
+        patch("archivatorium.ocr_engine.Client") as mock_client_class,
+        patch("pathlib.Path.unlink"),
+    ):
+        mock_reader_class.return_value.pages = [MagicMock()]
+        mock_convert.return_value = [MagicMock()]
+        mock_client = MagicMock()
+        mock_client.chat.return_value = ocr_response_factory(
+            "PRIVATE REASONING</think>\n\n# NATO SECRET"
+        )
+        mock_client_class.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            ["ocr", "--mode", "qwen38", str(input_dir), str(output_dir)],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert mock_client.chat.call_args.kwargs["think"] == "high"
+    saved = (output_dir / "test.md").read_text(encoding="utf-8")
+    assert saved.endswith("# NATO SECRET")
+    assert "PRIVATE REASONING" not in saved
+    assert "</think>" not in saved
+
+
 def test_ocr_command_firered_mode_preserves_custom_model(
     temp_ocr_dirs: tuple[Path, Path],
     ocr_response_factory: Callable[[str], MagicMock],
