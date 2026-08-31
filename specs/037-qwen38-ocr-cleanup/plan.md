@@ -8,7 +8,7 @@
 
 ## Summary
 
-Normalize every successful OCR response before it reaches page context or Markdown output. A pure text-normalization step will discard content through the final exact `</think>` marker, remove separator blank lines left by that marker, and remove the minimum shared ASCII-space indentation from nonblank lines while preserving relative indentation. Each per-PDF OCR run will use a monotonic clock and count every non-skipped input page once, logging total elapsed processing time and average seconds per attempted page from a `finally` path so retries and failed attempts remain represented.
+Normalize every successful OCR response before it reaches page context or Markdown output. A pure text-normalization step will discard content through the final exact `</think>` marker, remove separator blank lines left by that marker, and remove the minimum shared ASCII-space indentation from nonblank lines while preserving relative indentation. Each per-PDF OCR run retains its monotonic timing summary, while the outer OCR command uses a second monotonic clock and aggregates attempted pages across PDFs to report whole-command performance from command entry through completion.
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ Normalize every successful OCR response before it reaches page context or Markdo
 
 **Constraints**: Cleanup applies to every selected OCR model and mode; the marker match is exact and case-sensitive; tabs or mixed tab/space indentation prevent dedenting; retry, resume, ordering, model selection, filenames, and error handling remain unchanged
 
-**Scale/Scope**: Existing recursive batches of hundreds of multipage PDFs; changes are limited to OCR response normalization, per-PDF run metrics, focused tests, and feature documentation
+**Scale/Scope**: Existing recursive batches of hundreds of multipage PDFs; changes are limited to OCR response normalization, per-PDF and command-wide metrics, focused tests, and feature documentation
 
 ## Constitution Check
 
@@ -61,6 +61,7 @@ specs/037-qwen38-ocr-cleanup/
 
 ```text
 archivatorium/
+├── cli.py                       # Command-wide timer and attempted-page aggregation
 └── ocr_engine.py                # Response normalization and per-PDF timing summary
 
 tests/
@@ -70,7 +71,7 @@ tests/
     └── test_ocr_cli.py          # Saved output and visible logging behavior
 ```
 
-**Structure Decision**: Extend the existing OCR engine because it is already the single boundary between raw model responses and page text, and its `run_ocr` method owns the per-PDF lifecycle. No new service, CLI option, storage format, or dependency is needed.
+**Structure Decision**: Extend the existing OCR engine because it is already the single boundary between raw model responses and page text, and expose each run's attempted-page count without changing its string return value. Aggregate those counts in the existing CLI command, which owns the full multi-PDF lifecycle. No new service, CLI option, storage format, or dependency is needed.
 
 ## Complexity Tracking
 

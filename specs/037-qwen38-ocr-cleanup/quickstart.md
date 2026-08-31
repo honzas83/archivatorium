@@ -58,13 +58,19 @@ Run OCR normally and inspect INFO output for one summary per processed PDF:
 OCR timing: attempted_pages=10 total_seconds=50.000 average_seconds_per_page=5.000
 ```
 
-Resume a fully recognized PDF and run the same command again. Expected outcome: the summary reports `attempted_pages=0` and `average_seconds_per_page=unavailable`. A mocked retry or failed page remains one attempted page while its retry wait and failure time remain included.
+After the final PDF, inspect the command-wide summary:
+
+```text
+OCR overall timing: overall_attempted_pages=24 overall_total_seconds=132.000 overall_average_seconds_per_page=5.500
+```
+
+Resume a fully recognized PDF and run the same command again. Expected outcome: the per-PDF summary reports `attempted_pages=0` and `average_seconds_per_page=unavailable`. A mocked retry or failed page remains one attempted page while its retry wait and failure time remain included. For multiple PDFs, the overall summary sums all attempted pages and divides the elapsed time since command entry by that count. An empty input directory reports `overall_attempted_pages=0` and `overall_average_seconds_per_page=unavailable`.
 
 ## 5. Validate compatibility
 
 Run the current standard, GLM, and FireRed modes with mocked model output that has neither a reasoning marker nor shared indentation.
 
-Expected outcome: request shapes, model selection, page ordering, headers, filenames, retry behavior, and resumed-page skipping remain unchanged. Only the timing summary is newly visible.
+Expected outcome: request shapes, model selection, page ordering, headers, filenames, retry behavior, and resumed-page skipping remain unchanged. Per-PDF and command-wide timing summaries are visible.
 
 ## 6. Run project quality gates
 

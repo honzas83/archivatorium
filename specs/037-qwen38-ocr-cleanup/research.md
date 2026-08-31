@@ -46,13 +46,13 @@
 
 - Sum individual successful request durations: rejected because it excludes rendering, retry waits, failures, and output work.
 - Divide by total PDF page count: rejected because resumed pages are skipped and incur no OCR attempt.
-- Aggregate only at the outer CLI batch: rejected because per-document summaries identify slow or failed PDFs without changing the engine's string return contract.
+- Replace per-PDF summaries with only an outer CLI aggregate: rejected because per-document summaries identify slow or failed PDFs. The command-wide aggregate is emitted in addition to them.
 
 ## Decision 5: Keep the log stable and machine-readable
 
-**Decision**: Emit one INFO summary per `run_ocr` invocation using explicit fields: `attempted_pages`, `total_seconds`, and `average_seconds_per_page`. Render seconds to three decimal places and use `unavailable` for the zero-page case.
+**Decision**: Emit one INFO summary per `run_ocr` invocation using explicit fields: `attempted_pages`, `total_seconds`, and `average_seconds_per_page`. Also emit one command-wide INFO summary using `overall_attempted_pages`, `overall_total_seconds`, and `overall_average_seconds_per_page`. Start the outer monotonic clock on entry to the OCR command, sum each run's distinct attempted-page count, render seconds to three decimal places, and use `unavailable` for either zero-page case.
 
-**Rationale**: Named fields are readable in normal CLI output, easy to assert in tests, and suitable for later log parsing. Millisecond display precision is adequate for page-scale remote OCR without implying finer accuracy.
+**Rationale**: Named fields are readable in normal CLI output, easy to assert in tests, and suitable for later log parsing. Keeping separate field prefixes prevents a per-PDF summary from being mistaken for the whole batch. The command timer includes initialization, discovery, all document runs, handled failures, writes, and CLI overhead.
 
 **Alternatives considered**:
 

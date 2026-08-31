@@ -1,4 +1,6 @@
+import logging
 from pathlib import Path
+from time import perf_counter
 
 import click
 
@@ -14,6 +16,8 @@ from archivatorium.utils.files import initialize_vault_from_template
 from archivatorium.utils.logging import setup_logging
 from archivatorium.utils.metadata import mirror_file
 
+logger = logging.getLogger("archivatorium.cli")
+
 
 def _validate_num_predict(
     _ctx: click.Context, _param: click.Parameter, value: int | None
@@ -21,6 +25,25 @@ def _validate_num_predict(
     if value is not None and value != -1 and value < 1:
         raise click.BadParameter("must be -1 or greater than or equal to 1")
     return value
+
+
+def _log_ocr_overall_timing(started_at: float, attempted_pages: int) -> None:
+    total_seconds = perf_counter() - started_at
+    if attempted_pages:
+        logger.info(
+            "OCR overall timing: overall_attempted_pages=%d overall_total_seconds=%.3f "
+            "overall_average_seconds_per_page=%.3f",
+            attempted_pages,
+            total_seconds,
+            total_seconds / attempted_pages,
+        )
+    else:
+        logger.info(
+            "OCR overall timing: overall_attempted_pages=%d overall_total_seconds=%.3f "
+            "overall_average_seconds_per_page=unavailable",
+            attempted_pages,
+            total_seconds,
+        )
 
 
 @click.group()
@@ -336,44 +359,51 @@ def ocr(  # noqa: PLR0913
     no_page_header: bool,
 ) -> None:
     """OCR multipage PDF files using Ollama (VLM) → Markdown."""
-    from archivatorium.ocr_engine import OCREngine
+    started_at = perf_counter()
+    overall_attempted_pages = 0
+    try:
+        from archivatorium.ocr_engine import OCREngine
 
-    engine = OCREngine(
-        host=host,
-        user=user,
-        password=password,
-        model=model,
-        dpi=dpi,
-        mode=mode,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        repeat_penalty=repeat_penalty,
-        repeat_last_n=repeat_last_n,
-        num_predict=num_predict,
-    )
+        engine = OCREngine(
+            host=host,
+            user=user,
+            password=password,
+            model=model,
+            dpi=dpi,
+            mode=mode,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repeat_penalty=repeat_penalty,
+            repeat_last_n=repeat_last_n,
+            num_predict=num_predict,
+        )
 
-    # Recursively find pdf files
-    pdf_files = sorted(list(input_dir.rglob("*")))
-    pdf_files = [f for f in pdf_files if f.is_file() and f.suffix.lower() == ".pdf"]
+        # Recursively find pdf files
+        pdf_files = sorted(list(input_dir.rglob("*")))
+        pdf_files = [f for f in pdf_files if f.is_file() and f.suffix.lower() == ".pdf"]
 
-    if not pdf_files:
-        click.echo(f"No PDF files found in {input_dir}")
-        return
+        if not pdf_files:
+            click.echo(f"No PDF files found in {input_dir}")
+            return
 
-    click.echo(f"Found {len(pdf_files)} PDF files to process.")
-    with click.progressbar(pdf_files, label="Processing PDFs") as bar:
-        for pdf_file in bar:
-            rel_path = pdf_file.relative_to(input_dir)
-            output_md = output_dir / rel_path.with_suffix(".md")
-            try:
-                engine.run_ocr(
-                    input_pdf=pdf_file,
-                    output_md=output_md,
-                    page_header=not no_page_header,
-                )
-            except Exception as e:
-                click.echo(f"\nError processing {rel_path}: {e}", err=True)
+        click.echo(f"Found {len(pdf_files)} PDF files to process.")
+        with click.progressbar(pdf_files, label="Processing PDFs") as bar:
+            for pdf_file in bar:
+                rel_path = pdf_file.relative_to(input_dir)
+                output_md = output_dir / rel_path.with_suffix(".md")
+                try:
+                    engine.run_ocr(
+                        input_pdf=pdf_file,
+                        output_md=output_md,
+                        page_header=not no_page_header,
+                    )
+                except Exception as e:
+                    click.echo(f"\nError processing {rel_path}: {e}", err=True)
+                finally:
+                    overall_attempted_pages += engine.last_run_attempted_pages
+    finally:
+        _log_ocr_overall_timing(started_at, overall_attempted_pages)
 
 
 def main() -> None:

@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Adapt OCR processing to Qwen 3.8 output by removing reasoning text through the closing `</think>` tag, removing shared top-level indentation while preserving relative indentation, and logging average processing time per input page."
+**Input**: User description: "Adapt OCR processing to Qwen 3.8 output by removing reasoning text through the closing `</think>` tag, removing shared top-level indentation while preserving relative indentation, logging average processing time per input page, and reporting overall performance since the beginning of the OCR command."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -44,17 +44,19 @@ As an archive operator, I want artificial top-level indentation removed from OCR
 
 ### User Story 3 - Observe average OCR throughput (Priority: P3)
 
-As an archive operator, I want the OCR run log to report the average processing time for one input page so that I can compare model and host performance and estimate completion time for future runs.
+As an archive operator, I want the OCR log to report both per-PDF average processing time and overall average processing time since the OCR command began so that I can compare individual documents, model and host performance, and whole-batch throughput.
 
 **Why this priority**: Throughput visibility supports operational planning and model evaluation without changing the recognized content.
 
-**Independent Test**: Run OCR over a known number of pages with a measurable total duration and verify that the completion log reports total attempted pages and total elapsed time divided by that page count.
+**Independent Test**: Run one OCR command over multiple PDFs with known page counts and durations; verify each PDF retains its own timing summary and the command completion log reports command-wide elapsed time divided by all pages attempted across the batch.
 
 **Acceptance Scenarios**:
 
 1. **Given** an OCR run that attempts ten input pages in 50 seconds, **When** the run completes, **Then** the completion log reports an average of 5 seconds per page.
 2. **Given** a run containing retries or failed page attempts, **When** average time is calculated, **Then** their elapsed time remains included and every attempted input page is counted once.
 3. **Given** a run with zero input pages, **When** the run completes, **Then** the log reports that average page time is unavailable and the run does not fail.
+4. **Given** one OCR command processes multiple PDFs, **When** the command completes, **Then** the log reports overall attempted pages, total elapsed time since command entry, and the resulting overall average seconds per attempted page.
+5. **Given** an OCR command finds no PDFs or attempts no pages, **When** it completes, **Then** the overall average is reported as unavailable without an error.
 
 ### Edge Cases
 
@@ -85,12 +87,16 @@ As an archive operator, I want the OCR run log to report the average processing 
 - **FR-012**: Average elapsed time per page MUST equal total elapsed OCR processing time divided by the number of input pages attempted, so retry and failure overhead remains represented while each input page is counted once.
 - **FR-013**: For a run with zero attempted pages, the completion log MUST report that average time per page is unavailable without raising an error.
 - **FR-014**: Existing model selection, page ordering, output naming, and failure handling behavior MUST remain unchanged.
+- **FR-015**: The OCR command MUST emit a command-wide completion log containing all pages attempted across processed PDFs, total monotonic elapsed time since entry into the OCR command, and overall average seconds per attempted page.
+- **FR-016**: Command-wide elapsed time MUST include engine initialization, recursive discovery, every per-PDF run, retry and failure handling, output writes, and CLI overhead until the command exits.
+- **FR-017**: For a command with zero attempted pages, the command-wide completion log MUST report the overall average as unavailable without raising an error.
 
 ### Key Entities
 
 - **OCR Response**: Raw text returned for one input page, potentially containing reasoning text, a closing reasoning marker, and globally indented recognized content.
 - **Normalized Page Text**: Recognized page content after reasoning removal and shared-indentation removal, ready to be saved.
 - **OCR Run Metrics**: Run-level measurements comprising attempted input-page count, total elapsed processing time, and derived average time per page.
+- **OCR Command Metrics**: Batch-level measurements comprising attempted pages across every processed PDF, elapsed time since command entry, and the derived overall average time per page.
 
 ## Success Criteria *(mandatory)*
 
@@ -99,9 +105,10 @@ As an archive operator, I want the OCR run log to report the average processing 
 - **SC-001**: In validation samples containing a closing `</think>` marker, 100% of saved outputs exclude the marker and all preceding content.
 - **SC-002**: In validation samples with shared top-level indentation, 100% of outputs start at the correct top-level margin while preserving every relative indentation difference.
 - **SC-003**: OCR responses without a closing reasoning marker or shared indentation retain their original meaningful content and layout in 100% of regression cases.
-- **SC-004**: Every OCR run completion log reports attempted page count, total elapsed time, and average time per page, or an explicit unavailable value for a zero-page run.
+- **SC-004**: Every OCR run completion log reports per-PDF attempted page count, total elapsed time, and average time per page, or an explicit unavailable value for a zero-page run.
 - **SC-005**: For test runs with known page counts and durations, the reported average time per page is mathematically correct within the displayed rounding precision.
 - **SC-006**: Existing OCR workflows continue to complete with no regression in page count, ordering, filenames, or error handling across the current regression suite.
+- **SC-007**: Every OCR command completion log reports overall attempted pages, total time since command entry, and the mathematically correct overall average, or an explicit unavailable value when no pages were attempted.
 
 ## Assumptions
 
@@ -110,4 +117,4 @@ As an archive operator, I want the OCR run log to report the average processing 
 - If multiple closing markers occur, the final marker is the safest boundary because text before it may still contain leaked reasoning.
 - Shared indentation means leading ASCII space characters common to every nonblank line; tabs are preserved unchanged.
 - Cleanup occurs before recognized page text is persisted or combined with other pages.
-- Throughput uses wall-clock elapsed OCR processing time, including retries and failures, divided by distinct input pages attempted.
+- Per-PDF throughput uses elapsed `run_ocr` time divided by distinct pages attempted in that PDF; overall throughput uses elapsed time since OCR command entry divided by distinct pages attempted across the entire command.
