@@ -20,8 +20,7 @@ as the default. Choices are case-insensitive.
 An invalid value must fail before processing:
 
 ```console
-uv run archivatorium ocr data/040-person-hierarchy-model-think/input \
-  data/040-person-hierarchy-model-think/output --model-think=maximum
+uv run archivatorium ocr /tmp /tmp --model-think=maximum
 ```
 
 ## Validate Person paths without live archive data
@@ -31,11 +30,12 @@ Run focused synthetic tests:
 ```console
 uv run pytest \
   tests/unit/test_person_entities.py \
+  tests/unit/test_person_tagging.py \
   tests/unit/test_tag_parser.py \
   tests/unit/test_tag_validation.py \
-  tests/unit/test_tagging_service.py \
   tests/unit/test_indexing_service.py \
-  tests/unit/test_markdown_indices.py
+  tests/unit/test_markdown_indices.py \
+  tests/integration/test_person_entity_hierarchy.py
 ```
 
 The cases must prove:
@@ -55,10 +55,10 @@ Use mocked requests so private reasoning and external model availability do not 
 
 ```console
 uv run pytest \
+  tests/integration/test_model_think_cli.py \
+  tests/unit/test_ocr_reasoning.py \
+  tests/unit/test_metadata_reasoning.py \
   tests/unit/test_ocr_engine.py \
-  tests/unit/test_metadata_processor.py \
-  tests/integration/test_cli.py \
-  tests/integration/test_metadata_command.py \
   tests/integration/test_ocr_cli.py
 ```
 
@@ -91,6 +91,13 @@ uv run archivatorium ocr \
 
 Existing files are not migrated. Rerunning metadata is the supported way to generate the new Person
 hierarchy.
+
+## Focused validation result
+
+The synthetic Person suite (38 tests) and reasoning suite (118 tests) passed on 2026-09-02. CLI
+help showed all four case-insensitive values with the medium default, and the invalid `maximum`
+value was rejected before processing. The optional live Ollama reruns were not required for these
+mocked deterministic checks.
 
 ## Run all quality gates
 
