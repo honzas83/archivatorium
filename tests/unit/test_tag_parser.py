@@ -130,3 +130,22 @@ def test_slash_containing_org_and_state_names_do_not_warn(caplog: Any) -> None:
         for record in caplog.records
         if "Malformed generated tag ignored" in record.getMessage()
     ]
+
+
+def test_parse_both_person_hierarchy_depths() -> None:
+    tags = CanonicalTagParser().parse_text(
+        "#Entities/Person/Andrae #Entities/Person/Luns/Joseph-M-A-H"
+    )
+
+    assert tags.entities["Person"] == {"andrae", "luns/joseph-m-a-h"}
+    assert tags.raw_paths >= {
+        "Entities/Person/Andrae",
+        "Entities/Person/Luns/Joseph-M-A-H",
+    }
+
+
+def test_parse_person_initials_uses_shared_normalization() -> None:
+    tags = CanonicalTagParser().parse_text("#Entities/Person/Andrae/K. W.")
+
+    assert tags.entities["Person"] == {"andrae/k-w"}
+    assert "Entities/Person/Andrae/K-W" in tags.raw_paths

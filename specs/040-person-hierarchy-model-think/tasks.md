@@ -106,7 +106,7 @@ surname-only `Entities/Person/Andrae` remains valid.
 
 > **NOTE: Write these tests first and confirm they fail before implementation.**
 
-- [ ] T013 [P] [US3] Add failing parser and validation cases for both valid Person depths, hyphen-normalized initials, complete raw paths, lowercased counter values, and rejected extra depth in tests/unit/test_tag_parser.py and tests/unit/test_tag_validation.py
+- [X] T013 [P] [US3] Add failing parser and validation cases for both valid Person depths, hyphen-normalized initials, complete raw paths, lowercased counter values, and rejected extra depth in tests/unit/test_tag_parser.py and tests/unit/test_tag_validation.py
 - [ ] T014 [P] [US3] Add failing People-index cases for surname ordering, surname alphabetic headings, surname-only paths, and shared surnames in tests/unit/test_markdown_indices.py and tests/unit/test_indexing_service.py
 - [ ] T015 [P] [US3] Add a failing synthetic end-to-end case covering tagging, entity sections, preflight counters/reuse hints, and XLSX raw paths in tests/integration/test_person_entity_hierarchy.py
 

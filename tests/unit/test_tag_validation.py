@@ -59,13 +59,14 @@ def test_malformed_person_tag() -> None:
     logger.setLevel(logging.WARNING)
 
     try:
-        text = "#Entities/Person/Jane/Doe"
+        text = "#Entities/Person/Luns/Joseph/M-A-H"
         parser = CanonicalTagParser()
         tags = parser.parse_text(text)
 
         assert not tags.entities["Person"]
         assert any(
-            "Person tag must have format #Entities/Person/<Name>" in r.getMessage()
+            "Person tag must have format "
+            "#Entities/Person/<Surname>[/<Given-Name-or-Initials>]" in r.getMessage()
             for r in handler.records
         )
     finally:
