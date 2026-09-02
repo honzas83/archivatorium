@@ -10,6 +10,7 @@ from archivatorium.models.metadata import (
     WindowTaggingResult,
 )
 from archivatorium.processor_metadata import TaggingReuseHints
+from archivatorium.services.flattening_service import TaxonomyValidationError
 from archivatorium.services.tagging_service import TaggingQualityError, TaggingService
 
 
@@ -21,6 +22,26 @@ def mock_ollama():
 @pytest.fixture
 def mock_windowing():
     return MagicMock()
+
+
+def test_missing_hierarchy_fails_during_service_initialization(
+    mock_ollama, mock_windowing, tmp_path
+):
+    with pytest.raises(TaxonomyValidationError, match="Failed to load taxonomy"):
+        TaggingService(mock_ollama, mock_windowing, tmp_path / "missing.yaml")
+
+
+def test_service_precomputes_normalized_approved_topic_ids(
+    mock_ollama, mock_windowing, hierarchy_file, useful_tags_file
+):
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        hierarchy_file,
+        useful_tags_file,
+    )
+
+    assert service.approved_topic_ids == {"Defence-Policy/Nuclear-Planning"}
 
 
 def test_extract_tags_single_pass(mock_ollama, mock_windowing):
