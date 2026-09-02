@@ -84,7 +84,7 @@ paths, and the unchanged v1 checksum.
 ### Implementation for User Story 2
 
 - [X] T011 [US2] Create the complete schema-v2 classification policy and 55-topic hierarchy with the reviewed definitions and counterexamples in topics/NATO_themes_v2.yaml without modifying topics/NATO_themes.yaml
-- [ ] T012 [US2] Run representative positive and negative cases for every split, renamed, moved, or tightened topic and record the local review outcome in data/039-nato-taxonomy-v2/reports/topic-distinction-review.md
+- [X] T012 [US2] Run representative positive and negative cases for every split, renamed, moved, or tightened topic and record the local review outcome in data/039-nato-taxonomy-v2/reports/topic-distinction-review.md
 
 **Checkpoint**: User Story 2 independently distinguishes guarantees from deployment, release from
 strike planning, consultation from meeting form, and command structure from infrastructure.
