@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/038-qwen38-markdown-prompts/plan.md
+at specs/039-nato-taxonomy-v2/plan.md
 <!-- SPECKIT END -->
 
 ## Active Technologies
