@@ -72,7 +72,9 @@ def test_obsidian_metadata_standard(
     assert "Detailed abstract." in body
 
 
-def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> None:
+def test_obsidian_metadata_entities(
+    tmp_path: Path, hierarchy_file: Path, useful_tags_file: Path
+) -> None:
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     output_dir = tmp_path / "output"
@@ -80,9 +82,6 @@ def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> N
 
     input_file = input_dir / "test.md"
     input_file.write_text("Test content", encoding="utf-8")
-
-    dummy_hierarchy = tmp_path / "hierarchy.yml"
-    dummy_hierarchy.write_text("dummy: hierarchy", encoding="utf-8")
 
     mock_metadata = {
         "title": "Entity Test",
@@ -118,7 +117,7 @@ def test_obsidian_metadata_entities(tmp_path: Path, useful_tags_file: Path) -> N
                 str(input_dir),
                 str(output_dir),
                 "--hierarchy-file",
-                str(dummy_hierarchy),
+                str(hierarchy_file),
                 "--tags-file",
                 str(useful_tags_file),
             ],

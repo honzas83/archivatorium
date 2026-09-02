@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 
 from archivatorium.cli import cli
 from archivatorium.services.flattening_service import TaxonomyValidationError
-
 
 ROOT = Path(__file__).parents[2]
 V1 = ROOT / "topics" / "NATO_themes.yaml"
@@ -12,7 +11,7 @@ V2 = ROOT / "topics" / "NATO_themes_v2.yaml"
 TAGS = ROOT / "topics" / "USEFUL_TAGS.yaml"
 
 
-def _invoke_dry_run(input_dir: Path, output_dir: Path, hierarchy: Path):
+def _invoke_dry_run(input_dir: Path, output_dir: Path, hierarchy: Path) -> Result:
     return CliRunner().invoke(
         cli,
         [
@@ -28,7 +27,9 @@ def _invoke_dry_run(input_dir: Path, output_dir: Path, hierarchy: Path):
     )
 
 
-def test_cli_explicitly_selects_v1_or_v2_without_rewriting_prior_output(tmp_path) -> None:
+def test_cli_explicitly_selects_v1_or_v2_without_rewriting_prior_output(
+    tmp_path: Path,
+) -> None:
     input_dir = tmp_path / "input"
     nested = input_dir / "series" / "1978"
     nested.mkdir(parents=True)
@@ -48,7 +49,7 @@ def test_cli_explicitly_selects_v1_or_v2_without_rewriting_prior_output(tmp_path
     assert sentinel.read_text(encoding="utf-8") == "unchanged-v1-output"
 
 
-def test_cli_rejects_invalid_selected_hierarchy_before_processing(tmp_path) -> None:
+def test_cli_rejects_invalid_selected_hierarchy_before_processing(tmp_path: Path) -> None:
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     (input_dir / "document.md").write_text("NATO policy.", encoding="utf-8")

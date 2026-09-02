@@ -22,10 +22,12 @@ def hierarchy_file(tmp_path):
     content = """
 categories:
   - category: "Doctrine and Strategy"
+    description: "Nuclear doctrine and strategy."
     topics:
       - topic: "Nuclear Deterrence"
         description: "Preventing aggression through threat."
         positive_samples: "deterrence theory"
+        negative_samples: "incidental nuclear mention"
 """
     p = tmp_path / "hierarchy.yaml"
     p.write_text(content)

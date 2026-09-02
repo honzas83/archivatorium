@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from archivatorium.models.metadata import (
     AggregatedTaggingResult,
@@ -96,9 +97,7 @@ def test_legacy_prompt_receives_universal_substantive_policy(
 def test_extract_tags_drops_unknown_topic_without_retry(
     mock_ollama, mock_windowing, hierarchy_file
 ):
-    service = TaggingService(
-        mock_ollama, mock_windowing, hierarchy_file, context_limit=1000
-    )
+    service = TaggingService(mock_ollama, mock_windowing, hierarchy_file, context_limit=1000)
     mock_ollama.extract_structured.return_value = WindowTaggingResult(
         conceptual_tags=["planning"],
         topic_tags=[TopicResult(topic="Invented/Topic", reason="Incidental mention")],
@@ -113,25 +112,19 @@ def test_extract_tags_drops_unknown_topic_without_retry(
 def test_sliding_window_keeps_earliest_supported_topic_reason(
     mock_ollama, mock_windowing, hierarchy_file
 ):
-    service = TaggingService(
-        mock_ollama, mock_windowing, hierarchy_file, context_limit=1
-    )
+    service = TaggingService(mock_ollama, mock_windowing, hierarchy_file, context_limit=1)
     mock_windowing.get_windows.return_value = ["first", "second"]
     mock_ollama.extract_structured.side_effect = [
         WindowTaggingResult(
             conceptual_tags=["planning"],
             topic_tags=[
-                TopicResult(
-                    topic="Defence Policy/Nuclear Planning", reason="Earliest reason"
-                )
+                TopicResult(topic="Defence Policy/Nuclear Planning", reason="Earliest reason")
             ],
         ),
         WindowTaggingResult(
             conceptual_tags=["planning"],
             topic_tags=[
-                TopicResult(
-                    topic="Defence-Policy/Nuclear-Planning", reason="Later reason"
-                )
+                TopicResult(topic="Defence-Policy/Nuclear-Planning", reason="Later reason")
             ],
         ),
     ]
@@ -380,7 +373,7 @@ def test_substantive_schema_requires_one_conceptual_tag() -> None:
     assert SubstantiveWindowTaggingResult(topic_tags=[], conceptual_tags=["a"]).conceptual_tags == [
         "a"
     ]
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SubstantiveWindowTaggingResult(topic_tags=[], conceptual_tags=[])
 
 

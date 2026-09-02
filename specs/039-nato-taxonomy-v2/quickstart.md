@@ -115,3 +115,22 @@ coverage report
 The repository currently invokes these tools through `uv run` when they are not installed globally.
 Before each implementation commit, inspect `git status --short` and stage only files belonging to
 that completed feature task. Existing unrelated modified and untracked files must remain untouched.
+
+## Validation results
+
+The implementation was validated on 2026-09-02 with the following results:
+
+- `ruff format --check archivatorium tests`: 96 files already formatted.
+- Ruff checks for every feature-touched Python file: passed.
+- Repository-wide `ruff check .`: 95 existing findings remain outside the feature scope; no
+  unrelated files were changed to address this baseline.
+- `flake8 archivatorium tests` with the cognitive-complexity plugin: passed.
+- `mypy .` with the project installed plus `types-PyYAML` and `openpyxl-stubs`: passed for 97
+  source files.
+- `pytest`: 354 tests and 3 subtests passed, with 3 warnings.
+- `coverage run -m pytest` followed by `coverage report`: 95% total coverage when tests are
+  included; the application-only pytest-cov report was 90%.
+
+`openpyxl` is imported by existing tests but is not declared in the project dependencies, so the
+full test and coverage commands used `uv run --with openpyxl`. This is an existing test-environment
+limitation rather than a runtime dependency introduced by this feature.

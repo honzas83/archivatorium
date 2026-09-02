@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import openpyxl  # type: ignore
+import openpyxl
 
 from archivatorium.models.metadata import CanonicalTags
 from archivatorium.services.indexing_service import EntityReference, IndexEntry, IndexingService

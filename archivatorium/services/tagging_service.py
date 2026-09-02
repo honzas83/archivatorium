@@ -7,8 +7,8 @@ from typing import Any
 import yaml
 
 from archivatorium.models.metadata import (
-    AggregatedTaggingResult,
     MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
+    AggregatedTaggingResult,
     SubstantiveWindowTaggingResult,
     TopicResult,
     WindowTaggingResult,
@@ -54,7 +54,7 @@ class TaggingService:
     using a dynamic single-pass or sliding-window strategy.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         ollama_client: OllamaClient,
         windowing_service: SlidingWindowService,
@@ -75,9 +75,7 @@ class TaggingService:
         raw_themes = self._load_yaml(themes_path, label="taxonomy")
         self.themes = self._normalize_data(raw_themes)
         self.flattened_taxonomy = self.flattening_service.flatten(self.themes)
-        self.approved_topic_ids = {
-            str(topic["id"]) for topic in self.flattened_taxonomy
-        }
+        self.approved_topic_ids = {str(topic["id"]) for topic in self.flattened_taxonomy}
         self.classification_policy = self._effective_classification_policy(self.themes)
         self.classification_policy_prompt_text = "\n".join(
             f"- {value}" for value in self.classification_policy.values()
@@ -93,9 +91,7 @@ class TaggingService:
         # Load and Normalize Useful Tags
         self.useful_tags = []
         if useful_tags_path:
-            raw_tags = self._load_yaml(useful_tags_path, label="useful tags").get(
-                "useful_tags", []
-            )
+            raw_tags = self._load_yaml(useful_tags_path, label="useful tags").get("useful_tags", [])
             self.useful_tags = [normalize_tag_component(t) for t in raw_tags]
         self.useful_tags_prompt_text = ", ".join(self.useful_tags)
 
@@ -168,7 +164,7 @@ class TaggingService:
                 parts = entity.split("/")
                 norm_parts = [normalize_tag_component(p) for p in parts]
                 normalized_entities.append("/".join(norm_parts))
-            entities_list = sorted(list(set(normalized_entities)))
+            entities_list = sorted(set(normalized_entities))
 
             # Normalize approved topics and keep the earliest reason.
             topics_dict = self._collect_supported_topics(window_result.topic_tags)
@@ -232,7 +228,7 @@ class TaggingService:
 
         # Apply global filtering and suppression
         filtered_conceptual = filter_low_value_tags(top_conceptual)
-        entities_list = sorted(list(all_entities))
+        entities_list = sorted(all_entities)
         topics_list = sorted(topics_dict.values(), key=lambda x: x.topic)
         topic_names = [t.topic for t in topics_list]
         suppressed_conceptual = suppress_duplicates(

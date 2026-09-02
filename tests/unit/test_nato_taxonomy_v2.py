@@ -1,10 +1,10 @@
 import hashlib
 from pathlib import Path
+from typing import Any, cast
 
 import yaml
 
 from archivatorium.services.flattening_service import FlatteningService
-
 
 ROOT = Path(__file__).parents[2]
 V1_PATH = ROOT / "topics" / "NATO_themes.yaml"
@@ -21,15 +21,13 @@ EXPECTED_COUNTS = {
 }
 
 
-def _load_v2():
+def _load_v2() -> dict[str, Any]:
     with V2_PATH.open(encoding="utf-8") as stream:
-        return yaml.safe_load(stream)
+        return cast(dict[str, Any], yaml.safe_load(stream))
 
 
-def _topic(data, category_name: str, topic_name: str):
-    category = next(
-        item for item in data["categories"] if item["category"] == category_name
-    )
+def _topic(data: dict[str, Any], category_name: str, topic_name: str) -> dict[str, Any]:
+    category = next(item for item in data["categories"] if item["category"] == category_name)
     return next(item for item in category["topics"] if item["topic"] == topic_name)
 
 
@@ -39,10 +37,7 @@ def test_v1_taxonomy_is_byte_for_byte_unchanged() -> None:
 
 def test_v2_has_exact_categories_counts_and_unique_paths() -> None:
     data = _load_v2()
-    counts = {
-        category["category"]: len(category["topics"])
-        for category in data["categories"]
-    }
+    counts = {category["category"]: len(category["topics"]) for category in data["categories"]}
 
     assert data["schema_version"] == 2
     assert counts == EXPECTED_COUNTS
@@ -73,9 +68,7 @@ def test_v2_places_split_renamed_and_moved_topics() -> None:
 def test_v2_encodes_reviewed_inclusion_and_exclusion_boundaries() -> None:
     data = _load_v2()
 
-    extended = _topic(
-        data, "Nuclear Doctrine and Deterrence", "Extended Nuclear Deterrence"
-    )
+    extended = _topic(data, "Nuclear Doctrine and Deterrence", "Extended Nuclear Deterrence")
     assert "protective guarantee" in extended["description"].lower()
     assert "stationed" in extended["negative_samples"].lower()
 
@@ -87,9 +80,7 @@ def test_v2_encodes_reviewed_inclusion_and_exclusion_boundaries() -> None:
     assert "custody" in sharing["description"].lower()
     assert "security" in sharing["negative_samples"].lower()
 
-    release = _topic(
-        data, "Nuclear Planning, Deployment, and Control", "Nuclear Release Authority"
-    )
+    release = _topic(data, "Nuclear Planning, Deployment, and Control", "Nuclear Release Authority")
     assert "dual-key" in release["positive_samples"].lower()
 
     strike = _topic(
@@ -110,15 +101,11 @@ def test_v2_encodes_reviewed_inclusion_and_exclusion_boundaries() -> None:
     assert "Norway" not in neutral["positive_samples"]
     assert "mere mention" in neutral["negative_samples"].lower()
 
-    intelligence = _topic(
-        data, "Military Operations and Capabilities", "Intelligence Sharing"
-    )
+    intelligence = _topic(data, "Military Operations and Capabilities", "Intelligence Sharing")
     assert "exchange" in intelligence["description"].lower()
     assert "leak" in intelligence["negative_samples"].lower()
 
-    spending = _topic(
-        data, "Alliance Governance and Institutions", "Defense Spending"
-    )
+    spending = _topic(data, "Alliance Governance and Institutions", "Defense Spending")
     assert "budget" in spending["description"].lower()
     assert "restructuring" in spending["negative_samples"].lower()
 

@@ -18,7 +18,18 @@ def mock_windowing():
 
 def test_tag_reuse_prompt_inclusion(mock_ollama, mock_windowing, tmp_path):
     themes_file = tmp_path / "themes.yaml"
-    themes_file.write_text("themes: []")
+    themes_file.write_text(
+        """
+categories:
+  - category: Alliance Policy
+    description: Substantive alliance policy
+    topics:
+      - topic: Consultation
+        description: Allied policy consultation
+        positive_samples: Coordinating allied policy
+        negative_samples: Routine meeting notice
+""".lstrip()
+    )
 
     tags_file = tmp_path / "tags.yaml"
     tags_file.write_text("useful_tags:\n  - '#NATO'\n  - '#ColdWar'")

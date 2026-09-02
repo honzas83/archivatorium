@@ -41,9 +41,7 @@ class FlatteningService:
 
         policy = hierarchy.get("classification_policy")
         if not isinstance(policy, dict):
-            raise TaxonomyValidationError(
-                "Schema v2 requires a classification_policy mapping."
-            )
+            raise TaxonomyValidationError("Schema v2 requires a classification_policy mapping.")
         for field in self._V2_POLICY_FIELDS:
             self._require_text(policy.get(field), f"classification_policy.{field}")
 
@@ -91,9 +89,7 @@ class FlatteningService:
             raise TaxonomyValidationError(f"{location} must be a mapping.")
 
         topic_name = self._require_component(topic.get("topic"), f"{location}.topic")
-        topic_description = self._require_text(
-            topic.get("description"), f"{location}.description"
-        )
+        topic_description = self._require_text(topic.get("description"), f"{location}.description")
         positive_samples = self._parse_samples(
             topic.get("positive_samples"), f"{location}.positive_samples"
         )

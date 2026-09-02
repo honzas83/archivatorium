@@ -1,11 +1,10 @@
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-
 MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 1
 
-ItemType: TypeAlias = Literal[
+type ItemType = Literal[
     "correspondence",
     "report",
     "study",

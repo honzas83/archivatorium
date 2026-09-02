@@ -6,7 +6,7 @@ from click.testing import CliRunner
 from archivatorium.cli import cli
 
 
-def test_vault_initialization_via_cli():
+def test_vault_initialization_via_cli(hierarchy_file: Path, useful_tags_file: Path) -> None:
     runner = CliRunner()
 
     with runner.isolated_filesystem():
@@ -24,11 +24,6 @@ def test_vault_initialization_via_cli():
         (template_dir / "CONTENT.base").write_text("Base content template")
 
         output_dir = Path("output")
-        hierarchy_file = Path("hierarchy.yaml")
-        hierarchy_file.write_text("categories: []")
-        tags_file = Path("tags.yaml")
-        tags_file.write_text("useful_tags: []")
-
         # Mock the MetadataProcessor to avoid actual Ollama/processing overhead
         with patch("archivatorium.processor_metadata.MetadataProcessor.process_file"):
             # We don't care about what process_file does, just that it's called (or not)
@@ -41,7 +36,7 @@ def test_vault_initialization_via_cli():
                     "--hierarchy-file",
                     str(hierarchy_file),
                     "--tags-file",
-                    str(tags_file),
+                    str(useful_tags_file),
                 ],
             )
 
@@ -58,7 +53,9 @@ def test_vault_initialization_via_cli():
             assert (output_dir / "CONTENT.base").read_text() == "Base content template"
 
 
-def test_vault_initialization_skipped_in_dry_run():
+def test_vault_initialization_skipped_in_dry_run(
+    hierarchy_file: Path, useful_tags_file: Path
+) -> None:
     runner = CliRunner()
 
     with runner.isolated_filesystem():
@@ -71,11 +68,6 @@ def test_vault_initialization_skipped_in_dry_run():
         (template_dir / "CONTENT.base").write_text("base")
 
         output_dir = Path("output")
-        hierarchy_file = Path("hierarchy.yaml")
-        hierarchy_file.write_text("categories: []")
-        tags_file = Path("tags.yaml")
-        tags_file.write_text("useful_tags: []")
-
         with patch("archivatorium.processor_metadata.MetadataProcessor.process_file"):
             result = runner.invoke(
                 cli,
@@ -86,7 +78,7 @@ def test_vault_initialization_skipped_in_dry_run():
                     "--hierarchy-file",
                     str(hierarchy_file),
                     "--tags-file",
-                    str(tags_file),
+                    str(useful_tags_file),
                     "--dry-run",
                 ],
             )
