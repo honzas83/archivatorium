@@ -24,6 +24,26 @@ def mock_windowing():
     return MagicMock()
 
 
+@pytest.fixture(autouse=True)
+def local_dummy_taxonomy(tmp_path, monkeypatch):
+    """Materialize the legacy dummy path used by pre-existing unit tests."""
+    monkeypatch.chdir(tmp_path)
+    Path("dummy.yaml").write_text(
+        """
+categories:
+  - category: Category
+    description: Test category
+    topics:
+      - topic: Topic1
+        description: Test topic
+        positive_samples: substantive topic treatment
+        negative_samples: incidental topic mention
+useful_tags: []
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+
 def test_missing_hierarchy_fails_during_service_initialization(
     mock_ollama, mock_windowing, tmp_path
 ):
@@ -129,9 +149,12 @@ def test_static_prompt_sections_precomputed_once(
         """
 categories:
   - category: Cat
+    description: Category description
     topics:
       - topic: Top
         description: Desc
+        positive_samples: Positive
+        negative_samples: Negative
 """.lstrip()
     )
     tags_file = tmp_path / "tags.yaml"
@@ -162,7 +185,18 @@ def test_sliding_window_reuses_static_prompt_text(
     mock_ollama, mock_windowing, tmp_path, monkeypatch
 ):
     hierarchy_file = tmp_path / "hierarchy.yaml"
-    hierarchy_file.write_text("categories: []")
+    hierarchy_file.write_text(
+        """
+categories:
+  - category: Cat
+    description: Category description
+    topics:
+      - topic: Top
+        description: Desc
+        positive_samples: Positive
+        negative_samples: Negative
+""".lstrip()
+    )
     tags_file = tmp_path / "tags.yaml"
     tags_file.write_text("useful_tags:\n  - NATO\n")
 
@@ -208,6 +242,7 @@ def test_tagging_prompt_includes_flattened_taxonomy_details(mock_ollama, mock_wi
         """
 categories:
   - category: "Cat1"
+    description: "Category Desc1"
     topics:
       - topic: "Top1"
         description: "Desc1"

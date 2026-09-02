@@ -13,7 +13,10 @@ from archivatorium.models.metadata import (
     TopicResult,
     WindowTaggingResult,
 )
-from archivatorium.services.flattening_service import FlatteningService
+from archivatorium.services.flattening_service import (
+    FlatteningService,
+    TaxonomyValidationError,
+)
 from archivatorium.services.ollama_client import OllamaClient
 from archivatorium.services.windowing_service import SlidingWindowService
 from archivatorium.utils.nlp import (
@@ -54,15 +57,20 @@ class TaggingService:
         self.flattening_service = FlatteningService()
 
         # Load and Normalize Themes
-        raw_themes = self._load_yaml(themes_path)
+        raw_themes = self._load_yaml(themes_path, label="taxonomy")
         self.themes = self._normalize_data(raw_themes)
         self.flattened_taxonomy = self.flattening_service.flatten(self.themes)
+        self.approved_topic_ids = {
+            str(topic["id"]) for topic in self.flattened_taxonomy
+        }
         self.taxonomy_prompt_text = yaml.dump(self.flattened_taxonomy, sort_keys=False)
 
         # Load and Normalize Useful Tags
         self.useful_tags = []
         if useful_tags_path:
-            raw_tags = self._load_yaml(useful_tags_path).get("useful_tags", [])
+            raw_tags = self._load_yaml(useful_tags_path, label="useful tags").get(
+                "useful_tags", []
+            )
             self.useful_tags = [normalize_tag_component(t) for t in raw_tags]
         self.useful_tags_prompt_text = ", ".join(self.useful_tags)
 
@@ -80,14 +88,19 @@ class TaggingService:
             return new_dict
         return data
 
-    def _load_yaml(self, path: Path) -> dict[str, Any]:
+    def _load_yaml(self, path: Path, *, label: str) -> dict[str, Any]:
         try:
             with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-                return data if isinstance(data, dict) else {}
-        except Exception as e:
-            logger.error(f"Failed to load YAML from {path}: {e}")
-            return {}
+        except (OSError, yaml.YAMLError) as exc:
+            raise TaxonomyValidationError(
+                f"Failed to load {label} YAML from {path}: {exc}"
+            ) from exc
+        if not isinstance(data, dict):
+            raise TaxonomyValidationError(
+                f"Failed to load {label} YAML from {path}: root must be a mapping."
+            )
+        return data
 
     def extract_tags(
         self,
