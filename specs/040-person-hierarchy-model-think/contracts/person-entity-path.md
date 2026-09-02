@@ -8,7 +8,8 @@ archive-person-path  = "Entities/" relative-person-path
 ```
 
 - `surname` is mandatory and non-empty after canonical tag normalization.
-- `given-identity` is optional and contains either complete given name(s) or compacted initials.
+- `given-identity` is optional and contains complete given name(s), hyphen-separated initials, or
+  both.
 - No fourth identity component is allowed.
 - Titles, ranks, offices, and role modifiers are not identity components.
 
@@ -16,8 +17,9 @@ archive-person-path  = "Entities/" relative-person-path
 
 | Mention/context | Generated path |
 |-----------------|----------------|
-| K-W Andrae | `Entities/Person/Andrae/KW` |
-| K. W. Andrae | `Entities/Person/Andrae/KW` |
+| K-W Andrae | `Entities/Person/Andrae/K-W` |
+| K. W. Andrae | `Entities/Person/Andrae/K-W` |
+| Joseph M.A.H. Luns | `Entities/Person/Luns/Joseph-M-A-H` |
 | Joseph Luns | `Entities/Person/Luns/Joseph` |
 | Andrae with no known given name | `Entities/Person/Andrae` |
 | Minister Andrae | `Entities/Person/Andrae` |

@@ -7,8 +7,9 @@
 **Status**: Draft
 
 **Input**: User description: "Represent Person named entities as Person/surname/given-name, allow
-surname-only paths when the given name is unknown, compact initials such as K-W to KW, exclude role
-modifiers, and add --model-think=False|low|medium|high to the OCR and metadata commands."
+surname-only paths when the given name is unknown, normalize initials as hyphen-separated letters,
+exclude role modifiers, and add --model-think=False|low|medium|high to the OCR and metadata
+commands."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -22,12 +23,13 @@ person's record and makes the people index harder to navigate.
 
 **Independent Test**: Process documents containing full names, initials, and surname-only mentions,
 then verify that every Person entity starts with the surname and adds a normalized given-name or
-initials component only when known, including `Entities/Person/Andrae/KW` for K-W Andrae.
+initials component only when known, including `Entities/Person/Andrae/K-W` for K-W Andrae and
+`Entities/Person/Luns/Joseph-M-A-H` for Joseph M.A.H. Luns.
 
 **Acceptance Scenarios**:
 
 1. **Given** a document unambiguously names K-W Andrae, **When** metadata is generated, **Then** the
-   resulting entity path is `Entities/Person/Andrae/KW`.
+   resulting entity path is `Entities/Person/Andrae/K-W`.
 2. **Given** a document unambiguously names Joseph Luns, **When** metadata is generated, **Then** the
    resulting entity path is `Entities/Person/Luns/Joseph` rather than a single combined name.
 3. **Given** several documents use equivalent forms of one person's complete name, **When** their
@@ -78,7 +80,7 @@ metadata and indexing workflow and verify that it remains intact and appears und
 
 **Acceptance Scenarios**:
 
-1. **Given** generated metadata contains `Entities/Person/Andrae/KW`, **When** the metadata is
+1. **Given** generated metadata contains `Entities/Person/Andrae/K-W`, **When** the metadata is
    parsed, counted, exported, and indexed, **Then** the same complete hierarchy is retained.
 2. **Given** two different people share a surname, **When** the people index is generated, **Then**
    their distinct given-name paths remain separately identifiable beneath that surname.
@@ -89,8 +91,8 @@ metadata and indexing workflow and verify that it remains intact and appears und
 
 - Given names or surnames containing spaces, hyphens, initials, apostrophes, diacritics, or name
   particles must remain recognizable after normal tag-safe normalization.
-- Multiple initials must be uppercase and concatenated without spaces, periods, or hyphens; for
-  example, K-W and K. W. both become `KW`.
+- Initials must be uppercase letters separated by single hyphens; K-W and K. W. both become `K-W`,
+  while Joseph M.A.H. becomes `Joseph-M-A-H` in the given-name component.
 - A person with multiple given names must retain the complete given-name portion as one hierarchical
   component rather than creating extra hierarchy levels.
 - A compound surname must remain one surname component when the document makes that structure clear.
@@ -109,7 +111,7 @@ metadata and indexing workflow and verify that it remains intact and appears und
 - **FR-001**: The system MUST represent every newly generated Person entity as
   `Person/<surname>/<given-name-or-initials>` when the given name is known, or `Person/<surname>` when
   it is not, before the archive-wide `Entities/` prefix is applied.
-- **FR-002**: The system MUST generate `Entities/Person/Andrae/KW` for an unambiguous reference to
+- **FR-002**: The system MUST generate `Entities/Person/Andrae/K-W` for an unambiguous reference to
   K-W Andrae.
 - **FR-003**: The system MUST keep a known given name or initials separate from the surname and MUST
   NOT emit the former combined-name form for newly generated Person entities.
@@ -119,8 +121,9 @@ metadata and indexing workflow and verify that it remains intact and appears und
   surname-only Person path rather than omit the person or invent another component.
 - **FR-006**: The system MUST omit a Person entity when the surname itself cannot be identified
   without guessing.
-- **FR-007**: The system MUST normalize multiple initials as uppercase contiguous letters without
-  punctuation, spaces, or hyphens, so K-W and K. W. both produce `KW`.
+- **FR-007**: The system MUST normalize initials as uppercase letters separated by single hyphens,
+  so K-W and K. W. both produce `K-W`, and Joseph M.A.H. produces `Joseph-M-A-H` when combined with
+  a full given name.
 - **FR-008**: The system MUST preserve complete compound surnames and multiple given names within
   their respective single hierarchy components after normal tag-safe normalization.
 - **FR-009**: All downstream handling of Person entities, including validation, aggregation,
@@ -149,7 +152,7 @@ metadata and indexing workflow and verify that it remains intact and appears und
 ### Key Entities
 
 - **Person Entity**: A named individual represented by a mandatory surname and, when known, an
-  optional given name or compacted initials. Titles and roles are excluded from the identity.
+  optional given name or hyphen-separated initials. Titles and roles are excluded from the identity.
 - **Person Path**: The archive tag path `Entities/Person/<surname>[/<given-name-or-initials>]` used
   consistently in generated metadata and downstream navigation.
 - **Model Reasoning Setting**: A per-command-run choice of disabled, low, medium, or high reasoning
@@ -162,7 +165,8 @@ metadata and indexing workflow and verify that it remains intact and appears und
 - **SC-001**: In a reviewed sample of at least 100 person mentions, 100% of newly generated Person
   paths begin with the reviewer-approved surname and include no titles or role modifiers.
 - **SC-002**: In the same sample, at least 95% of people resolve to the reviewer-approved surname and
-  optional given-name split; 100% of known initials are compacted without separators, and 100% of
+  optional given-name split; 100% of known initials are uppercase and separated by single hyphens,
+  and 100% of
   surname-only cases remain valid surname-only paths.
 - **SC-003**: All generated hierarchical Person paths survive parsing, aggregation, document output,
   export, and people-index generation without losing or reordering any present name component.
@@ -181,11 +185,11 @@ metadata and indexing workflow and verify that it remains intact and appears und
   processing workflows.
 - The textual value `False` means an explicit disabled boolean rather than a reasoning level named
   "false"; matching is case-insensitive for command-line usability.
-- A valid Person entity requires an identifiable surname. A given name or compacted initials are
+- A valid Person entity requires an identifiable surname. A given name or normalized initials are
   added only when known; surname-only mentions remain valid, while unresolved surnames are omitted.
 - Normal archive tag normalization continues to make spaces and punctuation tag-safe while
   preserving meaningful name hyphens, apostrophes, diacritics, and name particles as far as the
-  existing output format permits; separators between initials are removed as required above.
+  existing output format permits; periods and spaces between initials become single hyphens.
 - Existing metadata is regenerated by rerunning the metadata command; migration of previously
   generated Person paths is outside this feature.
 - Only the OCR model call corresponding to the user-identified fixed reasoning setting is governed

@@ -32,19 +32,21 @@ Prompt-only enforcement would allow malformed paths to reach downstream consumer
 - Derive surnames mechanically from the final token of a combined name: rejected because compound
   surnames, name particles, and surname-first source forms make that unsafe.
 
-## Decision: Compact initials only when the whole optional component is initials
+## Decision: Normalize initials as hyphen-separated letters within the given identity
 
-**Decision**: If the optional identity component consists entirely of letters separated by spaces,
-periods, or hyphens, uppercase and concatenate those letters (`K-W`, `K. W.` → `KW`). Preserve full
-given names under normal tag-safe normalization.
+**Decision**: Normalize every initials sequence inside the optional identity component to uppercase
+letters separated by single hyphens. Thus `K-W` and `K. W.` both become `K-W`, while Joseph M.A.H.
+becomes `Joseph-M-A-H`. Preserve full given-name tokens under normal tag-safe normalization.
 
-**Rationale**: This satisfies the requested canonical example without stripping meaningful hyphens
-from full names such as Jean-Paul.
+**Rationale**: A single visible separator preserves the individual initials and produces the user's
+required forms without damaging meaningful hyphens in full names such as Jean-Paul.
 
 **Alternatives considered**:
 
-- Remove every hyphen from given names: rejected because it damages genuine hyphenated names.
-- Preserve punctuation between initials: rejected because it fragments equivalent initials forms.
+- Concatenate initials as `KW` or `MAH`: rejected because the user requires `K-W` and
+  `Joseph-M-A-H`.
+- Preserve source punctuation exactly: rejected because K-W, K. W., and similar forms should resolve
+  to one canonical identity.
 
 ## Decision: Accept both Person depths in the canonical parser
 
@@ -67,7 +69,7 @@ value construction currently assume one combined component.
 and visible person label from the surname-first identity rather than the final path component.
 
 **Rationale**: The generic index currently uses the final component as its label and alphabetic key,
-which would group `Person/Andrae/KW` under K. A People-specific selector preserves the new browsing
+which would group `Person/Andrae/K-W` under K. A People-specific selector preserves the new browsing
 semantics while leaving state, organization, and conceptual indexes unchanged.
 
 **Alternatives considered**:

@@ -7,7 +7,7 @@
 ## Summary
 
 Change newly generated Person tags from a combined name to a surname-first path with an optional
-given-name or compacted-initials component, while preserving that hierarchy through parsing,
+given-name or hyphen-normalized-initials component, while preserving that hierarchy through parsing,
 aggregation, export, and surname-grouped indexing. Add a case-insensitive `--model-think` option to
 the OCR and metadata commands, default it to `medium`, map `False` to an explicit disabled boolean,
 and propagate it only to the Qwen 3.8 OCR request and the primary/follow-up metadata extraction
@@ -127,8 +127,8 @@ the final request.
   role-exclusion examples, and forbid titles/offices as name components.
 - Normalize every generated Person candidate through one shared function before deduplication.
   Require a non-empty surname, permit at most one optional given-name component, normalize each
-  component with the existing tag rules, and compact a component consisting solely of initials to
-  uppercase letters without separators.
+  component with the existing tag rules, and normalize initials anywhere in the given identity to
+  uppercase letters separated by single hyphens.
 - Reject candidates with missing surnames, surplus hierarchy levels, or components consisting of
   prohibited role/title terms. Semantic surname/given-name interpretation remains the model's job;
   structural validation prevents malformed output from entering the archive.
@@ -163,8 +163,9 @@ the final request.
 
 ### Validation strategy
 
-- Unit-test Person normalization independently, including `K-W` and `K. W.` to `KW`, full names,
-  surname-only names, compound names, role modifiers, missing surname, and excessive path depth.
+- Unit-test Person normalization independently, including `K-W` and `K. W.` to `K-W`, Joseph
+  M.A.H. to `Joseph-M-A-H`, full names, surname-only names, compound names, role modifiers, missing
+  surnames, and excessive path depth.
 - Test the Markdown parser, counters, entity sections, XLSX raw paths, and People index with both
   valid Person depths and shared surnames.
 - Test CLI help/defaults/accepted values/invalid values and inspect mocked Ollama calls for correctly

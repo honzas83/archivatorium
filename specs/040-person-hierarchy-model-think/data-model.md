@@ -7,8 +7,7 @@ Represents one named individual emitted by tag extraction and retained through a
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `surname` | string | Yes | Non-empty after tag normalization; must identify a surname without guessing; excludes titles and roles. |
-| `given_identity` | string or absent | No | Full given name(s) or initials; one path component after normalization. |
-| `is_initials` | boolean | Derived | True only when the complete given identity consists of separated letters. |
+| `given_identity` | string or absent | No | Full given name(s), initials, or both; one path component after normalization. |
 | `relative_path` | string | Derived | `Person/<surname>` or `Person/<surname>/<given_identity>`. |
 | `archive_path` | string | Derived | `Entities/<relative_path>`. |
 
@@ -17,7 +16,8 @@ Represents one named individual emitted by tag extraction and retained through a
 - A surname is mandatory; a given identity is optional.
 - The relative path has exactly two components for surname-only identity or three components when a
   given identity is present.
-- Initials are uppercased and concatenated without separators: `K-W` and `K. W.` become `KW`.
+- Initials are uppercased and separated by single hyphens: `K-W` and `K. W.` become `K-W`, and
+  Joseph M.A.H. becomes `Joseph-M-A-H`.
 - Full hyphenated names remain full names and keep meaningful tag-safe hyphenation.
 - Compound surnames and multiple given names each remain within their own single component.
 - Honorifics, ranks, offices, and role modifiers such as minister and secretary are excluded.
@@ -28,8 +28,9 @@ Represents one named individual emitted by tag extraction and retained through a
 
 | Source identity | Canonical relative path | Outcome |
 |-----------------|-------------------------|---------|
-| K-W Andrae | `Person/Andrae/KW` | Full identity with compacted initials |
-| K. W. Andrae | `Person/Andrae/KW` | Same canonical identity |
+| K-W Andrae | `Person/Andrae/K-W` | Full identity with normalized initials |
+| K. W. Andrae | `Person/Andrae/K-W` | Same canonical identity |
+| Joseph M.A.H. Luns | `Person/Luns/Joseph-M-A-H` | Full given name plus normalized initials |
 | Joseph Luns | `Person/Luns/Joseph` | Full identity |
 | Andrae, given name unknown | `Person/Andrae` | Valid surname-only identity |
 | Minister Andrae | `Person/Andrae` | Role excluded |
@@ -51,7 +52,7 @@ source mention
   → model candidate Person path
   → semantic surname/given split
   → structural validation and component normalization
-  → initials compaction when applicable
+  → initials hyphenation when applicable
   → document aggregation/deduplication
   → Entities/ prefix and Markdown output
   → canonical parsing, counters, export, and surname index

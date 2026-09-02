@@ -39,23 +39,23 @@ by User Story 3; the reasoning-value converter belongs to the independently deli
 
 ## Phase 3: User Story 1 - Generate Canonical Person Paths (Priority: P1) 🎯 MVP
 
-**Goal**: Generate surname-first Person paths, allow surname-only identity, compact initials, and
-exclude titles and roles.
+**Goal**: Generate surname-first Person paths, allow surname-only identity, normalize initials with
+single hyphens, and exclude titles and roles.
 
-**Independent Test**: Synthetic tagging candidates produce `Person/Andrae/KW`,
-`Person/Luns/Joseph`, and `Person/Andrae` as appropriate; malformed, over-deep, or role-bearing
-candidates are omitted.
+**Independent Test**: Synthetic tagging candidates produce `Person/Andrae/K-W`,
+`Person/Luns/Joseph-M-A-H`, `Person/Luns/Joseph`, and `Person/Andrae` as appropriate; malformed,
+over-deep, or role-bearing candidates are omitted.
 
 ### Tests for User Story 1
 
 > **NOTE: Write these tests first and confirm they fail before implementation.**
 
-- [ ] T001 [P] [US1] Add failing unit cases for full names, surname-only names, K-W/K. W. initials, compound names, role modifiers, missing surnames, and excessive depth in tests/unit/test_person_entities.py
+- [ ] T001 [P] [US1] Add failing unit cases for full names, surname-only names, K-W/K. W. normalization, Joseph M.A.H. mixed-name initials, compound names, role modifiers, missing surnames, and excessive depth in tests/unit/test_person_entities.py
 - [ ] T002 [P] [US1] Add failing prompt and aggregation cases for surname-first output, initials, surname-only identity, role exclusion, deduplication, and malformed-candidate warnings in tests/unit/test_person_tagging.py
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Implement shared Person path parsing, component validation, tag normalization, initials compaction, and prohibited-modifier rejection in archivatorium/utils/person_entities.py
+- [ ] T003 [US1] Implement shared Person path parsing, component validation, tag normalization, initials hyphenation, and prohibited-modifier rejection in archivatorium/utils/person_entities.py
 - [ ] T004 [P] [US1] Change model-visible entity field descriptions to `Person/<surname>[/<given-name-or-initials>]` in archivatorium/models/metadata.py
 - [ ] T005 [US1] Update Person instructions/examples and normalize every generated Person candidate before single-pass or windowed aggregation in archivatorium/services/tagging_service.py
 
@@ -98,7 +98,7 @@ tag extraction or unrelated OCR-mode reasoning behavior.
 **Goal**: Preserve surname-only and surname-plus-given Person paths through parsing, counters,
 document output, XLSX export, and surname-grouped People indexes.
 
-**Independent Test**: A generated `Entities/Person/Andrae/KW` path survives every archive consumer,
+**Independent Test**: A generated `Entities/Person/Andrae/K-W` path survives every archive consumer,
 appears under A in the People index, and remains distinct from other people sharing Andrae; a
 surname-only `Entities/Person/Andrae` remains valid.
 
@@ -106,7 +106,7 @@ surname-only `Entities/Person/Andrae` remains valid.
 
 > **NOTE: Write these tests first and confirm they fail before implementation.**
 
-- [ ] T013 [P] [US3] Add failing parser and validation cases for both valid Person depths, compacted initials, complete raw paths, lowercased counter values, and rejected extra depth in tests/unit/test_tag_parser.py and tests/unit/test_tag_validation.py
+- [ ] T013 [P] [US3] Add failing parser and validation cases for both valid Person depths, hyphen-normalized initials, complete raw paths, lowercased counter values, and rejected extra depth in tests/unit/test_tag_parser.py and tests/unit/test_tag_validation.py
 - [ ] T014 [P] [US3] Add failing People-index cases for surname ordering, surname alphabetic headings, surname-only paths, and shared surnames in tests/unit/test_markdown_indices.py and tests/unit/test_indexing_service.py
 - [ ] T015 [P] [US3] Add a failing synthetic end-to-end case covering tagging, entity sections, preflight counters/reuse hints, and XLSX raw paths in tests/integration/test_person_entity_hierarchy.py
 
@@ -220,7 +220,7 @@ Task T017: Update archivatorium/services/indexing_service.py
 ### MVP First: User Story 1
 
 - Complete T001–T005.
-- Verify new generation produces surname-first, initials-compacted, role-free paths.
+- Verify new generation produces surname-first, initials-hyphenated, role-free paths.
 - Stop and validate the story independently before downstream parser/index changes.
 
 ### Incremental Delivery

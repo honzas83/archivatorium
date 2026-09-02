@@ -40,7 +40,8 @@ uv run pytest \
 
 The cases must prove:
 
-- K-W Andrae and K. W. Andrae normalize to `Entities/Person/Andrae/KW`;
+- K-W Andrae and K. W. Andrae normalize to `Entities/Person/Andrae/K-W`;
+- Joseph M.A.H. Luns normalizes to `Entities/Person/Luns/Joseph-M-A-H`;
 - Joseph Luns becomes `Entities/Person/Luns/Joseph`;
 - an unknown given name permits `Entities/Person/Andrae`;
 - minister, secretary, ranks, and titles are not added to Person paths;
