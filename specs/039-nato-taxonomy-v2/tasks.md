@@ -79,7 +79,7 @@ paths, and the unchanged v1 checksum.
 
 ### Tests for User Story 2
 
-- [ ] T010 [US2] Add failing tests for the six exact categories, 55 unique topic paths, required splits/renames/moves, corrected confusable examples, old-label absence, and v1 SHA-256 `90daa6f599decda1c6fed633a83b99d95362a59abb2eac4e9c1d61a6f4bf515a` in tests/unit/test_nato_taxonomy_v2.py
+- [X] T010 [US2] Add failing tests for the six exact categories, 55 unique topic paths, required splits/renames/moves, corrected confusable examples, old-label absence, and v1 SHA-256 `90daa6f599decda1c6fed633a83b99d95362a59abb2eac4e9c1d61a6f4bf515a` in tests/unit/test_nato_taxonomy_v2.py
 
 ### Implementation for User Story 2
 
