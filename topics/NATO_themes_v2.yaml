@@ -1,0 +1,476 @@
+schema_version: 2
+classification_policy:
+  substantive_subject_rule: >-
+    Assign a topic only when it is an important subject of the document, demonstrated through
+    analysis, decision, proposal, recommendation, operational treatment, or sustained description.
+  omission_rule: >-
+    Prefer omission over a weak or incidental match. A document may legitimately receive an empty
+    thematic-topic list when no approved topic is substantively supported.
+  insufficient_evidence_rule: >-
+    A keyword, named entity, country, organization, meeting, citation, document title,
+    distribution-list entry, or single passing reference is insufficient by itself.
+
+categories:
+  - category: "Nuclear Doctrine and Deterrence"
+    description: "Doctrines explaining how nuclear threats prevent aggression and shape escalation, distinct from operational custody, release, deployment, and strike planning."
+    topics:
+      - topic: "Nuclear Deterrence"
+        description: "Substantive analysis of preventing aggression through the threatened consequences of nuclear retaliation."
+        positive_samples: |
+          Credibility and stability of the nuclear deterrent
+          Nuclear threats intended to prevent aggression
+        negative_samples: |
+          A passing reference to nuclear weapons
+          Conventional-only deterrence
+      - topic: "Extended Nuclear Deterrence"
+        description: "Substantive discussion of a nuclear-armed ally's protective guarantee to non-nuclear allies, including its credibility, reassurance, cohesion, or deterrent effect."
+        positive_samples: |
+          Credibility of the United States nuclear guarantee to European allies
+          Reassurance of non-nuclear allies under the nuclear umbrella
+        negative_samples: |
+          Weapons merely stationed in Europe without discussion of the protective guarantee
+          Multinational participation or generic NATO nuclear policy alone
+      - topic: "Massive Retaliation"
+        description: "The 1950s MC 14/2 doctrine threatening a large-scale nuclear response to aggression."
+        positive_samples: |
+          MC 14/2 and an all-or-nothing strategic response
+          Immediate massive nuclear retaliation
+        negative_samples: |
+          Tailored escalation under Flexible Response
+          A generic reference to retaliation
+      - topic: "Flexible Response"
+        description: "The MC 14/3 strategy of tailored, escalating conventional and nuclear options rather than immediate total nuclear war."
+        positive_samples: |
+          MC 14/3 and deliberate escalation
+          Raising the nuclear threshold through graduated options
+        negative_samples: |
+          Immediate total response under Massive Retaliation
+          An administrative reference to MC 14/3
+      - topic: "Mutually Assured Destruction"
+        description: "The strategic condition in which secure retaliatory forces make full nuclear war catastrophically destructive to both sides."
+        positive_samples: |
+          Assured second-strike capability and unacceptable mutual damage
+          Countervalue retaliation preserving strategic stability
+        negative_samples: |
+          Damage-limiting counterforce options
+          A generic statement that nuclear war is dangerous
+      - topic: "Damage Limitation"
+        description: "Strategies and capabilities intended to reduce damage from nuclear war through counterforce attacks, defense, or civil protection."
+        positive_samples: |
+          Counterforce attacks against enemy launchers
+          Limiting casualties through active or passive defenses
+        negative_samples: |
+          Pure mutual-vulnerability doctrine
+          Routine emergency planning without nuclear-war strategy
+
+  - category: "Nuclear Planning, Deployment, and Control"
+    description: "Operational arrangements for nuclear basing, allied roles, release authority, force employment, and national or multinational nuclear planning."
+    topics:
+      - topic: "Nuclear Sharing and Forward Deployment"
+        description: "Substantive discussion of allied basing, custody, delivery, planning, deployment, or employment roles for nuclear weapons."
+        positive_samples: |
+          Dual-capable allied aircraft and nuclear delivery roles
+          Custody or forward basing of United States nuclear weapons in Europe
+        negative_samples: |
+          Nuclear-site security without allied basing or employment roles
+          A general nuclear guarantee without deployment or participation arrangements
+      - topic: "Nuclear Release Authority"
+        description: "Approval, authentication, delegation, safeguards, dual-key arrangements, or other authority governing release of nuclear weapons."
+        positive_samples: |
+          Dual-key nuclear release arrangements
+          Delegation and authentication of nuclear-use approval
+        negative_samples: |
+          Target lists, yields, or strike timing
+          A generic military chain of command unrelated to nuclear release
+      - topic: "Nuclear Strategy and Strike Planning"
+        description: "Substantive preparation for nuclear force employment, including war plans, target selection, yields, strike timing, sequencing, or execution."
+        positive_samples: |
+          Selection and prioritization of nuclear targets
+          Strike timing, weapon yields, and execution planning
+        negative_samples: |
+          Meeting schedules or administrative planning
+          Generic references to nuclear forces without employment planning
+      - topic: "Multilateral Force"
+        description: "The 1960s proposal for a jointly operated, mixed-manned NATO fleet carrying sea-based ballistic missiles."
+        positive_samples: |
+          Mixed-manned Multilateral Force surface ships
+          MLF proposals for shared sea-based deterrent control
+        negative_samples: |
+          Standard forward deployment of United States nuclear weapons
+          Generic multinational naval exercises
+      - topic: "French Nuclear Policy"
+        description: "France's independent nuclear doctrine, force structure, planning, and relationship to NATO nuclear arrangements."
+        positive_samples: |
+          Force de frappe strategy and employment
+          French nuclear independence from integrated NATO planning
+        negative_samples: |
+          France mentioned in a multinational attendance list
+          General NATO nuclear policy without a French focus
+      - topic: "British Nuclear Policy"
+        description: "United Kingdom nuclear doctrine, forces, planning, and dependence on or coordination with allies."
+        positive_samples: |
+          Polaris or Trident policy and employment
+          British independent deterrent planning
+        negative_samples: |
+          Britain mentioned only as a meeting participant
+          General NATO policy without a British nuclear focus
+      - topic: "Soviet Nuclear Policy"
+        description: "Soviet nuclear doctrine, force employment concepts, targeting policy, and strategic nuclear posture."
+        positive_samples: |
+          Assessments of Soviet nuclear-use doctrine
+          Soviet strategic targeting or escalation policy
+        negative_samples: |
+          General East-West diplomacy
+          A list of Soviet weapon systems without policy analysis
+
+  - category: "Alliance Governance and Institutions"
+    description: "NATO political consultation, treaty governance, membership, budgets, institutional design, command organization, appointments, and commonly funded infrastructure."
+    topics:
+      - topic: "Burden Sharing and Host Nation Support"
+        description: "Allocation of allied financial or logistical contributions, including support for forces stationed in host nations."
+        positive_samples: |
+          Offset agreements and host-nation support
+          Disputes over allied shares of common defense burdens
+        negative_samples: |
+          A purely domestic defense budget
+          Infrastructure engineering without contribution allocation
+      - topic: "Political Consultation Mechanisms"
+        description: "Substantive treatment of mechanisms through which allies coordinate or align policy on foreign and security matters."
+        positive_samples: |
+          Proposals to improve allied consensus building
+          Analysis of North Atlantic Council consultation procedures
+        negative_samples: |
+          Attendance lists, agendas, scheduling, logistics, headings, or distribution lists
+          A statement that representatives merely discussed an issue
+      - topic: "Article 4 Consultations"
+        description: "Substantive invocation or interpretation of Article 4 consultation when a member's territorial integrity, political independence, or security is threatened."
+        positive_samples: |
+          Formal request for Article 4 consultations
+          Debate over whether a threat meets the Article 4 threshold
+        negative_samples: |
+          Routine political meetings
+          Collective defense after an armed attack under Article 5
+      - topic: "Article 5 Collective Defense"
+        description: "Substantive interpretation, invocation, or implementation of NATO's obligation that an armed attack against one ally is treated as an attack against all."
+        positive_samples: |
+          Legal obligations arising from an armed attack under Article 5
+          Debate over an Article 5 casus belli
+        negative_samples: |
+          Pre-conflict Article 4 consultations
+          Collective defense discussed only under a non-NATO framework
+      - topic: "NATO Enlargement"
+        description: "Political and legal processes concerning admission of new NATO member states."
+        positive_samples: |
+          Accession protocols and membership negotiations
+          Open Door policy and enlargement decisions
+        negative_samples: |
+          Restructuring institutions for existing members
+          Partnership without proposed membership
+      - topic: "Institutional Restructuring"
+        description: "Reform, creation, merger, relocation, or dissolution of NATO bodies and institutional arrangements."
+        positive_samples: |
+          Reorganizing NATO committees or agencies
+          Relocating or merging alliance institutions
+        negative_samples: |
+          Admission of a new member state
+          A commander's appointment without institutional reform
+      - topic: "Defense Spending"
+        description: "Substantive discussion of military budgets, expenditure, financial targets, affordability, procurement financing, or economic burden."
+        positive_samples: |
+          Defense expenditure as a percentage of gross domestic product
+          Affordability and financing of military procurement
+        negative_samples: |
+          Organizational restructuring without spending discussion
+          Host-nation cost allocation better covered by Burden Sharing
+      - topic: "Command Structure and Appointments"
+        description: "Substantive discussion of NATO command appointments, responsibilities, boundaries, reporting relationships, or organizational command structure."
+        positive_samples: |
+          Appointment or responsibilities of SACEUR or SACLANT
+          Changes to command boundaries or reporting relationships
+        negative_samples: |
+          Mere mention of a command or headquarters
+          A ceremonial visit to SHAPE
+      - topic: "NATO Infrastructure and Common Funding"
+        description: "Physical NATO infrastructure projects and common funding, including pipelines, radar sites, headquarters facilities, and comparable shared assets."
+        positive_samples: |
+          Common funding for CEPS pipelines or NADGE radar sites
+          Construction and financing of shared NATO facilities
+        negative_samples: |
+          Abstract organizational restructuring
+          Mention of a headquarters without a facility or funding issue
+
+  - category: "Treaties and Arms Control"
+    description: "Negotiation, verification, implementation, and strategic effects of arms-control, non-proliferation, and weapons-limitation regimes."
+    topics:
+      - topic: "Strategic Arms Limitation Talks"
+        description: "United States-Soviet SALT I and SALT II negotiations and agreements limiting strategic nuclear arms."
+        positive_samples: |
+          SALT I or SALT II negotiating positions
+          Strategic launcher limits under SALT
+        negative_samples: |
+          General arms-control discussion without SALT
+          Intermediate-range systems covered by INF
+      - topic: "Intermediate-Range Nuclear Forces"
+        description: "Negotiation, verification, and implementation of the 1987 INF Treaty eliminating specified intermediate-range missiles."
+        positive_samples: |
+          INF Treaty negotiations or inspections
+          Elimination of Pershing II, GLCM, or SS-20 systems under INF
+        negative_samples: |
+          Political deployment controversy before treaty negotiations
+          Strategic intercontinental force limitations
+      - topic: "Non-Proliferation Treaty"
+        description: "Negotiation, review, safeguards, and obligations of the Nuclear Non-Proliferation Treaty."
+        positive_samples: |
+          NPT review conferences and treaty obligations
+          IAEA safeguards under the NPT
+        negative_samples: |
+          Proliferation concerns without reference to the treaty regime
+          Bilateral strategic-arms limits
+      - topic: "General Arms Control"
+        description: "Broad arms-control policy, negotiation, verification, or disarmament not centered on a more specific approved treaty topic."
+        positive_samples: |
+          General disarmament proposals
+          Verification principles across several arms-control negotiations
+        negative_samples: |
+          A document centered specifically on SALT, INF, or NPT
+          Unilateral force planning without negotiated limitation
+      - topic: "Nuclear Proliferation"
+        description: "Spread or potential acquisition of nuclear weapons, materials, or weapon-making capability by additional states or actors."
+        positive_samples: |
+          Concern that another state may acquire nuclear weapons
+          Policies intended to prevent additional nuclear-armed states
+        negative_samples: |
+          NPT procedure without wider proliferation analysis
+          Existing allied nuclear deployment
+      - topic: "Chemical Weapons"
+        description: "Development, deployment, deterrence, prohibition, or destruction of weapons using toxic chemical agents."
+        positive_samples: |
+          Nerve-agent stockpiles and chemical warfare
+          Chemical Weapons Convention implementation
+        negative_samples: |
+          Biological pathogens
+          Radioactive or conventional weapons
+      - topic: "Biological Weapons"
+        description: "Development, deployment, deterrence, prohibition, or destruction of weaponized pathogens and toxins of biological origin."
+        positive_samples: |
+          Biological warfare and pathogen stockpiles
+          Biological Weapons Convention implementation
+        negative_samples: |
+          Toxic chemical agents
+          Public-health discussion without weaponization
+
+  - category: "Military Operations and Capabilities"
+    description: "Operational readiness, exercises, interoperability, forces, technology, resilience, and military capabilities used to execute alliance missions."
+    topics:
+      - topic: "Multilateral Military Exercises"
+        description: "Substantive planning, conduct, or evaluation of simulated operations involving forces or command posts from multiple allies."
+        positive_samples: |
+          REFORGER, Autumn Forge, or joint field maneuvers
+          Command-post exercises testing operational plans
+        negative_samples: |
+          General interoperability policy without an exercise
+          A calendar that merely lists an exercise
+      - topic: "Military Interoperability"
+        description: "Technical, procedural, communications, or logistical compatibility enabling allied forces to operate together."
+        positive_samples: |
+          STANAG implementation and compatible communications
+          Cross-servicing or common ammunition standards
+        negative_samples: |
+          Transfer of classified technology
+          Joint movement during one exercise without interoperability analysis
+      - topic: "Conventional Deterrence"
+        description: "Prevention of aggression through credible non-nuclear military forces and the prospect of conventional defeat."
+        positive_samples: |
+          Conventional force posture intended to deter invasion
+          Armored and air forces supporting non-nuclear deterrence
+        negative_samples: |
+          Deterrence relying on nuclear retaliation
+          Small forces intended only as a political tripwire
+      - topic: "Tripwire Forces"
+        description: "Small forward-deployed forces whose engagement would politically trigger a larger allied response."
+        positive_samples: |
+          Berlin forces intended to guarantee wider allied involvement
+          Forward detachments valued primarily for their triggering role
+        negative_samples: |
+          Forces designed to defeat an attack independently
+          Any forward deployment without a trigger rationale
+      - topic: "Intelligence Sharing"
+        description: "Actual or proposed exchange among allies of classified assessments, imagery, warning data, collection results, or governed access."
+        positive_samples: |
+          Sharing satellite imagery or early-warning data among allies
+          Rules governing allied access to classified assessments
+        negative_samples: |
+          Unauthorized leaks, press disclosure, or suspected compromise
+          Description of an adversary intelligence capability without allied exchange
+      - topic: "Air and Missile Defense"
+        description: "Sensors, command systems, and weapons intended to detect, track, or intercept hostile aircraft or missiles."
+        positive_samples: |
+          Surface-to-air missile and early-warning radar networks
+          Ballistic-missile defense systems such as Patriot or THAAD
+        negative_samples: |
+          Civil defense shelters
+          Offensive missile deployment without interception capability
+      - topic: "Enhanced Radiation Weapons"
+        description: "Development, characteristics, policy, or proposed deployment of enhanced-radiation nuclear weapons."
+        positive_samples: |
+          Neutron-bomb policy and deployment controversy
+          Maximizing radiation while limiting blast effects
+        negative_samples: |
+          Standard tactical nuclear gravity bombs
+          Radiation protection without weapon discussion
+      - topic: "Defense Industry"
+        description: "Industrial capacity, firms, supply chains, and multinational production arrangements for military equipment."
+        positive_samples: |
+          Joint production of combat aircraft
+          Defense contractors and military-industrial capacity
+        negative_samples: |
+          Government budget totals without industrial analysis
+          Transfer controls without production issues
+      - topic: "Technology Transfers"
+        description: "Transfer of advanced or classified technology among allies and controls preventing strategic technology reaching adversaries."
+        positive_samples: |
+          COCOM controls on dual-use exports
+          Sharing classified aerospace technology among allies
+        negative_samples: |
+          Standardizing ordinary field equipment
+          Commercial trade without security-sensitive technology
+      - topic: "Energy Security"
+        description: "Strategic vulnerability, diversification, and protection of fuel and energy supplies important to allied security."
+        positive_samples: |
+          Dependence on Soviet gas or Middle Eastern oil
+          Protection of oil supply routes during a crisis
+        negative_samples: |
+          Domestic energy economics without a security dimension
+          Nuclear weapons policy merely mentioning nuclear energy
+      - topic: "Crisis Management and Confidence Building"
+        description: "Operational communications, notifications, transparency, and confidence-building measures intended to prevent escalation or accidental war."
+        positive_samples: |
+          Hotlines and pre-notification of military movements
+          Open Skies or incident-prevention arrangements
+        negative_samples: |
+          The broad political era of Detente
+          Emergency response after a civilian disaster
+      - topic: "Psychological Operations and Propaganda"
+        description: "Information operations, propaganda, counter-disinformation, and activities intended to influence morale or political behavior."
+        positive_samples: |
+          Radio Free Europe or leaflet campaigns
+          Countering Soviet active measures through information operations
+        negative_samples: |
+          Neutral reporting of public opinion
+          Routine press handling without an influence objective
+      - topic: "Civil Emergency Planning"
+        description: "Operational planning for continuity of government, civil defense, resource stockpiling, and resilience of civilian infrastructure."
+        positive_samples: |
+          Food stockpiling and continuity-of-government plans
+          Protection and recovery of essential civilian infrastructure
+        negative_samples: |
+          Active interception of nuclear weapons
+          Routine office continuity or meeting logistics
+
+  - category: "Geopolitics and Crises"
+    description: "Substantive relations among states and blocs, historically specific crises, regional tensions, and geopolitical developments affecting NATO."
+    topics:
+      - topic: "Soviet and Russian Relations"
+        description: "The broad diplomatic, political, and strategic relationship between NATO or its members and Moscow."
+        positive_samples: |
+          Overall East-West relations and diplomacy with Moscow
+          Broad assessment of NATO-Soviet strategic relations
+        negative_samples: |
+          Internal Warsaw Pact organization
+          A specific crisis with no broader bilateral analysis
+      - topic: "Warsaw Pact"
+        description: "Substantive discussion of the Soviet-led alliance's posture, coordination, organization, membership, or internal dynamics."
+        positive_samples: |
+          Warsaw Treaty Organization command and force coordination
+          Internal relations among Warsaw Pact members
+        negative_samples: |
+          A passing reference to the Warsaw Pact or Eastern bloc
+          Direct NATO-Soviet diplomacy without alliance-structure analysis
+      - topic: "Berlin Crisis"
+        description: "International crises over the status, access, occupation, and division of Berlin."
+        positive_samples: |
+          Berlin blockade, airlift, or access rights
+          Checkpoint Charlie, the Berlin Wall, or Soviet ultimatums
+        negative_samples: |
+          General East German affairs not centered on Berlin's status
+          Routine allied administration in Berlin
+      - topic: "Cuban Missile Crisis"
+        description: "The October 1962 confrontation over Soviet nuclear missile deployment in Cuba and allied crisis decisions."
+        positive_samples: |
+          Naval quarantine and Soviet missiles in Cuba
+          Jupiter missile trade-offs during the October crisis
+        negative_samples: |
+          General Latin American geopolitics
+          Cuban affairs outside the 1962 missile confrontation
+      - topic: "Euromissile Crisis"
+        description: "The late-1970s and early-1980s political and strategic crisis over SS-20s and NATO's Dual-Track deployment decision."
+        positive_samples: |
+          Dual-Track policy, Pershing II, GLCM, and SS-20 controversy
+          European protests tied to theater nuclear deployments
+        negative_samples: |
+          INF Treaty implementation after agreement
+          Generic European nuclear policy
+      - topic: "Able Archer Exercise"
+        description: "The November 1983 Able Archer command-post exercise and the associated Soviet war scare or risk of misinterpretation."
+        positive_samples: |
+          Able Archer 83 and Soviet alert reactions
+          RYaN assessments linked to exercise misinterpretation
+        negative_samples: |
+          Routine exercises without the 1983 war-scare context
+          An exercise calendar listing Able Archer only
+      - topic: "Balkan Operations"
+        description: "NATO crisis-management and combat operations in the former Yugoslavia, including Bosnia and Kosovo."
+        positive_samples: |
+          IFOR, SFOR, KFOR, or Operation Allied Force
+          NATO operations in Bosnia or Kosovo
+        negative_samples: |
+          Cold War planning for the Southern Flank
+          Yugoslavia discussed solely as a non-aligned state
+      - topic: "Detente"
+        description: "The sustained 1960s-1970s easing of East-West political tensions and its strategic consequences."
+        positive_samples: |
+          Peaceful coexistence and the broader diplomatic thaw
+          Helsinki process as part of East-West detente
+        negative_samples: |
+          One technical confidence-building measure without broader context
+          Any isolated negotiation with Moscow
+      - topic: "Greece and Turkey Relations"
+        description: "Substantive disputes and strategic management of relations between Greece and Turkey within the alliance."
+        positive_samples: |
+          Cyprus disputes or Aegean boundaries between Athens and Ankara
+          Alliance mediation of Greek-Turkish friction
+        negative_samples: |
+          General Southern Flank planning
+          A participant list containing both countries
+      - topic: "US and NATO Relations"
+        description: "Substantive leadership, autonomy, cohesion, or friction between the United States and European NATO allies."
+        positive_samples: |
+          Transatlantic leadership or European autonomy debates
+          Political friction between Washington and European allies
+        negative_samples: |
+          A United States representative attending a NATO meeting
+          Troop-cost disputes centered on burden sharing
+      - topic: "Indo Pacific and Asian Affairs"
+        description: "NATO's substantive assessment of Asian and Indo-Pacific security dynamics other than documents centered on China."
+        positive_samples: |
+          Korean War effects on European security
+          NATO assessments of Southeast or Northeast Asian security
+        negative_samples: |
+          Direct analysis centered on China
+          An Asian state appearing only in a reference list
+      - topic: "China"
+        description: "Substantive intelligence, diplomatic, nuclear, or strategic analysis centered on the People's Republic of China."
+        positive_samples: |
+          Sino-Soviet split or Chinese nuclear strategy
+          Recognition and foreign policy of the People's Republic of China
+        negative_samples: |
+          Asian security not directly involving China
+          China mentioned only in a country list
+      - topic: "Neutral and Non-Aligned Nations"
+        description: "Substantive discussion of neutrality, non-alignment, Finlandization, or relations with neutral and non-aligned states in the historically relevant period."
+        positive_samples: |
+          Finlandization or Finnish neutrality during the Cold War
+          Austrian, Swiss, Swedish, or Yugoslav non-alignment policy
+        negative_samples: |
+          Mere mention of Sweden, Finland, Austria, Switzerland, or Yugoslavia
+          NATO or Warsaw Pact members discussed in their ordinary alliance role, including Norway
