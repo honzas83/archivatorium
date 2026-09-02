@@ -57,7 +57,7 @@ def test_single_pass_normalizes_and_drops_malformed_people(
             "Person/Luns/Joseph M.A.H.",
             "Person/Andrae",
             "Person/Andrae/K-W/Minister",
-        ]
+        ],
     )
 
     result = tagging.extract_tags("Names.")
@@ -77,9 +77,7 @@ def test_windowed_aggregation_uses_same_person_normalization(
     tagging.context_limit = 1
     windowing.get_windows.return_value = ["first", "second"]
     client.extract_structured.side_effect = [
-        WindowTaggingResult(
-            conceptual_tags=["Diplomacy"], entity_tags=["Person/Andrae/K-W"]
-        ),
+        WindowTaggingResult(conceptual_tags=["Diplomacy"], entity_tags=["Person/Andrae/K-W"]),
         WindowTaggingResult(
             conceptual_tags=["Diplomacy"],
             entity_tags=["Person/Andrae/K. W.", "Person/Luns/Minister"],

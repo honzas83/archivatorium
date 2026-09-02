@@ -1,11 +1,10 @@
 """Shared model-reasoning types and Click conversion."""
 
-from typing import Literal, TypeAlias, cast
+from typing import Literal, cast
 
 import click
 
-
-ModelThink: TypeAlias = Literal[False, "low", "medium", "high"]
+type ModelThink = Literal[False, "low", "medium", "high"]
 MODEL_THINK_DEFAULT: ModelThink = "medium"
 MODEL_THINK_CHOICE = click.Choice(
     ["False", "low", "medium", "high"],

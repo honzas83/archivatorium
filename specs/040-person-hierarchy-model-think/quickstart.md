@@ -113,3 +113,16 @@ uv run coverage report
 
 Before every implementation commit, inspect `git status --short` and stage only the files assigned to
 the completed feature task. Do not stage existing unrelated test edits or local archive datasets.
+
+### Quality-gate result (2026-09-02)
+
+- `ruff format --check archivatorium tests` passed for all 104 files.
+- Ruff passed for every feature-created source and test file. The repository-wide `ruff check`
+  remains blocked by 83 pre-existing findings in files outside this feature's scope.
+- The available system `mypy` could not load the `pydantic.mypy` plugin because it runs outside the
+  project virtual environment; the virtual environment does not contain mypy.
+- `flake8` is not installed in the project virtual environment or on the host command path.
+- The unfiltered pytest run is blocked during collection because the existing
+  `tests/unit/test_xlsx_export.py` imports undeclared `openpyxl`, which is not installed.
+- Excluding only that environment-blocked test module, all 400 collected tests passed. Coverage was
+  90% for `archivatorium/` (95% including tests); both feature utility modules reached 96% or more.

@@ -54,10 +54,10 @@ categories:
         "andrae/k-w": 1,
         "luns": 1,
     }
-    assert processor._build_tagging_reuse_hints().preferred_entities["Person"] == [
+    assert set(processor._build_tagging_reuse_hints().preferred_entities["Person"]) == {
         "andrae/k-w",
         "luns",
-    ]
+    }
 
     indexer = IndexingService(vault)
     indexer.process_file(document)

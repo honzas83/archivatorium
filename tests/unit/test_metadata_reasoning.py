@@ -33,9 +33,7 @@ def test_conditional_date_extraction_receives_same_reasoning(tmp_path: Path) -> 
     client.extract_structured.side_effect = [MetadataSchema(), LastDateSchema(date="1978-01-02")]
     processor = MetadataProcessor(client, tmp_path, model_think=False)
 
-    result = processor._extract_document_metadata(
-        Path("document.md"), "x" * (CHUNK_SIZE + 3000)
-    )
+    result = processor._extract_document_metadata(Path("document.md"), "x" * (CHUNK_SIZE + 3000))
 
     assert result.raw_dict["date"] == "1978-01-02"
     assert [call.kwargs["think"] for call in client.extract_structured.call_args_list] == [

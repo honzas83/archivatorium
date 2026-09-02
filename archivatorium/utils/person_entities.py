@@ -4,7 +4,6 @@ import re
 
 from archivatorium.utils.nlp import normalize_tag_component
 
-
 _ROLE_OR_TITLE_COMPONENTS = {
     "admiral",
     "ambassador",

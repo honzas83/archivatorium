@@ -151,9 +151,7 @@ def test_people_index_groups_full_paths_by_surname(tmp_path: Path) -> None:
         }
     )
     indexer = IndexingService(vault_dir)
-    indexer.entries = [
-        IndexEntry(doc_path=Path("people.md"), title="People", canonical_tags=tags)
-    ]
+    indexer.entries = [IndexEntry(doc_path=Path("people.md"), title="People", canonical_tags=tags)]
 
     indexer.generate_markdown_indices()
 
