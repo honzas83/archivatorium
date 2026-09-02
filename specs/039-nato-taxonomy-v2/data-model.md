@@ -25,7 +25,7 @@ the source file.
 
 | Field | Type | Rules |
 |---|---|---|
-| `name` | non-empty string | Cannot contain `/`; normalized component cannot be empty |
+| `category` | non-empty string | Cannot contain `/`; normalized component cannot be empty |
 | `description` | non-empty string | Included in every flattened member topic |
 | `topics` | list of TopicDefinition | Non-empty |
 
@@ -33,13 +33,13 @@ the source file.
 
 | Field | Type | Rules |
 |---|---|---|
-| `name` | non-empty string | Cannot contain `/`; normalized component cannot be empty |
+| `topic` | non-empty string | Cannot contain `/`; normalized component cannot be empty |
 | `description` | non-empty string | Defines substantive inclusion and nearest exclusions |
 | `positive_samples` | multiline string | Must yield at least one non-empty example line |
 | `negative_samples` | multiline string | Must yield at least one non-empty example line |
 
 The canonical `topic_id` is derived as
-`normalize_tag_component(category.name)/normalize_tag_component(topic.name)`. It must be unique.
+`normalize_tag_component(category.category)/normalize_tag_component(topic.topic)`. It must be unique.
 
 ## FlattenedTopic
 

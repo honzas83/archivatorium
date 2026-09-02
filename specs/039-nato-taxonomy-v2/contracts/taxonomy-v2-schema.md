@@ -9,10 +9,10 @@ classification_policy:
   omission_rule: <non-empty string>
   insufficient_evidence_rule: <non-empty string>
 categories:
-  - name: <category name>
+  - category: <category name>
     description: <non-empty classification context>
     topics:
-      - name: <topic name>
+      - topic: <topic name>
         description: <non-empty substantive definition>
         positive_samples: |
           <one or more non-empty examples>
