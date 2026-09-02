@@ -54,17 +54,17 @@ retained in deterministic order, all hard invariants hold, and no extra model ca
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Add failing prompt, seed-versus-novel, exact-deduplication, importance-order, 20-total, five-novel, surplus-novel-skip, empty-stub, and single/multi-window finalization tests in tests/unit/test_tagging_service.py
-- [ ] T005 [P] [US1] Add failing schema-description tests for the 5–12 target, fewer-when-supported rule, seed-not-allowlist semantics, and unchanged simple conceptual list response in tests/unit/test_metadata_schema.py
-- [ ] T006 [P] [US1] Add a failing end-to-end generated-Markdown regression proving only the controlled conceptual list is emitted and no provenance fields appear in tests/integration/test_tagging_pass.py
+- [X] T004 [US1] Add failing prompt, seed-versus-novel, exact-deduplication, importance-order, 20-total, five-novel, surplus-novel-skip, empty-stub, and single/multi-window finalization tests in tests/unit/test_tagging_service.py
+- [X] T005 [P] [US1] Add failing schema-description tests for the 5–12 target, fewer-when-supported rule, seed-not-allowlist semantics, and unchanged simple conceptual list response in tests/unit/test_metadata_schema.py
+- [X] T006 [P] [US1] Add a failing end-to-end generated-Markdown regression proving only the controlled conceptual list is emitted and no provenance fields appear in tests/integration/test_tagging_pass.py
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Define the model-visible prompt constants and revise conceptual-tag Pydantic descriptions without adding maximum-length validation or provenance fields in archivatorium/models/metadata.py
-- [ ] T008 [US1] Rewrite conceptual-tag instructions to target 5–12 importance-ranked substantive concepts, prefer equivalent seed/established forms, permit distinct novel tags, reject padding, passing mentions, synonym/variant expansion, entity names, and combinatorial families, and apply the same rules to acronyms in archivatorium/services/tagging_service.py
-- [ ] T009 [US1] Implement one ordered conceptual-tag finalizer for both inference paths that normalizes, filters, removes entity/topic collisions, exactly deduplicates, classifies against the seed-plus-established snapshot, skips novel candidates beyond five while continuing to consider known candidates, and caps final output at 20 in archivatorium/services/tagging_service.py
-- [ ] T010 [US1] Replace the windowed top-100 shortcut with deterministic aggregate ranking by frequency, best local importance rank, and first-seen position before the shared document finalizer in archivatorium/services/tagging_service.py
-- [ ] T011 [US1] Run and pass the independent US1 suite in tests/unit/test_tagging_service.py, tests/unit/test_tag_suppression.py, tests/unit/test_nlp_normalization.py, tests/unit/test_metadata_schema.py, and tests/integration/test_tagging_pass.py
+- [X] T007 [P] [US1] Define the model-visible prompt constants and revise conceptual-tag Pydantic descriptions without adding maximum-length validation or provenance fields in archivatorium/models/metadata.py
+- [X] T008 [US1] Rewrite conceptual-tag instructions to target 5–12 importance-ranked substantive concepts, prefer equivalent seed/established forms, permit distinct novel tags, reject padding, passing mentions, synonym/variant expansion, entity names, and combinatorial families, and apply the same rules to acronyms in archivatorium/services/tagging_service.py
+- [X] T009 [US1] Implement one ordered conceptual-tag finalizer for both inference paths that normalizes, filters, removes entity/topic collisions, exactly deduplicates, classifies against the seed-plus-established snapshot, skips novel candidates beyond five while continuing to consider known candidates, and caps final output at 20 in archivatorium/services/tagging_service.py
+- [X] T010 [US1] Replace the windowed top-100 shortcut with deterministic aggregate ranking by frequency, best local importance rank, and first-seen position before the shared document finalizer in archivatorium/services/tagging_service.py
+- [X] T011 [US1] Run and pass the independent US1 suite in tests/unit/test_tagging_service.py, tests/unit/test_tag_suppression.py, tests/unit/test_nlp_normalization.py, tests/unit/test_metadata_schema.py, and tests/integration/test_tagging_pass.py
 
 **Checkpoint**: US1 is independently usable as the MVP; tag lists are prompt-focused and hard-bounded
 without structured provenance or additional model calls.

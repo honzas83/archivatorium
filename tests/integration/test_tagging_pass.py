@@ -126,3 +126,32 @@ def test_two_pass_tagging_output_retains_more_than_ten_topics(
     content = (output_dir / "dense_doc.md").read_text(encoding="utf-8")
     for idx in range(12):
         assert f"- #{TAG_PREFIX_TOPIC}/Category/Topic-{idx} — Reason {idx}" in content
+
+
+def test_generated_tag_section_keeps_simple_list_without_provenance(
+    tmp_path, mock_ollama, mock_tagging_service
+):
+    input_file = tmp_path / "input.md"
+    output_file = tmp_path / "output.md"
+    input_file.write_text("Substantive document body.\n", encoding="utf-8")
+    mock_ollama.extract_structured.return_value = MetadataSchema(
+        title="Controlled tags",
+        summary="A controlled-tag example.",
+        abstract="A controlled-tag example with more detail.",
+    )
+    mock_tagging_service.extract_tags.return_value = AggregatedTaggingResult(
+        conceptual_tags=["Nuclear-Consultation", "Crisis-Management"]
+    )
+    processor = MetadataProcessor(
+        ollama_client=mock_ollama,
+        output_dir=tmp_path,
+        tagging_service=mock_tagging_service,
+    )
+
+    processor.process_file(input_file, output_file)
+
+    content = output_file.read_text(encoding="utf-8")
+    assert "#Tags/Nuclear-Consultation #Tags/Crisis-Management" in content
+    assert "source_phrase" not in content
+    assert "justification" not in content
+    assert "novel:" not in content
