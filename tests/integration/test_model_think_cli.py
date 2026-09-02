@@ -84,14 +84,15 @@ def test_model_think_defaults_to_medium(tmp_path: Path, command: str) -> None:
 @pytest.mark.parametrize("command", ["metadata", "ocr"])
 def test_model_think_help_lists_choices_and_default(command: str) -> None:
     result = CliRunner().invoke(cli, [command, "--help"])
+    normalized_help = " ".join(result.output.lower().split())
 
     assert result.exit_code == 0
     assert "--model-think" in result.output
-    assert "false" in result.output.lower()
-    assert "low" in result.output.lower()
-    assert "medium" in result.output.lower()
-    assert "high" in result.output.lower()
-    assert "default: medium" in result.output.lower()
+    assert "false" in normalized_help
+    assert "low" in normalized_help
+    assert "medium" in normalized_help
+    assert "high" in normalized_help
+    assert "default: medium" in normalized_help
 
 
 @pytest.mark.parametrize("command", ["metadata", "ocr"])

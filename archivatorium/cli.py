@@ -15,6 +15,12 @@ from archivatorium.services.windowing_service import SlidingWindowService
 from archivatorium.utils.files import initialize_vault_from_template
 from archivatorium.utils.logging import setup_logging
 from archivatorium.utils.metadata import mirror_file
+from archivatorium.utils.model_think import (
+    MODEL_THINK_CHOICE,
+    MODEL_THINK_DEFAULT,
+    ModelThink,
+    convert_model_think,
+)
 
 logger = logging.getLogger("archivatorium.cli")
 
@@ -143,6 +149,14 @@ def clean(  # noqa: PLR0913
 @click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
 @click.option("--model", default="gemma4:31b", help="Ollama model to use.")
 @click.option(
+    "--model-think",
+    type=MODEL_THINK_CHOICE,
+    callback=convert_model_think,
+    default=MODEL_THINK_DEFAULT,
+    show_default=True,
+    help="Reasoning effort for metadata extraction.",
+)
+@click.option(
     "--pdf-dir", type=click.Path(path_type=Path), help="Directory containing source PDFs."
 )
 @click.option("--vault-root", type=click.Path(path_type=Path), help="Root of the Obsidian vault.")
@@ -173,6 +187,7 @@ def metadata(  # noqa: PLR0913
     output_dir: Path,
     mask: str,
     model: str,
+    model_think: ModelThink,
     pdf_dir: Path | None,
     vault_root: Path | None,
     hierarchy_file: Path,
@@ -209,6 +224,7 @@ def metadata(  # noqa: PLR0913
         tagging_service=tagging_service,
         input_dir=input_dir,
         citekey_mode=citekey_mode,
+        model_think=model_think,
     )
     processor.preflight_scan()
 
@@ -357,6 +373,14 @@ def interlink(
     callback=_validate_num_predict,
     help="Override maximum output tokens (-1 means unlimited).",
 )
+@click.option(
+    "--model-think",
+    type=MODEL_THINK_CHOICE,
+    callback=convert_model_think,
+    default=MODEL_THINK_DEFAULT,
+    show_default=True,
+    help="Reasoning effort for Qwen 3.8 OCR.",
+)
 @click.option("--dpi", type=int, default=300, show_default=True, help="DPI for page rendering.")
 @click.option(
     "--no-page-header",
@@ -377,6 +401,7 @@ def ocr(  # noqa: PLR0913
     repeat_penalty: float | None,
     repeat_last_n: int | None,
     num_predict: int | None,
+    model_think: ModelThink,
     dpi: int,
     no_page_header: bool,
 ) -> None:
@@ -399,6 +424,7 @@ def ocr(  # noqa: PLR0913
             repeat_penalty=repeat_penalty,
             repeat_last_n=repeat_last_n,
             num_predict=num_predict,
+            model_think=model_think,
         )
 
         # Recursively find pdf files
