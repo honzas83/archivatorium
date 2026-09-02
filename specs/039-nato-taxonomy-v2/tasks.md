@@ -131,7 +131,7 @@ output contains only approved v2 paths, and prior v1 output is not rewritten.
 
 ### Implementation for User Story 4
 
-- [ ] T018 [P] [US4] Document explicit v1 and v2 metadata commands, separate-output reruns, unchanged-v1 guarantees, and the absence of path migration in README.md
+- [X] T018 [P] [US4] Document explicit v1 and v2 metadata commands, separate-output reruns, unchanged-v1 guarantees, and the absence of path migration in README.md
 - [ ] T019 [US4] Execute fresh local v1 and v2 metadata runs against data/039-nato-taxonomy-v2/input/ and record command/outcome comparisons in data/039-nato-taxonomy-v2/reports/rerun-comparison.md
 
 **Checkpoint**: User Story 4 demonstrates opt-in v2 adoption by reprocessing source documents, with

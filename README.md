@@ -107,6 +107,33 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.
 - `--citekey-mode {stem,path}`: Deterministic citekey mode.
 - `--dry-run`: Scan inputs and report planned metadata actions.
 
+#### Selecting the NATO Topic Taxonomy
+
+The original taxonomy remains available and unchanged. Select it explicitly for reproducible v1
+processing:
+
+```bash
+archivatorium metadata INPUT_DIR OUTPUT_V1 \
+  --hierarchy-file topics/NATO_themes.yaml \
+  --tags-file topics/USEFUL_TAGS.yaml
+```
+
+The revised taxonomy is opt-in. Rerun metadata extraction from the source documents and write to a
+separate output directory:
+
+```bash
+archivatorium metadata INPUT_DIR OUTPUT_V2 \
+  --hierarchy-file topics/NATO_themes_v2.yaml \
+  --tags-file topics/USEFUL_TAGS.yaml
+```
+
+V2 applies a universal substantive-subject rule: a topic must be an important subject of the
+document, not merely a keyword, entity, meeting, citation, title, or passing reference. Weak matches
+are omitted, and an empty thematic-topic list is valid.
+
+Archivatorium does not migrate or rewrite v1 topic paths. The v2 hierarchy contains narrower and
+split concepts, so adopting it requires reclassification through a fresh metadata run.
+
 Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown file, and generated Markdown links to them as `[[pdf/<filename>.pdf]]`.
 
 ### 4. Interlinking Obsidian Vault
