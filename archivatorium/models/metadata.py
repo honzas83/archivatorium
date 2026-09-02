@@ -138,9 +138,9 @@ class WindowTaggingResult(BaseModel):
     topic_tags: list[TopicResult] = Field(
         default_factory=list,
         description=(
-            "Mandatory taxonomy classification result. Include every clearly justified "
-            "hierarchical taxonomy topic with a quoted-evidence reason; use [] only when "
-            "no approved taxonomy topic is supported by the source text."
+            "Mandatory taxonomy classification result. Include every approved topic that is "
+            "an important, substantively treated subject; omit weak or incidental matches. "
+            "Use [] when no approved topic is substantively supported."
         ),
     )
     entity_tags: list[str] = Field(
@@ -162,9 +162,9 @@ class SubstantiveWindowTaggingResult(WindowTaggingResult):
     topic_tags: list[TopicResult] = Field(
         ...,
         description=(
-            "Required for substantive documents. Include every clearly justified "
-            "hierarchical taxonomy topic with a quoted-evidence reason; use [] only "
-            "when no approved taxonomy topic is supported by the source text."
+            "Required for substantive documents. Include every approved topic that is an "
+            "important, substantively treated subject; omit weak or incidental matches. "
+            "The required field may be [] when no approved topic is substantively supported."
         ),
     )
     conceptual_tags: list[str] = Field(
@@ -184,8 +184,8 @@ class AggregatedTaggingResult(BaseModel):
     topic_tags: list[TopicResult] = Field(
         default_factory=list,
         description=(
-            "Set union of all clearly justified taxonomy topics with best available "
-            "quoted-evidence reasons."
+            "Deduplicated set of approved topics that are important, substantively treated "
+            "document subjects. Empty is valid when no approved topic meets that threshold."
         ),
     )
     entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
