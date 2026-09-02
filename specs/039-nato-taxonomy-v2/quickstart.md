@@ -29,6 +29,10 @@ archivatorium metadata data/039-nato-taxonomy-v2/input \
   --dry-run
 ```
 
+From a repository checkout where the console script is not installed, use the equivalent entry
+point `uv run python -m archivatorium.cli metadata ...`. This form was used successfully during
+feature validation.
+
 Malformed v2 policy, category, topic, sample, or path data must fail here rather than silently
 producing an empty taxonomy.
 
@@ -38,7 +42,8 @@ producing an empty taxonomy.
 pytest tests/unit/test_flattening.py \
   tests/unit/test_nato_taxonomy_v2.py \
   tests/unit/test_tagging_service.py \
-  tests/integration/test_tagging_pass.py
+  tests/integration/test_nato_topic_policy.py \
+  tests/integration/test_nato_taxonomy_selection.py
 ```
 
 These tests use synthetic text. They must not import the archive XLSX files or real NATO documents.
@@ -81,6 +86,9 @@ Record overall inclusion/omission accuracy, challenged-case correction rate, pos
 and administrative empty-topic rate in an untracked report under
 `data/039-nato-taxonomy-v2/reports/`.
 
+Do not infer these model-quality percentages from the earlier XLSX judgments alone. A numeric score
+requires a reviewed manifest that maps source documents to expected v2 inclusions and exclusions.
+
 ## Preserve v1
 
 After implementation, verify the original taxonomy has not changed:
@@ -96,7 +104,7 @@ feature is implemented.
 
 ```console
 ruff check .
-ruff format --check .
+ruff format --check archivatorium tests
 flake8 archivatorium tests
 mypy .
 pytest
@@ -104,5 +112,6 @@ coverage run -m pytest
 coverage report
 ```
 
+The repository currently invokes these tools through `uv run` when they are not installed globally.
 Before each implementation commit, inspect `git status --short` and stage only files belonging to
 that completed feature task. Existing unrelated modified and untracked files must remain untouched.
