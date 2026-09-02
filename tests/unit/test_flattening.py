@@ -69,6 +69,22 @@ def test_flatten_all_samples(sample_hierarchy):
     assert neg_samples == ["Neg 1.1"]
 
 
+def test_flatten_preserves_complete_category_and_topic_context(sample_hierarchy):
+    flat = FlatteningService().flatten(sample_hierarchy)
+
+    assert flat[0] == {
+        "id": "Category A/Topic 1",
+        "category": "Category A",
+        "category_description": "Desc A",
+        "description": "Desc 1",
+        "positive_samples": ["Pos 1.1", "Pos 1.2", "Pos 1.3"],
+        "negative_samples": ["Neg 1.1"],
+    }
+    assert flat[2]["category"] == "Category B"
+    assert flat[2]["category_description"] == "Desc B"
+    assert flat[2]["description"] == "Desc 3"
+
+
 @pytest.mark.parametrize(
     ("mutator", "message"),
     [

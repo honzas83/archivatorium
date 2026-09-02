@@ -103,7 +103,7 @@ serialized exactly once.
 
 ### Tests for User Story 3
 
-- [ ] T013 [US3] Add failing tests for category/category-description preservation, complete ordered sample lists, and compatibility of the existing topic `description` key in tests/unit/test_flattening.py
+- [X] T013 [US3] Add failing tests for category/category-description preservation, complete ordered sample lists, and compatibility of the existing topic `description` key in tests/unit/test_flattening.py
 - [ ] T014 [US3] Add failing tests that the prompt payload contains the effective classification policy and full flattened topic context exactly once in tests/unit/test_tagging_service.py
 
 ### Implementation for User Story 3
