@@ -35,7 +35,7 @@ increment. Real NATO documents and review outputs remain under gitignored
 **⚠️ CRITICAL**: No user story implementation begins until this phase passes.
 
 - [X] T002 [P] Add failing tests for root/category/topic types, blank descriptions, invalid sample blocks, slash-containing components, normalized path collisions, and missing schema-v2 policy in tests/unit/test_flattening.py
-- [ ] T003 Implement TaxonomyValidationError plus common legacy and schema-v2 validation in archivatorium/services/flattening_service.py, preserving the legacy `category` and `topic` YAML keys
+- [X] T003 Implement TaxonomyValidationError plus common legacy and schema-v2 validation in archivatorium/services/flattening_service.py, preserving the legacy `category` and `topic` YAML keys
 - [ ] T004 [P] Add failing tests for unreadable/invalid hierarchy files and construction of the normalized approved-topic set in tests/unit/test_tagging_service.py
 - [ ] T005 Propagate actionable hierarchy loading/validation failures and initialize the approved normalized topic IDs once per run in archivatorium/services/tagging_service.py
 
