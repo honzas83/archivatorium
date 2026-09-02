@@ -38,6 +38,10 @@ categories:
         description: Test topic
         positive_samples: substantive topic treatment
         negative_samples: incidental topic mention
+      - topic: Topic2
+        description: Second test topic
+        positive_samples: another substantive treatment
+        negative_samples: another incidental mention
 useful_tags: []
 """.lstrip(),
         encoding="utf-8",
@@ -189,12 +193,12 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
         WindowTaggingResult(
             conceptual_tags=["#T1", "#T2", "#T3"],
             entity_tags=["E1"],
-            topic_tags=[TopicResult(topic="Top1", reason="R1")],
+            topic_tags=[TopicResult(topic="Category/Topic1", reason="R1")],
         ),
         WindowTaggingResult(
             conceptual_tags=["#T2", "#T6", "#T7"],
             entity_tags=["E2"],
-            topic_tags=[TopicResult(topic="Top2", reason="R2")],
+            topic_tags=[TopicResult(topic="Category/Topic2", reason="R2")],
         ),
     ]
 
@@ -207,10 +211,10 @@ def test_extract_tags_sliding_window(mock_ollama, mock_windowing):
     assert "E2" in result.entity_tags
 
     topics = {t.topic: t.reason for t in result.topic_tags}
-    assert "Top1" in topics
-    assert topics["Top1"] == "R1"
-    assert "Top2" in topics
-    assert topics["Top2"] == "R2"
+    assert "Category/Topic1" in topics
+    assert topics["Category/Topic1"] == "R1"
+    assert "Category/Topic2" in topics
+    assert topics["Category/Topic2"] == "R2"
 
     assert mock_ollama.extract_structured.call_count == 2
     mock_windowing.get_windows.assert_called_once_with(text)
@@ -387,7 +391,7 @@ def test_topic_tagging_guidance_has_no_hard_maximum(
     assert "Max 10" not in prompt
     assert "maximum" not in window_topic_description.lower()
     assert "maximum" not in aggregated_topic_description.lower()
-    assert "every clearly justified taxonomy topic" in prompt
+    assert "every substantively supported taxonomy topic" in prompt
 
 
 def test_extract_tags_retains_more_than_ten_topic_assignments(
@@ -396,6 +400,7 @@ def test_extract_tags_retains_more_than_ten_topic_assignments(
     service = TaggingService(
         mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
     )
+    service.approved_topic_ids = {f"Category/Topic-{idx}" for idx in range(12)}
     mock_ollama.extract_structured.return_value = WindowTaggingResult(
         conceptual_tags=["tag-a", "tag-b", "tag-c"],
         topic_tags=[

@@ -60,7 +60,7 @@ and unsupported topic paths never enter aggregated output.
 ### Implementation for User Story 1
 
 - [X] T007 [US1] Align TopicResult, WindowTaggingResult, and AggregatedTaggingResult field descriptions with all-substantive-but-not-marginal selection and valid empty topic lists in archivatorium/models/metadata.py
-- [ ] T008 [US1] Build the effective legacy/v2 classification policy, inject it into the main and critical prompt rules, and filter normalized model topics against approved IDs without extra model calls in archivatorium/services/tagging_service.py
+- [X] T008 [US1] Build the effective legacy/v2 classification policy, inject it into the main and critical prompt rules, and filter normalized model topics against approved IDs without extra model calls in archivatorium/services/tagging_service.py
 - [ ] T009 [US1] Add a mocked integration test proving incidental/administrative content can yield no topics while a supported substantive topic survives in tests/integration/test_nato_topic_policy.py
 
 **Checkpoint**: User Story 1 passes independently with no quotation verifier, retry behavior, or

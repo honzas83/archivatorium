@@ -28,6 +28,21 @@ from archivatorium.utils.nlp import (
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_CLASSIFICATION_POLICY = {
+    "substantive_subject_rule": (
+        "Assign a topic only when it is an important subject of the document, demonstrated "
+        "through analysis, decision, proposal, recommendation, operational treatment, or "
+        "sustained description."
+    ),
+    "omission_rule": (
+        "Prefer omission over a weak or incidental match; an empty thematic-topic list is valid."
+    ),
+    "insufficient_evidence_rule": (
+        "A keyword, named entity, country, organization, meeting, citation, document title, "
+        "distribution-list entry, or single passing reference is insufficient by itself."
+    ),
+}
+
 
 class TaggingQualityError(RuntimeError):
     """Raised when a substantive document receives an unacceptable tagging result."""
@@ -63,6 +78,10 @@ class TaggingService:
         self.approved_topic_ids = {
             str(topic["id"]) for topic in self.flattened_taxonomy
         }
+        self.classification_policy = self._effective_classification_policy(self.themes)
+        self.classification_policy_prompt_text = "\n".join(
+            f"- {value}" for value in self.classification_policy.values()
+        )
         self.taxonomy_prompt_text = yaml.dump(self.flattened_taxonomy, sort_keys=False)
 
         # Load and Normalize Useful Tags
@@ -87,6 +106,16 @@ class TaggingService:
                     new_dict[k] = self._normalize_data(v)
             return new_dict
         return data
+
+    @staticmethod
+    def _effective_classification_policy(themes: dict[str, Any]) -> dict[str, str]:
+        policy = themes.get("classification_policy")
+        if not isinstance(policy, dict):
+            return dict(DEFAULT_CLASSIFICATION_POLICY)
+        return {
+            key: str(policy.get(key, default))
+            for key, default in DEFAULT_CLASSIFICATION_POLICY.items()
+        }
 
     def _load_yaml(self, path: Path, *, label: str) -> dict[str, Any]:
         try:
@@ -135,15 +164,8 @@ class TaggingService:
                 normalized_entities.append("/".join(norm_parts))
             entities_list = sorted(list(set(normalized_entities)))
 
-            # Normalize topics and keep reasons
-            topics_dict: dict[str, TopicResult] = {}
-            for tr in window_result.topic_tags:
-                parts = tr.topic.split("/")
-                norm_parts = [normalize_tag_component(p) for p in parts]
-                norm_topic = "/".join(norm_parts)
-                if norm_topic not in topics_dict:
-                    tr.topic = norm_topic
-                    topics_dict[norm_topic] = tr
+            # Normalize approved topics and keep the earliest reason.
+            topics_dict = self._collect_supported_topics(window_result.topic_tags)
 
             topics_list = sorted(topics_dict.values(), key=lambda x: x.topic)
             topic_names = [t.topic for t in topics_list]
@@ -197,13 +219,7 @@ class TaggingService:
                 norm_parts = [normalize_tag_component(p) for p in parts]
                 all_entities.add("/".join(norm_parts))
 
-            for tr in window_result.topic_tags:
-                parts = tr.topic.split("/")
-                norm_parts = [normalize_tag_component(p) for p in parts]
-                norm_topic = "/".join(norm_parts)
-                if norm_topic not in topics_dict:
-                    tr.topic = norm_topic
-                    topics_dict[norm_topic] = tr
+            self._collect_supported_topics(window_result.topic_tags, topics_dict)
 
         # Take top 100 conceptual tags by frequency to ensure robust context
         top_conceptual = [tag for tag, _ in conceptual_counter.most_common(100)]
@@ -226,6 +242,24 @@ class TaggingService:
             entity_tags=entities_list,
             topic_tags=topics_list,
         )
+
+    def _collect_supported_topics(
+        self,
+        topic_tags: list[TopicResult],
+        collected: dict[str, TopicResult] | None = None,
+    ) -> dict[str, TopicResult]:
+        results = collected if collected is not None else {}
+        for topic_result in topic_tags:
+            normalized_topic = "/".join(
+                normalize_tag_component(part) for part in topic_result.topic.split("/")
+            )
+            if normalized_topic not in self.approved_topic_ids:
+                logger.warning("Dropping unsupported taxonomy topic: %s", normalized_topic)
+                continue
+            if normalized_topic not in results:
+                topic_result.topic = normalized_topic
+                results[normalized_topic] = topic_result
+        return results
 
     def _extract_chunk(
         self,
@@ -338,15 +372,17 @@ class TaggingService:
             f"{filename_section}"
             "Full Document Text:\n\n"
             f"{text}\n\n"
+            "UNIVERSAL THEMATIC TOPIC POLICY:\n"
+            f"{self.classification_policy_prompt_text}\n\n"
             "Based on the content above, extract precision tags in this order:\n\n"
             "1. 'topic_tags': Categories/Topics first. This is a mandatory multi-label "
             "taxonomy classification step, not optional context. Review the full APPROVED "
-            "TAXONOMY and identify every clearly justified taxonomy topic supported by the "
-            "full document text, not just the single best or most obvious topic. Use format: "
+            "TAXONOMY and identify every substantively supported taxonomy topic for which the "
+            "defining relationship is an important document subject. Use format: "
             "Category/Topic. A document may match multiple topics across different categories. "
-            "Include every supported topic with a brief 'reason' containing direct quoted "
-            "evidence. Do not stop after finding one matching topic. Use an empty list only "
-            "when no approved taxonomy topic is supported by the full document text.\n"
+            "Include every substantively supported topic with a brief 'reason' containing direct "
+            "quoted evidence, but omit marginal or incidental matches. Use an empty list when no "
+            "approved taxonomy topic is a substantive subject of the full document text.\n"
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
             "2. 'entity_tags': Entities second. Hierarchical tags for mentioned entities. "
@@ -398,7 +434,8 @@ class TaggingService:
             f"{self.useful_tags_prompt_text}"
             f"{reuse_section}\n"
             "CRITICAL RULES:\n"
-            "- Only include tags that are clearly justified by the text.\n"
+            "- Only include thematic topics that are important, substantively treated subjects.\n"
+            "- Do not include a topic for a keyword or passing reference alone. Prefer omission.\n"
             "- Output order matters for LLM decoding: fill topic_tags first, entity_tags "
             "second, and conceptual_tags last.\n"
             "- Exclude routine administrative labels (agenda, report, notice, corrigendum).\n"
