@@ -17,6 +17,8 @@ def test_markdown_indices_generation(tmp_path: Path) -> None:
         "Entities/Org/NATO",
         "Entities/City/US/Washington",
         "Entities/Person/Luns",
+        "Entities/Person/Andrae/K-W",
+        "Entities/Person/Andrae/Joseph",
         "Topics/Defense",
         "Tags/Strategy",
     }
@@ -69,6 +71,12 @@ def test_markdown_indices_generation(tmp_path: Path) -> None:
     # Check People index
     people_content = (vault_dir / "Index - People.md").read_text(encoding="utf-8")
     assert "### #Entities/Person/Luns" in people_content
+    assert "## A" in people_content
+    assert people_content.index("## A") < people_content.index("## L")
+    assert people_content.index("#Entities/Person/Andrae/Joseph") < people_content.index(
+        "#Entities/Person/Luns"
+    )
+    assert people_content.count("### #Entities/Person/Andrae/") == 2
 
     # Check Topics index
     topics_content = (vault_dir / "Index - Topics.md").read_text(encoding="utf-8")

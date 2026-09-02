@@ -137,3 +137,29 @@ def test_index_page_capping(tmp_path: Path) -> None:
         "and 5 more. [Search in Vault](obsidian://search?vault=vault&query=tag%3A%23Entities/City/Belgium/Brussels)"
         in cities_content
     )
+
+
+def test_people_index_groups_full_paths_by_surname(tmp_path: Path) -> None:
+    vault_dir = tmp_path / "vault"
+    vault_dir.mkdir()
+    tags = CanonicalTags(
+        raw_paths={
+            "Entities/Person/Andrae",
+            "Entities/Person/Andrae/K-W",
+            "Entities/Person/Andrae/Joseph",
+            "Entities/Person/Luns/Joseph-M-A-H",
+        }
+    )
+    indexer = IndexingService(vault_dir)
+    indexer.entries = [
+        IndexEntry(doc_path=Path("people.md"), title="People", canonical_tags=tags)
+    ]
+
+    indexer.generate_markdown_indices()
+
+    content = (vault_dir / "Index - People.md").read_text(encoding="utf-8")
+    assert content.count("## A") == 1
+    assert content.count("## L") == 1
+    assert content.index("## A") < content.index("## L")
+    assert content.count("### #Entities/Person/Andrae") == 3
+    assert "### #Entities/Person/Luns/Joseph-M-A-H" in content
