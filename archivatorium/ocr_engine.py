@@ -11,6 +11,8 @@ from ollama import Client
 from pdf2image import convert_from_path
 from PyPDF2 import PdfReader
 
+from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
+
 logger = logging.getLogger("archivatorium.ocr_engine")
 
 SYSTEM_PROMPT = (
@@ -177,7 +179,7 @@ QWEN38_OCR_PROFILE = OCRModeProfile(
     system_prompt=QWEN38_SYSTEM_PROMPT,
     user_prompt=QWEN38_USER_PROMPT,
     include_previous_page_context=True,
-    think="high",
+    think="medium",
     inference_defaults=(("num_predict", 4096 * 4),),
 )
 
@@ -266,6 +268,7 @@ class OCREngine:
         repeat_penalty: float | None = None,
         repeat_last_n: int | None = None,
         num_predict: int | None = None,
+        model_think: ModelThink = MODEL_THINK_DEFAULT,
     ):
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.user = user or os.environ.get("OLLAMA_USER")
@@ -274,6 +277,7 @@ class OCREngine:
         self.dpi = dpi
         self.profile = resolve_ocr_mode(mode)
         self.mode = self.profile.name
+        self.model_think = model_think
         self.inference_overrides = InferenceOverrides(
             temperature=temperature,
             top_p=top_p,
@@ -390,8 +394,9 @@ class OCREngine:
             "options": options,
             "stream": False,
         }
-        if self.profile.think is not None:
-            request["think"] = self.profile.think
+        request_think = self.model_think if self.mode == "qwen38" else self.profile.think
+        if request_think is not None:
+            request["think"] = request_think
         return request
 
     def run_ocr(

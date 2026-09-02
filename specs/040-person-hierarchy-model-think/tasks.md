@@ -84,7 +84,7 @@ tagging and unrelated OCR profiles retain their prior behavior.
 ### Implementation for User Story 2
 
 - [X] T009 [US2] Implement the shared `False|low|medium|high` reasoning type and case-insensitive CLI conversion in archivatorium/utils/model_think.py
-- [ ] T010 [P] [US2] Change the Qwen 3.8 default to medium and add a Qwen-only per-run reasoning override while preserving other mode profiles in archivatorium/ocr_engine.py
+- [X] T010 [P] [US2] Change the Qwen 3.8 default to medium and add a Qwen-only per-run reasoning override while preserving other mode profiles in archivatorium/ocr_engine.py
 - [ ] T011 [P] [US2] Store the command-scoped reasoning setting and pass it to primary and conditional date structured extraction calls in archivatorium/processor_metadata.py
 - [ ] T012 [US2] Add `--model-think` to the metadata and OCR commands and pass the converted setting to their processor/engine boundaries in archivatorium/cli.py
 
