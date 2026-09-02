@@ -107,7 +107,7 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.
 
 #### Options
 - `--model TEXT`: The Ollama model to use (default: `gemma4:31b`).
-- `--model-think [False|low|medium|high]`: Case-insensitive reasoning effort for primary metadata extraction and conditional final-date extraction (default: `medium`). Tag extraction remains non-thinking.
+- `--model-think [False|low|medium|high]`: Case-insensitive reasoning effort for primary metadata extraction, conditional final-date extraction, and every tag-inference window (default: `medium`). `False` disables reasoning with a boolean request value.
 - `--mask TEXT`: Glob pattern for Markdown files to enrich (default: `*.md`). Non-matching Markdown files are not sent to metadata or tagging enrichment.
 - `--overwrite`: Overwrite existing files in output directory.
 - `--hierarchy-file`: Required path to a YAML topic hierarchy (e.g., `topics/NATO_themes.yaml`).
@@ -143,6 +143,25 @@ are omitted, and an empty thematic-topic list is valid.
 
 Archivatorium does not migrate or rewrite v1 topic paths. The v2 hierarchy contains narrower and
 split concepts, so adopting it requires reclassification through a fresh metadata run.
+
+#### Controlled Conceptual Tags
+
+`topics/USEFUL_TAGS.yaml` is a preferred seed vocabulary, not an allowlist. The model may introduce
+a genuinely distinct concept when the document discusses it substantively. The prompt asks for the
+principal concepts in descending importance, normally 5–12, but does not require weak tags to fill
+that range.
+
+The application then enforces document-level safety boundaries: at most 20 unique conceptual tags,
+at most five tags novel to the current seed and established vocabulary, normalized exact
+deduplication, and removal of tags that duplicate entity names. Entity separation also applies to
+seed and established tags.
+
+A valid new tag is written to its first source document immediately, but it is not offered as
+preferred vocabulary to the following documents until it appears in two independent documents.
+Existing archive output contributes to this count during the normal preflight scan; no vocabulary
+database or migration is required. Existing documents are not rewritten automatically. Rerun
+`metadata` with the desired taxonomy, tags file, reasoning effort, and output/overwrite policy to
+adopt the revised selection behavior.
 
 #### Person Entity Paths
 

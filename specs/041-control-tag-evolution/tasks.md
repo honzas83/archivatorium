@@ -129,8 +129,8 @@ tag-inference calls.
 
 **Purpose**: Document the completed behavior and validate all stories together
 
-- [ ] T022 [P] Document seed vocabulary, two-document promotion, 5–12 prompt target, hard limits, entity precedence, rerun adoption, and metadata/tag reasoning semantics in README.md
-- [ ] T023 Run the complete focused workflow from specs/041-control-tag-evolution/quickstart.md and reconcile any cross-story regression only in the feature-owned source and test paths named in this task list
+- [X] T022 [P] Document seed vocabulary, two-document promotion, 5–12 prompt target, hard limits, entity precedence, rerun adoption, and metadata/tag reasoning semantics in README.md
+- [X] T023 Run the complete focused workflow from specs/041-control-tag-evolution/quickstart.md and reconcile any cross-story regression only in the feature-owned source and test paths named in this task list
 - [ ] T024 Run `ruff check .`, `ruff format --check .`, `flake8 archivatorium tests --max-cognitive-complexity=10`, `mypy .`, `pytest`, `coverage run -m pytest`, and `coverage report`; fix feature-caused failures only in archivatorium/, tests/, and README.md without staging unrelated working-tree changes
 
 ---
