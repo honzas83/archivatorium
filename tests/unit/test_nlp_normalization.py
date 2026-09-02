@@ -1,4 +1,5 @@
 from archivatorium.utils.nlp import (
+    conceptual_tag_key,
     filter_low_value_tags,
     normalize_exercise_tag,
     suppress_duplicates,
@@ -49,4 +50,15 @@ def test_suppress_duplicates_preserves_protected_vocabulary_terms():
     assert "EntityName" not in filtered
     assert "Preferred-Concept" in filtered
     assert "Topic-Component" in filtered
-    assert "ACRONYM" in filtered
+    assert "ACRONYM" not in filtered
+
+
+def test_conceptual_tag_key_normalizes_hash_case_punctuation_and_spacing():
+    variants = {
+        conceptual_tag_key("#Nuclear Planning"),
+        conceptual_tag_key("nuclear-planning"),
+        conceptual_tag_key("NUCLEAR--PLANNING"),
+        conceptual_tag_key(" Nuclear.Planning "),
+    }
+
+    assert variants == {"nuclearplanning"}

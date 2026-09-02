@@ -50,27 +50,32 @@ def suppress_duplicates(
 ) -> list[str]:
     """
     Remove conceptual tags that are already represented as entities or topics.
-    Comparison is case-insensitive and ignores the '#' prefix on conceptual tags.
-    Protected terms are preferred conceptual vocabulary and are preserved even
-    when they overlap with entity names or topic components.
+    Comparison uses punctuation-insensitive canonical keys. Entity names always
+    take precedence, including over protected seed or established vocabulary.
+    Protected terms retain the legacy ability to overlap with topic components.
     """
-    protected = {term.lstrip("#").lower() for term in protected_terms or set()}
+    protected = {conceptual_tag_key(term) for term in protected_terms or set()}
 
-    # Build set of exact "taken" concepts from entity names and topic components.
-    taken = set()
-    for e in entities:
-        parts = e.split("/")
+    entity_taken: set[str] = set()
+    for entity in entities:
+        parts = [part for part in entity.split("/")[1:] if part]
+        entity_taken.update(conceptual_tag_key(part) for part in parts)
         if parts:
-            taken.add(parts[-1].lower())
-    for t in topics:
-        parts = t.split("/")
-        for part in parts:
-            taken.add(part.lower())
+            entity_taken.add(conceptual_tag_key("/".join(parts)))
+
+    topic_taken = {
+        conceptual_tag_key(part)
+        for topic in topics
+        for part in topic.split("/")
+        if part
+    }
 
     filtered = []
     for tag in conceptual:
-        clean_tag = tag.lstrip("#").lower()
-        if clean_tag in protected or clean_tag not in taken:
+        clean_tag = conceptual_tag_key(tag)
+        if clean_tag in entity_taken:
+            continue
+        if clean_tag in protected or clean_tag not in topic_taken:
             filtered.append(tag)
     return filtered
 
@@ -144,3 +149,9 @@ def normalize_tag_component(component: str) -> str:
         norm_parts.append(s)
 
     return "/".join(norm_parts)
+
+
+def conceptual_tag_key(tag: str) -> str:
+    """Return an exact comparison key after case and punctuation normalization."""
+    normalized = normalize_tag_component(tag).casefold()
+    return re.sub(r"[^a-z0-9]", "", normalized)

@@ -22,7 +22,7 @@ group; do not include unrelated working-tree changes.
 
 **Purpose**: Establish a safe baseline without modifying user-owned work
 
-- [ ] T001 Run the existing focused baseline tests in tests/unit/test_tagging_service.py, tests/unit/test_tag_suppression.py, tests/unit/test_nlp_normalization.py, tests/unit/test_processor_counters.py, tests/unit/test_metadata_reasoning.py, tests/integration/test_model_think_cli.py, tests/integration/test_tagging_pass.py, and tests/integration/test_resume_safety.py and record any pre-existing failures before feature edits
+- [X] T001 Run the existing focused baseline tests in tests/unit/test_tagging_service.py, tests/unit/test_tag_suppression.py, tests/unit/test_nlp_normalization.py, tests/unit/test_processor_counters.py, tests/unit/test_metadata_reasoning.py, tests/integration/test_model_think_cli.py, tests/integration/test_tagging_pass.py, and tests/integration/test_resume_safety.py and record any pre-existing failures before feature edits
 
 ---
 
@@ -34,8 +34,8 @@ the document finalizer and vocabulary classification
 **⚠️ CRITICAL**: User story implementation starts only after this shared comparison behavior is
 tested and available.
 
-- [ ] T002 Add failing regression tests for punctuation/case-normalized conceptual identity, every meaningful hierarchical entity-path component, and the rule that protected seed/reused terms cannot bypass entity collisions in tests/unit/test_nlp_normalization.py and tests/unit/test_tag_suppression.py
-- [ ] T003 Implement canonical conceptual comparison keys and unconditional entity-component collision filtering while preserving the existing topic-overlap policy in archivatorium/utils/nlp.py
+- [X] T002 Add failing regression tests for punctuation/case-normalized conceptual identity, every meaningful hierarchical entity-path component, and the rule that protected seed/reused terms cannot bypass entity collisions in tests/unit/test_nlp_normalization.py and tests/unit/test_tag_suppression.py
+- [X] T003 Implement canonical conceptual comparison keys and unconditional entity-component collision filtering while preserving the existing topic-overlap policy in archivatorium/utils/nlp.py
 
 **Checkpoint**: Shared normalization and entity separation are deterministic and independently
 tested.
