@@ -24,7 +24,7 @@ increment. Real NATO documents and review outputs remain under gitignored
 
 **Purpose**: Replace tests that rely on missing YAML files with reusable, valid taxonomy inputs.
 
-- [ ] T001 Add reusable minimal legacy and schema-v2 taxonomy fixtures, including policy and useful-tag files, in tests/conftest.py
+- [X] T001 Add reusable minimal legacy and schema-v2 taxonomy fixtures, including policy and useful-tag files, in tests/conftest.py
 
 ---
 

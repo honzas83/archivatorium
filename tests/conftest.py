@@ -63,6 +63,39 @@ categories:
 
 
 @pytest.fixture
+def legacy_hierarchy_file(hierarchy_file: Path) -> Path:
+    """Alias the shared minimal hierarchy as an explicit legacy taxonomy fixture."""
+    return hierarchy_file
+
+
+@pytest.fixture
+def v2_hierarchy_file(tmp_path: Path) -> Path:
+    """Create a minimal schema-v2 hierarchy for service-level tests."""
+    path = tmp_path / "hierarchy_v2.yaml"
+    path.write_text(
+        """
+schema_version: 2
+classification_policy:
+  substantive_subject_rule: Assign only important subjects treated substantively.
+  omission_rule: Prefer omission; an empty thematic-topic list is valid.
+  insufficient_evidence_rule: A mention, entity, title, citation, or meeting is insufficient alone.
+categories:
+  - category: Nuclear Doctrine and Deterrence
+    description: Nuclear doctrines that deter aggression.
+    topics:
+      - topic: Nuclear Deterrence
+        description: Substantive analysis of deterrence through nuclear retaliation.
+        positive_samples: |
+          Credibility of the nuclear deterrent
+        negative_samples: |
+          A passing mention of nuclear weapons
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return path
+
+
+@pytest.fixture
 def useful_tags_file(tmp_path: Path) -> Path:
     path = tmp_path / "useful_tags.yaml"
     path.write_text(
