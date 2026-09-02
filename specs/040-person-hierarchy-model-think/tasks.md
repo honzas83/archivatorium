@@ -56,7 +56,7 @@ over-deep, or role-bearing candidates are omitted.
 ### Implementation for User Story 1
 
 - [X] T003 [US1] Implement shared Person path parsing, component validation, tag normalization, initials hyphenation, and prohibited-modifier rejection in archivatorium/utils/person_entities.py
-- [ ] T004 [P] [US1] Change model-visible entity field descriptions to `Person/<surname>[/<given-name-or-initials>]` in archivatorium/models/metadata.py
+- [X] T004 [P] [US1] Change model-visible entity field descriptions to `Person/<surname>[/<given-name-or-initials>]` in archivatorium/models/metadata.py
 - [ ] T005 [US1] Update Person instructions/examples and normalize every generated Person candidate before single-pass or windowed aggregation in archivatorium/services/tagging_service.py
 
 **Checkpoint**: Newly generated Person candidates satisfy the Person path contract independently of
