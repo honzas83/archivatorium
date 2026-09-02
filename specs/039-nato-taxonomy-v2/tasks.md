@@ -108,7 +108,7 @@ serialized exactly once.
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Extend flattened topic records with canonical category and complete category_description while retaining every non-empty topic sample in archivatorium/services/flattening_service.py
+- [X] T015 [US3] Extend flattened topic records with canonical category and complete category_description while retaining every non-empty topic sample in archivatorium/services/flattening_service.py
 - [ ] T016 [US3] Serialize the classifier prompt payload as classification_policy plus topics without editorial root fields in archivatorium/services/tagging_service.py
 
 **Checkpoint**: User Story 3 proves 100% of v2 topic definitions retain their category context,
