@@ -61,36 +61,19 @@ As a taxonomy maintainer, I want all classification-relevant category and topic 
 
 ---
 
-### User Story 4 - Verify Topic Evidence (Priority: P2)
+### User Story 4 - Adopt V2 by Rerunning Metadata (Priority: P3)
 
-As an archive researcher, I want every topic justification grounded in the document text, so that fabricated quotations and keyword-only explanations do not appear as evidence.
+As an archive maintainer, I want the revised taxonomy introduced as a separate selectable file, so that existing archives remain reproducible and I can regenerate metadata with v2 when ready.
 
-**Why this priority**: Validation identified unsupported and occasionally fabricated supporting quotations. A better hierarchy cannot correct evidence that is not present in the source.
+**Why this priority**: The new paths should take effect only when a maintainer deliberately reruns the metadata command with the v2 file.
 
-**Independent Test**: Submit topic assignments containing exact quotations, quotations differing only in conservative whitespace, and quotations absent from the document. Accept the grounded cases and reject or recover the unsupported case without publishing it as valid evidence.
-
-**Acceptance Scenarios**:
-
-1. **Given** a topic justification containing a quotation found in the source, **When** the result is validated, **Then** the topic assignment is retained.
-2. **Given** a quotation that differs from the source only by line wrapping or repeated whitespace, **When** it is validated, **Then** conservative normalization may establish the match without changing words.
-3. **Given** a quotation that cannot be found in the source, **When** the result is validated, **Then** the unsupported assignment is not published as valid and the system attempts the configured recovery behavior.
-4. **Given** a real quotation that merely contains a topic keyword, **When** the topic relationship is evaluated, **Then** the topic is omitted unless the quotation demonstrates the topic's defining subject.
-
----
-
-### User Story 5 - Adopt V2 Without Damaging Existing Archives (Priority: P3)
-
-As an archive maintainer, I want the revised taxonomy introduced as a separate version with an explicit path mapping, so that existing archives remain reproducible and renamed or split topics can be migrated deliberately.
-
-**Why this priority**: Renaming and splitting topic paths can otherwise fragment indexes or silently change the meaning of existing archive tags.
-
-**Independent Test**: Confirm that the original taxonomy remains available unchanged, the v2 taxonomy can be selected independently, and every renamed, moved, or split v1 topic has documented migration guidance.
+**Independent Test**: Confirm that the original taxonomy remains available unchanged, then run the metadata command into a separate output directory with v2 and verify that only approved v2 paths are produced.
 
 **Acceptance Scenarios**:
 
 1. **Given** an existing workflow that selects the original taxonomy, **When** the v2 taxonomy is added, **Then** the original taxonomy and its outputs remain available.
 2. **Given** a new workflow selecting the v2 taxonomy, **When** a document is classified, **Then** it uses only approved v2 paths.
-3. **Given** a v1 topic that was renamed, moved, or split, **When** a maintainer reviews migration guidance, **Then** the old path and all applicable new paths are explicit, including cases requiring reclassification rather than automatic one-to-one replacement.
+3. **Given** an archive previously generated with v1, **When** a maintainer wants v2 metadata, **Then** the supported procedure is to rerun the metadata command with `NATO_themes_v2.yaml`, not transform old topic paths.
 
 ### Edge Cases
 
@@ -99,8 +82,7 @@ As an archive maintainer, I want the revised taxonomy introduced as a separate v
 - A cover note and one or more substantive attachments are present in the same file and concern different subjects.
 - A topic is named only in the title of a cited or attached document, not discussed in the document under classification.
 - A country or organization is present only in an attendance list, distribution list, address block, or reference list.
-- OCR corruption changes a topic-bearing phrase, acronym, quotation, country name, or organization name.
-- A quotation spans a line or page break, contains repeated whitespace, or uses typographic punctuation that differs from the extracted text.
+- OCR corruption changes a topic-bearing phrase, acronym, country name, or organization name.
 - A classification-ready taxonomy contains a missing category name, missing topic name, duplicate topic path, empty description, or examples of an unexpected type.
 - A document supports multiple topics, including two closely related topics, with independent substantive evidence for each.
 - Historical status depends on document date, such as Finland or Sweden being discussed as neutral or non-aligned during the Cold War.
@@ -134,25 +116,18 @@ As an archive maintainer, I want the revised taxonomy introduced as a separate v
 - **FR-023**: The classifier MUST receive the full v2 category path, category description, topic description, positive examples, and negative examples for every topic.
 - **FR-024**: Classification-relevant taxonomy information MUST NOT be silently discarded while preparing the taxonomy for classification.
 - **FR-025**: The classifier MUST be instructed to identify all substantively supported topics, but MUST NOT be encouraged to include marginal topics merely to maximize coverage.
-- **FR-026**: Every topic assignment MUST include a direct quotation from the document that demonstrates the defining topic relationship, not merely the occurrence of a related word.
-- **FR-027**: Each supporting quotation MUST be verified against the document text before the assignment is published as grounded evidence.
-- **FR-028**: Quote verification MAY normalize line wrapping, repeated whitespace, and equivalent straight/typographic punctuation, but MUST NOT add, remove, reorder, or replace substantive words.
-- **FR-029**: An assignment with unverified quoted evidence MUST be rejected or retried; it MUST NOT be published as a valid grounded topic assignment.
-- **FR-030**: The v2 taxonomy MUST document the mapping from every renamed, moved, or split v1 topic path to its v2 destination or destinations.
-- **FR-031**: Migration guidance MUST distinguish safe one-to-one path changes from splits that require document reclassification.
-- **FR-032**: Existing archives MUST NOT be rewritten automatically merely because the v2 taxonomy becomes available.
-- **FR-033**: Taxonomy preparation MUST detect duplicate full topic paths and missing required classification guidance before classification begins.
-- **FR-034**: Validation MUST include the known false-positive patterns from the NATO archive review, especially the 85 challenged Extended Deterrence and Tactical Nuclear Sharing assignments and representative failures involving consultation, strike planning, command authority, commands/infrastructure, neutrality, intelligence leaks, and defense spending.
-- **FR-035**: Validation MUST include positive examples for each renamed or newly split topic so that reducing false positives does not eliminate legitimate assignments.
+- **FR-026**: Existing archives MUST NOT be rewritten or path-transformed automatically merely because the v2 taxonomy becomes available.
+- **FR-027**: Adopting v2 MUST use a fresh metadata-command run with `NATO_themes_v2.yaml` into a maintainer-selected output directory.
+- **FR-028**: Taxonomy preparation MUST detect duplicate full topic paths and missing required classification guidance before classification begins.
+- **FR-029**: Validation MUST include the known false-positive patterns from the NATO archive review, especially the 85 challenged Extended Deterrence and Tactical Nuclear Sharing assignments and representative failures involving consultation, strike planning, command authority, commands/infrastructure, neutrality, intelligence leaks, and defense spending.
+- **FR-030**: Validation MUST include positive examples for each renamed or newly split topic so that reducing false positives does not eliminate legitimate assignments.
 
 ### Key Entities
 
-- **Taxonomy Version**: A named, independently selectable set of approved categories and topics with a version-specific file and migration relationship to earlier versions.
+- **Taxonomy Version**: A named, independently selectable set of approved categories and topics with a version-specific file and an explicit rerun workflow for adoption.
 - **Category**: A top-level thematic grouping with a name and description that supplies context to its member topics.
 - **Topic**: An approved thematic subject with a unique full path, precise description, positive examples, negative examples, and a substantive-evidence threshold.
 - **Topic Assignment**: A document-to-topic relationship containing the approved v2 path and a directly quoted justification.
-- **Evidence Quotation**: A source passage used to demonstrate why a topic is a substantive subject of the document, with a verification state against the document text.
-- **Migration Mapping**: The relationship between a v1 topic path and one or more v2 paths, including whether automatic replacement is safe or reclassification is required.
 - **Validation Case**: A reviewed document example with expected included topics, expected excluded topics, and the evidence supporting that expectation.
 
 ## Success Criteria *(mandatory)*
@@ -165,18 +140,16 @@ As an archive maintainer, I want the revised taxonomy introduced as a separate v
 - **SC-004**: At least 95% of routine agendas, meeting notices, distribution lists, cover notes, transmittal notes, corrigenda, cancellations, and empty scans without substantive policy content receive no thematic topic.
 - **SC-005**: No validation case receives Neutral and Non-Aligned Nations solely because it mentions Norway, Denmark, or another NATO member in its ordinary alliance role.
 - **SC-006**: No validation case receives Intelligence Sharing solely because it discusses an unauthorized leak, press disclosure, or adversary intelligence capability.
-- **SC-007**: 100% of published topic justifications in the validation run contain a quotation verifiable in the source after only permitted conservative normalization.
-- **SC-008**: 100% of v2 topics presented for classification retain their category context, descriptions, positive examples, and negative examples.
-- **SC-009**: 100% of renamed, moved, or split v1 topic paths have documented migration guidance, and every split is marked as requiring reclassification.
-- **SC-010**: The original taxonomy remains selectable and produces unchanged approved paths when explicitly selected.
-- **SC-011**: A taxonomy maintainer can identify the defining inclusion threshold and the most important exclusions for any v2 topic in under two minutes using the taxonomy alone.
+- **SC-007**: 100% of v2 topics presented for classification retain their category context, descriptions, positive examples, and negative examples.
+- **SC-008**: The original taxonomy remains selectable and produces unchanged approved paths when explicitly selected.
+- **SC-009**: A fresh metadata-command run explicitly selecting v2 produces only approved v2 topic paths without rewriting the prior v1 output.
+- **SC-010**: A taxonomy maintainer can identify the defining inclusion threshold and the most important exclusions for any v2 topic in under two minutes using the taxonomy alone.
 
 ## Assumptions
 
 - `NATO_themes_v2.yaml` is opt-in and coexists with the original taxonomy; it does not silently become the default as part of this feature.
 - Existing taxonomy consumers continue to use two-part Category/Topic paths. The revised logical hierarchy is expressed through six clearer top-level categories rather than adding an additional path depth.
 - Topics not named in the required changes retain their substantive meaning, though they may move to a more appropriate top-level category and receive clearer negative examples.
-- Existing archive topic tags are not automatically migrated. Split topics require reclassification because one old assignment may map to neither, either, or both replacement topics.
+- Existing archive topic tags are not migrated. Maintainers adopt v2 by rerunning metadata extraction with the new taxonomy into their chosen output location.
 - Ordinary entities and conceptual tags remain available for meaningful mentions that do not meet the thematic-topic threshold.
 - The supplied NATO archive validation feedback is an evaluation source, not production data to be committed to the repository.
-- Conservative quote normalization covers presentation differences only; it never permits paraphrases to be presented as direct quotations.
