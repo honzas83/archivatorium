@@ -144,7 +144,10 @@ class WindowTaggingResult(BaseModel):
     )
     entity_tags: list[str] = Field(
         default_factory=list,
-        description="Hierarchical tags: State/X, Org/X, City/State/City, Person/X.",
+        description=(
+            "Hierarchical tags: State/X, Org/X, City/State/City, "
+            "Person/<surname>[/<given-name-or-initials>]."
+        ),
     )
     conceptual_tags: list[str] = Field(
         default_factory=list,
@@ -187,7 +190,13 @@ class AggregatedTaggingResult(BaseModel):
             "document subjects. Empty is valid when no approved topic meets that threshold."
         ),
     )
-    entity_tags: list[str] = Field(default_factory=list, description="Set union of all entities.")
+    entity_tags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Set union of all entities; Person entities use "
+            "Person/<surname>[/<given-name-or-initials>]."
+        ),
+    )
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(

@@ -137,17 +137,17 @@ def test_qwen38_prompt_matches_complete_single_line_paragraph_contract() -> None
     )
 
 
-def test_qwen38_profile_uses_precise_high_reasoning_type_without_changing_other_modes() -> None:
+def test_qwen38_profile_uses_precise_medium_reasoning_type_without_changing_other_modes() -> None:
     assert get_type_hints(OCRModeProfile)["think"] == (
         bool | Literal["low", "medium", "high"] | None
     )
-    assert QWEN38_OCR_PROFILE.think == "high"
+    assert QWEN38_OCR_PROFILE.think == "medium"
     assert STANDARD_OCR_PROFILE.think is None
     assert GLM_OCR_PROFILE.think is False
     assert FIRERED_OCR_PROFILE.think is None
 
 
-def test_qwen38_retry_reuses_identical_high_reasoning_request(
+def test_qwen38_retry_reuses_identical_medium_reasoning_request(
     mock_ollama_client: MagicMock,
     ocr_response_factory: Callable[[str], MagicMock],
 ) -> None:
@@ -171,7 +171,7 @@ def test_qwen38_retry_reuses_identical_high_reasoning_request(
     second = mock_ollama_client.chat.call_args_list[1].kwargs
     assert first == second
     assert first["model"] == "registry.example/qwen3.8:custom"
-    assert first["think"] == "high"
+    assert first["think"] == "medium"
 
 
 def test_qwen38_discards_separate_reasoning_field(mock_ollama_client: MagicMock) -> None:
@@ -208,7 +208,7 @@ def test_qwen38_next_page_context_uses_content_after_final_think_marker(
         engine.run_ocr(Path("dummy.pdf"))
 
     second_request = mock_ollama_client.chat.call_args_list[1].kwargs
-    assert second_request["think"] == "high"
+    assert second_request["think"] == "medium"
     assert "PAGE ONE" in str(second_request["messages"])
     assert "first thought" not in str(second_request["messages"])
     assert "second thought" not in str(second_request["messages"])

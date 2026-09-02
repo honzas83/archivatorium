@@ -25,6 +25,7 @@ from archivatorium.utils.nlp import (
     normalize_tag_component,
     suppress_duplicates,
 )
+from archivatorium.utils.person_entities import normalize_person_path
 
 logger = logging.getLogger(__name__)
 
@@ -159,12 +160,7 @@ class TaggingService:
             )
 
             # Normalize entities
-            normalized_entities = []
-            for entity in window_result.entity_tags:
-                parts = entity.split("/")
-                norm_parts = [normalize_tag_component(p) for p in parts]
-                normalized_entities.append("/".join(norm_parts))
-            entities_list = sorted(set(normalized_entities))
+            entities_list = sorted(self._normalize_entities(window_result.entity_tags))
 
             # Normalize approved topics and keep the earliest reason.
             topics_dict = self._collect_supported_topics(window_result.topic_tags)
@@ -216,10 +212,7 @@ class TaggingService:
             for t in window_result.conceptual_tags:
                 conceptual_counter.update([normalize_tag_component(t)])
 
-            for e in window_result.entity_tags:
-                parts = e.split("/")
-                norm_parts = [normalize_tag_component(p) for p in parts]
-                all_entities.add("/".join(norm_parts))
+            all_entities.update(self._normalize_entities(window_result.entity_tags))
 
             self._collect_supported_topics(window_result.topic_tags, topics_dict)
 
@@ -244,6 +237,23 @@ class TaggingService:
             entity_tags=entities_list,
             topic_tags=topics_list,
         )
+
+    @staticmethod
+    def _normalize_entities(entity_tags: list[str]) -> set[str]:
+        normalized_entities: set[str] = set()
+        for entity in entity_tags:
+            if entity.split("/", 1)[0].lower() == "person":
+                normalized_person = normalize_person_path(entity)
+                if normalized_person is None:
+                    logger.warning("Dropping malformed Person entity: %s", entity)
+                    continue
+                normalized_entities.add(normalized_person)
+                continue
+
+            parts = entity.split("/")
+            norm_parts = [normalize_tag_component(part) for part in parts]
+            normalized_entities.add("/".join(norm_parts))
+        return normalized_entities
 
     def _collect_supported_topics(
         self,
@@ -388,7 +398,8 @@ class TaggingService:
             "   MANDATORY: When providing a 'reason', include direct citations in double "
             "quotes from the text to justify the topic selection.\n"
             "2. 'entity_tags': Entities second. Hierarchical tags for mentioned entities. "
-            "Use formats: State/<name>, Org/<name>, City/<country>/<city>, Person/<name>.\n"
+            "Use formats: State/<name>, Org/<name>, City/<country>/<city>, "
+            "Person/<surname>[/<given-name-or-initials>].\n"
             "   STRICT ENTITY NORMALIZATION:\n"
             "   - Use English canonical names for States, Organisations, and Cities whenever "
             "the intended entity is clear. For example, use 'Germany' not 'Allemagne', "
@@ -410,6 +421,12 @@ class TaggingService:
             "intended State, Organisation, City, or Person is unclear, omit that entity.\n"
             "   - Keep City tags as City/<country>/<city>; do not emit regions, states, or "
             "countries as cities.\n"
+            "   - For people, put the surname first and the given name or initials second. "
+            "Join separate initials with hyphens: K-W Andrae becomes Person/Andrae/K-W; "
+            "Joseph M.A.H. Luns becomes Person/Luns/Joseph-M-A-H. If only the surname is "
+            "known, use the surname-only form, for example Person/Andrae.\n"
+            "   - Never add a role, title, rank, or office such as minister or secretary to "
+            "a Person path. Omit those modifiers rather than treating them as names.\n"
             "3. 'conceptual_tags': Tags last. Required canonical tag paths for archivally substantive "
             f"concepts. Return at least {MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tag(s) "
             "for substantive documents; include "
@@ -428,6 +445,8 @@ class TaggingService:
             "'State/United-States']\n"
             "- Text: 'The Nuclear Planning Group ST/FF Group met...'\n"
             "  -> entity_tags: ['Org/Nuclear-Planning-Group-Staff-Group']\n"
+            "- Text: 'K. W. Andrae and Joseph M.A.H. Luns attended'\n"
+            "  -> entity_tags: ['Person/Andrae/K-W', 'Person/Luns/Joseph-M-A-H']\n"
             "- Text: 'discussions on the PERSHING missile system...'\n"
             "  -> conceptual_tags: ['Pershing']\n\n"
             "APPROVED TAXONOMY (YAML):\n"

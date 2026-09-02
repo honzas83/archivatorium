@@ -4,6 +4,7 @@ from pathlib import Path
 
 from archivatorium.models.metadata import CanonicalTags
 from archivatorium.utils.nlp import normalize_tag_component
+from archivatorium.utils.person_entities import normalize_person_path
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,8 @@ logger = logging.getLogger(__name__)
 # but space-separated components must start with an uppercase letter or number
 # to avoid matching sentence words like 'and'.
 TAG_PATTERN = re.compile(
-    r"#(?:Entities|Topics|Tags)/[a-zA-Z0-9_/-]+(?:\s+[A-Z0-9][a-zA-Z0-9_-]*|/[a-zA-Z0-9_/-]+)*"
+    r"#(?:Entities|Topics|Tags)/[a-zA-Z0-9_./-]+"
+    r"(?:\s+[A-Z0-9][a-zA-Z0-9_.-]*|/[a-zA-Z0-9_./-]+)*"
 )
 
 # Constants to avoid magic values
@@ -88,7 +90,21 @@ class CanonicalTagParser:
                 "-".join(normalized_parts[2:]),
             ]
 
-        if matching_type in {"State", "Org", "Person"}:
+        if matching_type == "Person":
+            person_path = normalize_person_path("/".join(normalized_parts[1:]))
+            if person_path is None:
+                logger.warning(
+                    f"Malformed generated tag ignored: {raw_match} "
+                    "(Person tag must have format "
+                    "#Entities/Person/<Surname>[/<Given-Name-or-Initials>])"
+                )
+                return
+            person_parts = person_path.split("/")
+            tags.entities["Person"].add("/".join(person_parts[1:]).lower())
+            tags.raw_paths.add(f"Entities/{person_path}")
+            return
+
+        if matching_type in {"State", "Org"}:
             if len(normalized_parts) != STANDARD_ENTITY_COMPONENTS:
                 logger.warning(
                     f"Malformed generated tag ignored: {raw_match} "
