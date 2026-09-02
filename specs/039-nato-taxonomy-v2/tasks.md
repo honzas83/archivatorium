@@ -146,7 +146,7 @@ no default switch, migration map, or old-output mutation.
 - [X] T020 [P] Score the reviewed NATO corpus for SC-001 through SC-006 and record accuracy, challenged-case correction, renamed/split-topic recall, and administrative empty-topic rates in data/039-nato-taxonomy-v2/reports/quality-score.md
 - [X] T021 Re-run the commands and expected outcomes in specs/039-nato-taxonomy-v2/quickstart.md and correct that guide if the implemented interface differs
 - [X] T022 Run ruff, formatting, flake8 complexity, mypy, pytest, and coverage gates across archivatorium/ and tests/, recording any environment-only limitations in specs/039-nato-taxonomy-v2/quickstart.md
-- [ ] T023 Verify `git diff --exit-code -- topics/NATO_themes.yaml`, confirm its SHA-256 remains `90daa6f599decda1c6fed633a83b99d95362a59abb2eac4e9c1d61a6f4bf515a`, and inspect git status to ensure data/ and unrelated working-tree files are not staged
+- [X] T023 Verify `git diff --exit-code -- topics/NATO_themes.yaml`, confirm its SHA-256 remains `90daa6f599decda1c6fed633a83b99d95362a59abb2eac4e9c1d61a6f4bf515a`, and inspect git status to ensure data/ and unrelated working-tree files are not staged
 
 ---
 
