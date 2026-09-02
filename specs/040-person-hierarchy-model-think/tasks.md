@@ -78,7 +78,7 @@ tagging and unrelated OCR profiles retain their prior behavior.
 > **NOTE: Write these tests first and confirm they fail before implementation.**
 
 - [X] T006 [P] [US2] Add failing conversion, help/default, case-insensitive choice, and pre-processing rejection tests for both commands in tests/integration/test_model_think_cli.py
-- [ ] T007 [P] [US2] Add failing primary extraction, conditional date extraction, retry propagation, default-medium, and tagging-isolation tests in tests/unit/test_metadata_reasoning.py
+- [X] T007 [P] [US2] Add failing primary extraction, conditional date extraction, retry propagation, default-medium, and tagging-isolation tests in tests/unit/test_metadata_reasoning.py
 - [ ] T008 [P] [US2] Add failing Qwen 3.8 default/override and unchanged standard, GLM, FireRed, retry, and reasoning-stripping cases in tests/unit/test_ocr_reasoning.py, updating former high-default expectations in tests/unit/test_ocr_engine.py and tests/integration/test_ocr_cli.py
 
 ### Implementation for User Story 2
