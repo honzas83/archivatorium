@@ -50,7 +50,7 @@ over-deep, or role-bearing candidates are omitted.
 
 > **NOTE: Write these tests first and confirm they fail before implementation.**
 
-- [ ] T001 [P] [US1] Add failing unit cases for full names, surname-only names, K-W/K. W. normalization, Joseph M.A.H. mixed-name initials, compound names, role modifiers, missing surnames, and excessive depth in tests/unit/test_person_entities.py
+- [X] T001 [P] [US1] Add failing unit cases for full names, surname-only names, K-W/K. W. normalization, Joseph M.A.H. mixed-name initials, compound names, role modifiers, missing surnames, and excessive depth in tests/unit/test_person_entities.py
 - [ ] T002 [P] [US1] Add failing prompt and aggregation cases for surname-first output, initials, surname-only identity, role exclusion, deduplication, and malformed-candidate warnings in tests/unit/test_person_tagging.py
 
 ### Implementation for User Story 1
