@@ -111,14 +111,14 @@ per existing inference window.
 
 ### Tests for User Story 3
 
-- [ ] T017 [US3] Add failing parameterized unit tests for the TaggingService default and explicit typed reasoning values plus identical reasoning and unchanged call count across every window in tests/unit/test_metadata_reasoning.py and tests/unit/test_tagging_service.py
-- [ ] T018 [P] [US3] Extend metadata CLI tests to assert that case-insensitive `False`, `low`, `medium`, `high`, and the default `medium` reach both MetadataProcessor and TaggingService with correct types in tests/integration/test_model_think_cli.py
+- [X] T017 [US3] Add failing parameterized unit tests for the TaggingService default and explicit typed reasoning values plus identical reasoning and unchanged call count across every window in tests/unit/test_metadata_reasoning.py and tests/unit/test_tagging_service.py
+- [X] T018 [P] [US3] Extend metadata CLI tests to assert that case-insensitive `False`, `low`, `medium`, `high`, and the default `medium` reach both MetadataProcessor and TaggingService with correct types in tests/integration/test_model_think_cli.py
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add typed `model_think` constructor state with the shared `medium` default and replace hard-coded `think=False` at the sole tag extraction boundary in archivatorium/services/tagging_service.py
-- [ ] T020 [US3] Pass the converted metadata-command reasoning value into TaggingService and update option help to cover metadata and tag inference in archivatorium/cli.py
-- [ ] T021 [US3] Run and pass the independent US3 suite in tests/unit/test_metadata_reasoning.py, tests/unit/test_tagging_service.py, and tests/integration/test_model_think_cli.py
+- [X] T019 [US3] Add typed `model_think` constructor state with the shared `medium` default and replace hard-coded `think=False` at the sole tag extraction boundary in archivatorium/services/tagging_service.py
+- [X] T020 [US3] Pass the converted metadata-command reasoning value into TaggingService and update option help to cover metadata and tag inference in archivatorium/cli.py
+- [X] T021 [US3] Run and pass the independent US3 suite in tests/unit/test_metadata_reasoning.py, tests/unit/test_tagging_service.py, and tests/integration/test_model_think_cli.py
 
 **Checkpoint**: US3 independently proves command-scoped reasoning reaches all and only the existing
 tag-inference calls.

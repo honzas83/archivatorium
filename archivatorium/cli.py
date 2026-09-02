@@ -154,7 +154,7 @@ def clean(  # noqa: PLR0913
     callback=convert_model_think,
     default=MODEL_THINK_DEFAULT,
     show_default=True,
-    help="Reasoning effort for metadata extraction.",
+    help="Reasoning effort for metadata extraction and tag inference.",
 )
 @click.option(
     "--pdf-dir", type=click.Path(path_type=Path), help="Directory containing source PDFs."
@@ -213,6 +213,7 @@ def metadata(  # noqa: PLR0913
         themes_path=hierarchy_file,
         useful_tags_path=tags_file,
         model_name=model,
+        model_think=model_think,
     )
 
     processor = MetadataProcessor(

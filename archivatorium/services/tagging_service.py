@@ -23,6 +23,7 @@ from archivatorium.services.flattening_service import (
 )
 from archivatorium.services.ollama_client import OllamaClient
 from archivatorium.services.windowing_service import SlidingWindowService
+from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
 from archivatorium.utils.nlp import (
     conceptual_tag_key,
     estimate_tokens,
@@ -76,6 +77,7 @@ class TaggingService:
         useful_tags_path: Path | None = None,
         context_limit: int = 32000,
         model_name: str = "gemma4:31b",
+        model_think: ModelThink = MODEL_THINK_DEFAULT,
     ):
         self.client = ollama_client
         self.windowing_service = windowing_service
@@ -83,6 +85,7 @@ class TaggingService:
         self.useful_tags_path = useful_tags_path
         self.context_limit = context_limit
         self.model_name = model_name
+        self.model_think = model_think
         self.flattening_service = FlatteningService()
 
         # Load and Normalize Themes
@@ -302,7 +305,7 @@ class TaggingService:
         source_filename: str | None = None,
     ) -> WindowTaggingResult:
         """
-        Extracts tags from a single chunk of text using a non-thinking model.
+        Extracts tags from a single chunk using the command-scoped reasoning setting.
         """
         prompt = self._generate_tagging_prompt(
             chunk, reuse_hints=reuse_hints, source_filename=source_filename
@@ -310,7 +313,7 @@ class TaggingService:
         schema = SubstantiveWindowTaggingResult if require_conceptual_tags else WindowTaggingResult
         try:
             return self.client.extract_structured(
-                prompt, schema, model=self.model_name, think=False
+                prompt, schema, model=self.model_name, think=self.model_think
             )
         except TaggingQualityError:
             raise

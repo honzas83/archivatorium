@@ -506,6 +506,30 @@ def test_window_finalizer_ranks_aggregate_once_and_applies_document_novel_budget
     assert mock_ollama.extract_structured.call_count == 2
 
 
+def test_windowed_tagging_uses_same_reasoning_without_extra_calls(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        Path("dummy.yaml"),
+        Path("dummy.yaml"),
+        context_limit=1,
+        model_think="high",
+    )
+    mock_windowing.get_windows.return_value = ["one", "two", "three"]
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(conceptual_tags=["Tag"])
+
+    service.extract_tags("A substantive document requiring three windows.")
+
+    assert mock_ollama.extract_structured.call_count == 3
+    assert [call.kwargs["think"] for call in mock_ollama.extract_structured.call_args_list] == [
+        "high",
+        "high",
+        "high",
+    ]
+
+
 def test_final_filtering_does_not_manufacture_replacement_for_entity_only_result(
     mock_ollama: MagicMock, mock_windowing: MagicMock, useful_tags_file: Path
 ) -> None:

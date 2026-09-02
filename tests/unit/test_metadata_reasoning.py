@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from archivatorium.models.metadata import (
     LastDateSchema,
     MetadataSchema,
@@ -10,6 +12,7 @@ from archivatorium.models.metadata import (
 from archivatorium.processor_metadata import CHUNK_SIZE, MetadataProcessor
 from archivatorium.services.ollama_client import OllamaClient
 from archivatorium.services.tagging_service import TaggingService
+from archivatorium.utils.model_think import ModelThink
 
 
 def test_metadata_reasoning_defaults_to_medium(tmp_path: Path) -> None:
@@ -57,7 +60,10 @@ def test_structured_extraction_retries_keep_reasoning_value() -> None:
     assert [call.kwargs["think"] for call in client.client.chat.call_args_list] == ["low", "low"]
 
 
-def test_metadata_reasoning_does_not_change_tagging_reasoning(tmp_path: Path) -> None:
+@pytest.mark.parametrize("model_think", [False, "low", "medium", "high"])
+def test_tagging_inference_receives_reasoning_value(
+    tmp_path: Path, model_think: ModelThink
+) -> None:
     hierarchy = tmp_path / "hierarchy.yaml"
     hierarchy.write_text(
         """
@@ -78,9 +84,33 @@ categories:
     )
     client = MagicMock()
     client.extract_structured.return_value = WindowTaggingResult()
-    service = TaggingService(client, MagicMock(), hierarchy)
+    service = TaggingService(client, MagicMock(), hierarchy, model_think=model_think)
 
     result = service._extract_chunk("stub", require_conceptual_tags=False)
 
     assert result == WindowTaggingResult()
-    assert client.extract_structured.call_args.kwargs["think"] is False
+    assert client.extract_structured.call_args.kwargs["think"] == model_think
+
+
+def test_tagging_reasoning_defaults_to_medium(tmp_path: Path) -> None:
+    hierarchy = tmp_path / "hierarchy.yaml"
+    hierarchy.write_text(
+        """
+categories:
+  - category: Diplomacy
+    description: Diplomatic subjects
+    topics:
+      - topic: Negotiation
+        description: Substantive negotiations
+        positive_samples: A negotiated agreement
+        negative_samples: A passing mention
+""".lstrip(),
+        encoding="utf-8",
+    )
+    client = MagicMock()
+    client.extract_structured.return_value = WindowTaggingResult()
+
+    service = TaggingService(client, MagicMock(), hierarchy)
+    service._extract_chunk("stub", require_conceptual_tags=False)
+
+    assert client.extract_structured.call_args.kwargs["think"] == "medium"

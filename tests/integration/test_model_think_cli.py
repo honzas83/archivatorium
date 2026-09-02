@@ -46,7 +46,7 @@ def test_model_think_is_case_insensitive_and_typed(
     runner = CliRunner()
     with (
         patch("archivatorium.cli.MetadataProcessor") as metadata_processor,
-        patch("archivatorium.cli.TaggingService"),
+        patch("archivatorium.cli.TaggingService") as tagging_service,
         patch("archivatorium.cli.OllamaClient"),
         patch("archivatorium.ocr_engine.OCREngine") as ocr_engine,
     ):
@@ -59,8 +59,11 @@ def test_model_think_is_case_insensitive_and_typed(
         result = runner.invoke(cli, args)
 
     assert result.exit_code == 0, result.output
-    boundary = metadata_processor if command == "metadata" else ocr_engine
-    assert boundary.call_args.kwargs["model_think"] == request_value
+    if command == "metadata":
+        assert metadata_processor.call_args.kwargs["model_think"] == request_value
+        assert tagging_service.call_args.kwargs["model_think"] == request_value
+    else:
+        assert ocr_engine.call_args.kwargs["model_think"] == request_value
 
 
 @pytest.mark.parametrize("command", ["metadata", "ocr"])
@@ -68,7 +71,7 @@ def test_model_think_defaults_to_medium(tmp_path: Path, command: str) -> None:
     runner = CliRunner()
     with (
         patch("archivatorium.cli.MetadataProcessor") as metadata_processor,
-        patch("archivatorium.cli.TaggingService"),
+        patch("archivatorium.cli.TaggingService") as tagging_service,
         patch("archivatorium.cli.OllamaClient"),
         patch("archivatorium.ocr_engine.OCREngine") as ocr_engine,
     ):
@@ -77,8 +80,11 @@ def test_model_think_defaults_to_medium(tmp_path: Path, command: str) -> None:
         result = runner.invoke(cli, args)
 
     assert result.exit_code == 0, result.output
-    boundary = metadata_processor if command == "metadata" else ocr_engine
-    assert boundary.call_args.kwargs["model_think"] == "medium"
+    if command == "metadata":
+        assert metadata_processor.call_args.kwargs["model_think"] == "medium"
+        assert tagging_service.call_args.kwargs["model_think"] == "medium"
+    else:
+        assert ocr_engine.call_args.kwargs["model_think"] == "medium"
 
 
 @pytest.mark.parametrize("command", ["metadata", "ocr"])
@@ -93,6 +99,8 @@ def test_model_think_help_lists_choices_and_default(command: str) -> None:
     assert "medium" in normalized_help
     assert "high" in normalized_help
     assert "default: medium" in normalized_help
+    if command == "metadata":
+        assert "tag inference" in normalized_help
 
 
 @pytest.mark.parametrize("command", ["metadata", "ocr"])
