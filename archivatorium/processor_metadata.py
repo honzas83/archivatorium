@@ -35,6 +35,7 @@ from archivatorium.utils.metadata import (
     stringify_frontmatter,
     strip_generated_sections,
 )
+from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
 from archivatorium.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ class MetadataProcessor:
         tagging_service: TaggingService | None = None,
         input_dir: Path | None = None,
         citekey_mode: str = "stem",
+        model_think: ModelThink = MODEL_THINK_DEFAULT,
     ):
         self.client = ollama_client
         self.output_dir = output_dir
@@ -107,6 +109,7 @@ class MetadataProcessor:
         self.tagging_service = tagging_service
         self.input_dir = input_dir
         self.citekey_mode = citekey_mode
+        self.model_think = model_think
         self.conceptual_tag_counts: Counter[str] = Counter()
         self.topic_counts: Counter[str] = Counter()
         self.entity_counts: dict[str, Counter[str]] = {
@@ -330,7 +333,9 @@ class MetadataProcessor:
         self, input_file: Path, cleaned_content: str, frequent_tags: list[str] | None = None
     ) -> ExtractedMetadata:
         prompt = self._build_metadata_prompt(input_file, cleaned_content, frequent_tags)
-        metadata_obj = self.client.extract_structured(prompt, MetadataSchema)
+        metadata_obj = self.client.extract_structured(
+            prompt, MetadataSchema, think=self.model_think
+        )
         raw_dict = metadata_obj.model_dump()
 
         pages = extract_last_page_header(cleaned_content)
@@ -345,7 +350,9 @@ class MetadataProcessor:
                 "Extract ONLY the complete official date (YYYY-MM-DD)."
             )
             try:
-                date_obj = self.client.extract_structured(date_prompt, LastDateSchema)
+                date_obj = self.client.extract_structured(
+                    date_prompt, LastDateSchema, think=self.model_think
+                )
                 if date_obj.date:
                     raw_dict["date"] = date_obj.date
                     logger.debug(f"Found date at end of document: {date_obj.date}")
