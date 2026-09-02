@@ -82,7 +82,13 @@ class TaggingService:
         self.classification_policy_prompt_text = "\n".join(
             f"- {value}" for value in self.classification_policy.values()
         )
-        self.taxonomy_prompt_text = yaml.dump(self.flattened_taxonomy, sort_keys=False)
+        self.taxonomy_prompt_text = yaml.dump(
+            {
+                "classification_policy": self.classification_policy,
+                "topics": self.flattened_taxonomy,
+            },
+            sort_keys=False,
+        )
 
         # Load and Normalize Useful Tags
         self.useful_tags = []

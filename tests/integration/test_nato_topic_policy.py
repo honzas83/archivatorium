@@ -41,6 +41,6 @@ def test_substantive_policy_and_empty_topic_flow(
     ]
     assert administrative.topic_tags == []
     prompts = [call.args[0] for call in client.extract_structured.call_args_list]
-    assert all("UNIVERSAL THEMATIC TOPIC POLICY" in prompt for prompt in prompts)
+    assert all("classification_policy:" in prompt for prompt in prompts)
     assert all("Prefer omission" in prompt for prompt in prompts)
     assert client.extract_structured.call_count == 2
