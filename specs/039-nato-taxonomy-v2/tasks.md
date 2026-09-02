@@ -55,7 +55,7 @@ and unsupported topic paths never enter aggregated output.
 
 ### Tests for User Story 1
 
-- [ ] T006 [US1] Add failing single-pass and sliding-window tests for substantive-subject wording, incidental mentions, administrative empty-topic output, unknown paths, and earliest supported-path deduplication in tests/unit/test_tagging_service.py
+- [X] T006 [US1] Add failing single-pass and sliding-window tests for substantive-subject wording, incidental mentions, administrative empty-topic output, unknown paths, and earliest supported-path deduplication in tests/unit/test_tagging_service.py
 
 ### Implementation for User Story 1
 

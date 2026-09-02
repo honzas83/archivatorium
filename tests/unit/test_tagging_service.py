@@ -64,6 +64,81 @@ def test_service_precomputes_normalized_approved_topic_ids(
     assert service.approved_topic_ids == {"Defence-Policy/Nuclear-Planning"}
 
 
+def test_v2_prompt_applies_substantive_subject_and_omission_policy(
+    mock_ollama, mock_windowing, v2_hierarchy_file
+):
+    service = TaggingService(mock_ollama, mock_windowing, v2_hierarchy_file)
+
+    prompt = service._generate_tagging_prompt("A meeting mentions nuclear deterrence once.")
+
+    assert "Assign only important subjects treated substantively" in prompt
+    assert "Prefer omission; an empty thematic-topic list is valid" in prompt
+    assert "mention, entity, title, citation, or meeting is insufficient alone" in prompt
+    assert "Do not include a topic for a keyword or passing reference alone" in prompt
+
+
+def test_legacy_prompt_receives_universal_substantive_policy(
+    mock_ollama, mock_windowing, hierarchy_file
+):
+    service = TaggingService(mock_ollama, mock_windowing, hierarchy_file)
+
+    prompt = service._generate_tagging_prompt("Routine agenda mentioning nuclear planning.")
+
+    assert "important subject of the document" in prompt
+    assert "Prefer omission" in prompt
+    assert "empty thematic-topic list" in prompt
+
+
+def test_extract_tags_drops_unknown_topic_without_retry(
+    mock_ollama, mock_windowing, hierarchy_file
+):
+    service = TaggingService(
+        mock_ollama, mock_windowing, hierarchy_file, context_limit=1000
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=["planning"],
+        topic_tags=[TopicResult(topic="Invented/Topic", reason="Incidental mention")],
+    )
+
+    result = service.extract_tags("Substantive discussion of planning policy.")
+
+    assert result.topic_tags == []
+    mock_ollama.extract_structured.assert_called_once()
+
+
+def test_sliding_window_keeps_earliest_supported_topic_reason(
+    mock_ollama, mock_windowing, hierarchy_file
+):
+    service = TaggingService(
+        mock_ollama, mock_windowing, hierarchy_file, context_limit=1
+    )
+    mock_windowing.get_windows.return_value = ["first", "second"]
+    mock_ollama.extract_structured.side_effect = [
+        WindowTaggingResult(
+            conceptual_tags=["planning"],
+            topic_tags=[
+                TopicResult(
+                    topic="Defence Policy/Nuclear Planning", reason="Earliest reason"
+                )
+            ],
+        ),
+        WindowTaggingResult(
+            conceptual_tags=["planning"],
+            topic_tags=[
+                TopicResult(
+                    topic="Defence-Policy/Nuclear-Planning", reason="Later reason"
+                )
+            ],
+        ),
+    ]
+
+    result = service.extract_tags("Substantive document long enough for windows.")
+
+    assert [(topic.topic, topic.reason) for topic in result.topic_tags] == [
+        ("Defence-Policy/Nuclear-Planning", "Earliest reason")
+    ]
+
+
 def test_extract_tags_single_pass(mock_ollama, mock_windowing):
     # Set context limit high to force single pass
     service = TaggingService(
