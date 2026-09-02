@@ -128,7 +128,7 @@ and repository-isolation requirements.
 - [X] T018 [P] Document the Person path forms, initials behavior, excluded role modifiers, metadata rerun adoption, and `--model-think` examples/default/scope in README.md
 - [X] T019 Run every scenario and focused command in specs/040-person-hierarchy-model-think/quickstart.md and correct the guide if the implemented interface differs
 - [X] T020 Run ruff lint/format, flake8 complexity, mypy, pytest, and coverage gates across archivatorium/ and tests/ and record any environment or pre-existing baseline limitations in specs/040-person-hierarchy-model-think/quickstart.md
-- [ ] T021 Inspect `git status --short` and staged paths after validation, remove only feature-created transient artifacts, and confirm unrelated modified tests, archive datasets, and data/ files were not staged
+- [X] T021 Inspect `git status --short` and staged paths after validation, remove only feature-created transient artifacts, and confirm unrelated modified tests, archive datasets, and data/ files were not staged
 
 ---
 
