@@ -380,7 +380,7 @@ def test_ocr_command_qwen38_sends_paragraph_contract_and_preserves_markdown_bloc
     assert (output_dir / "test.md").read_text(encoding="utf-8").endswith(compliant_markdown)
 
 
-def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
+def test_ocr_command_qwen38_uses_medium_reasoning_without_saving_leaked_reasoning(
     temp_ocr_dirs: tuple[Path, Path],
     ocr_response_factory: Callable[[str], MagicMock],
 ) -> None:
@@ -407,7 +407,7 @@ def test_ocr_command_qwen38_uses_high_reasoning_without_saving_leaked_reasoning(
         )
 
     assert result.exit_code == 0, result.output
-    assert mock_client.chat.call_args.kwargs["think"] == "high"
+    assert mock_client.chat.call_args.kwargs["think"] == "medium"
     saved = (output_dir / "test.md").read_text(encoding="utf-8")
     assert saved.endswith("NATO SECRET")
     assert "PRIVATE REASONING" not in saved
