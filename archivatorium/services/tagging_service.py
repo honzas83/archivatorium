@@ -217,22 +217,11 @@ class TaggingService:
                 window_result.conceptual_tags, is_substantive=is_substantive
             )
 
-            seen_in_window: set[str] = set()
-            for rank, tag in enumerate(window_result.conceptual_tags):
-                display_value = normalize_tag_component(tag)
-                key = conceptual_tag_key(display_value)
-                if not key:
-                    continue
-                aggregate = conceptual_aggregates.get(key)
-                if aggregate is None:
-                    aggregate = _ConceptualAggregate(display_value, 0, rank, first_seen)
-                    conceptual_aggregates[key] = aggregate
-                    first_seen += 1
-                else:
-                    aggregate.best_rank = min(aggregate.best_rank, rank)
-                if key not in seen_in_window:
-                    aggregate.window_count += 1
-                    seen_in_window.add(key)
+            first_seen = self._update_conceptual_aggregates(
+                conceptual_aggregates,
+                window_result.conceptual_tags,
+                first_seen,
+            )
 
             all_entities.update(self._normalize_entities(window_result.entity_tags))
 
@@ -261,6 +250,30 @@ class TaggingService:
             entity_tags=entities_list,
             topic_tags=topics_list,
         )
+
+    @staticmethod
+    def _update_conceptual_aggregates(
+        aggregates: dict[str, _ConceptualAggregate],
+        tags: list[str],
+        first_seen: int,
+    ) -> int:
+        seen_in_window: set[str] = set()
+        for rank, tag in enumerate(tags):
+            display_value = normalize_tag_component(tag)
+            key = conceptual_tag_key(display_value)
+            if not key:
+                continue
+            aggregate = aggregates.get(key)
+            if aggregate is None:
+                aggregate = _ConceptualAggregate(display_value, 0, rank, first_seen)
+                aggregates[key] = aggregate
+                first_seen += 1
+            else:
+                aggregate.best_rank = min(aggregate.best_rank, rank)
+            if key not in seen_in_window:
+                aggregate.window_count += 1
+                seen_in_window.add(key)
+        return first_seen
 
     @staticmethod
     def _normalize_entities(entity_tags: list[str]) -> set[str]:
@@ -399,14 +412,11 @@ class TaggingService:
             protected_terms=known_conceptual,
         )
 
+        unique = TaggingService._deduplicate_conceptual_tags(separated)
         retained: list[str] = []
-        seen: set[str] = set()
         novel_count = 0
-        for tag in separated:
+        for tag in unique:
             key = conceptual_tag_key(tag)
-            if not key or key in seen:
-                continue
-            seen.add(key)
             is_novel = key not in known_conceptual
             if is_novel and novel_count >= MAX_NOVEL_CONCEPTUAL_TAGS:
                 continue
@@ -416,6 +426,17 @@ class TaggingService:
             if is_novel:
                 novel_count += 1
         return retained
+
+    @staticmethod
+    def _deduplicate_conceptual_tags(candidates: list[str]) -> list[str]:
+        unique: list[str] = []
+        seen: set[str] = set()
+        for tag in candidates:
+            key = conceptual_tag_key(tag)
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(tag)
+        return unique
 
     def _generate_tagging_prompt(
         self,

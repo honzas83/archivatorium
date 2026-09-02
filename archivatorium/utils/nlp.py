@@ -64,10 +64,7 @@ def suppress_duplicates(
             entity_taken.add(conceptual_tag_key("/".join(parts)))
 
     topic_taken = {
-        conceptual_tag_key(part)
-        for topic in topics
-        for part in topic.split("/")
-        if part
+        conceptual_tag_key(part) for topic in topics for part in topic.split("/") if part
     }
 
     filtered = []
