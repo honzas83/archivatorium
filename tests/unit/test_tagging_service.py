@@ -343,6 +343,27 @@ categories:
     assert "Neg1" in prompt
 
 
+def test_prompt_serializes_policy_and_topics_as_one_payload(
+    mock_ollama, mock_windowing, v2_hierarchy_file, monkeypatch
+):
+    dumped = []
+
+    def capture_dump(data, sort_keys=False):
+        dumped.append(data)
+        return "COMPLETE TAXONOMY PAYLOAD"
+
+    monkeypatch.setattr("archivatorium.services.tagging_service.yaml.dump", capture_dump)
+
+    service = TaggingService(mock_ollama, mock_windowing, v2_hierarchy_file)
+    prompt = service._generate_tagging_prompt("Substantive text")
+
+    assert len(dumped) == 1
+    assert set(dumped[0]) == {"classification_policy", "topics"}
+    assert dumped[0]["classification_policy"] == service.classification_policy
+    assert dumped[0]["topics"] == service.flattened_taxonomy
+    assert prompt.count("COMPLETE TAXONOMY PAYLOAD") == 1
+
+
 def test_extract_tags_raises_quality_error_on_substantive_llm_failure(mock_ollama, mock_windowing):
     service = TaggingService(
         mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
