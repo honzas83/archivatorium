@@ -36,6 +36,7 @@ from archivatorium.utils.metadata import (
     strip_generated_sections,
 )
 from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
+from archivatorium.utils.nlp import conceptual_tag_key
 from archivatorium.utils.tag_parser import CanonicalTagParser
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ logger = logging.getLogger(__name__)
 # Constants for context window management
 CHUNK_SIZE = 10000
 LARGE_DOC_THRESHOLD = 12000
+CONCEPTUAL_TAG_PROMOTION_DOCUMENTS = 2
 
 
 @dataclass(frozen=True)
@@ -111,6 +113,7 @@ class MetadataProcessor:
         self.citekey_mode = citekey_mode
         self.model_think = model_think
         self.conceptual_tag_counts: Counter[str] = Counter()
+        self.established_conceptual_tags: set[str] = set()
         self.topic_counts: Counter[str] = Counter()
         self.entity_counts: dict[str, Counter[str]] = {
             "State": Counter(),
@@ -385,10 +388,19 @@ class MetadataProcessor:
         return self._format_generated_tags(result)
 
     def _build_tagging_reuse_hints(self) -> TaggingReuseHints:
+        seed_keys = {
+            conceptual_tag_key(tag) for tag in getattr(self.tagging_service, "useful_tags", [])
+        }
+        established = sorted(
+            (
+                tag
+                for tag in self.established_conceptual_tags
+                if conceptual_tag_key(tag) not in seed_keys
+            ),
+            key=lambda tag: (-self.conceptual_tag_counts[tag], tag),
+        )
         return TaggingReuseHints(
-            preferred_conceptual_tags=[
-                tag for tag, _ in self.conceptual_tag_counts.most_common(50)
-            ],
+            preferred_conceptual_tags=established,
             preferred_entities={
                 etype: [value for value, _ in counter.most_common(20)]
                 for etype, counter in self.entity_counts.items()
@@ -651,6 +663,7 @@ class MetadataProcessor:
         self._preflight_done = True
         self.scanned_files_tags.clear()
         self.conceptual_tag_counts = Counter()
+        self.established_conceptual_tags.clear()
         self.topic_counts = Counter()
         self.entity_counts = {
             "State": Counter(),
@@ -681,6 +694,11 @@ class MetadataProcessor:
     def _add_tags_to_counters(self, tags: CanonicalTags) -> None:
         if tags.conceptual_tags:
             self.conceptual_tag_counts.update(tags.conceptual_tags)
+            self.established_conceptual_tags.update(
+                tag
+                for tag in tags.conceptual_tags
+                if self.conceptual_tag_counts[tag] >= CONCEPTUAL_TAG_PROMOTION_DOCUMENTS
+            )
         if tags.topics:
             self.topic_counts.update(tags.topics)
         for etype, values in tags.entities.items():

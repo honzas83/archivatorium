@@ -85,14 +85,14 @@ not demote during the run.
 
 ### Tests for User Story 2
 
-- [ ] T012 [US2] Add failing counter lifecycle tests for one-document isolation, same-document deduplication, preflight promotion at two files, post-write promotion, deterministic established ordering, full established-vocabulary availability, and run-scoped no-demotion after overwrite subtraction in tests/unit/test_processor_counters.py
-- [ ] T013 [P] [US2] Add failing resume/preflight regressions proving skipped documents are not double-counted, support files do not promote tags, and two existing archive documents establish a tag without migration in tests/integration/test_resume_safety.py
+- [X] T012 [US2] Add failing counter lifecycle tests for one-document isolation, same-document deduplication, preflight promotion at two files, post-write promotion, deterministic established ordering, full established-vocabulary availability, and run-scoped no-demotion after overwrite subtraction in tests/unit/test_processor_counters.py
+- [X] T013 [P] [US2] Add failing resume/preflight regressions proving skipped documents are not double-counted, support files do not promote tags, and two existing archive documents establish a tag without migration in tests/integration/test_resume_safety.py
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Add the two-document promotion threshold and run-scoped monotonic established conceptual-tag set, populate it during preflight and successful generated-output ingestion, and preserve it across counter subtraction in archivatorium/processor_metadata.py
-- [ ] T015 [US2] Build preferred conceptual reuse hints exclusively from the complete established set in deterministic count-descending/name-ascending order while leaving one-off tags local and seed availability owned by TaggingService in archivatorium/processor_metadata.py
-- [ ] T016 [US2] Run and pass the independent US2 lifecycle suite in tests/unit/test_processor_counters.py and tests/integration/test_resume_safety.py
+- [X] T014 [US2] Add the two-document promotion threshold and run-scoped monotonic established conceptual-tag set, populate it during preflight and successful generated-output ingestion, and preserve it across counter subtraction in archivatorium/processor_metadata.py
+- [X] T015 [US2] Build preferred conceptual reuse hints exclusively from the complete established set in deterministic count-descending/name-ascending order while leaving one-off tags local and seed availability owned by TaggingService in archivatorium/processor_metadata.py
+- [X] T016 [US2] Run and pass the independent US2 lifecycle suite in tests/unit/test_processor_counters.py and tests/integration/test_resume_safety.py
 
 **Checkpoint**: US2 independently demonstrates controlled vocabulary evolution from existing and
 new archive documents without a registry, migration, automatic rewrite, or feedback amplification.
