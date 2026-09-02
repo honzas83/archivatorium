@@ -1,6 +1,8 @@
+from copy import deepcopy
+
 import pytest
 
-from archivatorium.services.flattening_service import FlatteningService
+from archivatorium.services.flattening_service import FlatteningService, TaxonomyValidationError
 
 
 @pytest.fixture
@@ -17,10 +19,26 @@ def sample_hierarchy():
                         "positive_samples": "Pos 1.1\nPos 1.2\nPos 1.3",
                         "negative_samples": "Neg 1.1",
                     },
-                    {"topic": "Topic 2", "description": "Desc 2", "positive_samples": "Pos 2.1"},
+                    {
+                        "topic": "Topic 2",
+                        "description": "Desc 2",
+                        "positive_samples": "Pos 2.1",
+                        "negative_samples": "Neg 2.1",
+                    },
                 ],
             },
-            {"category": "Category B", "topics": [{"topic": "Topic 3", "description": "Desc 3"}]},
+            {
+                "category": "Category B",
+                "description": "Desc B",
+                "topics": [
+                    {
+                        "topic": "Topic 3",
+                        "description": "Desc 3",
+                        "positive_samples": "Pos 3.1",
+                        "negative_samples": "Neg 3.1",
+                    }
+                ],
+            },
         ]
     }
 
@@ -51,10 +69,54 @@ def test_flatten_all_samples(sample_hierarchy):
     assert neg_samples == ["Neg 1.1"]
 
 
-def test_flatten_no_samples(sample_hierarchy):
-    service = FlatteningService()
-    flat = service.flatten(sample_hierarchy)
+@pytest.mark.parametrize(
+    ("mutator", "message"),
+    [
+        (lambda data: data.update(categories="wrong"), "categories"),
+        (lambda data: data["categories"][0].update(description=" "), "description"),
+        (
+            lambda data: data["categories"][0]["topics"][0].update(description=""),
+            "description",
+        ),
+        (
+            lambda data: data["categories"][0]["topics"][0].update(positive_samples=["bad"]),
+            "positive_samples",
+        ),
+        (lambda data: data["categories"][0].update(category="Bad/Category"), "/"),
+        (lambda data: data["categories"][0]["topics"][0].update(topic="Bad/Topic"), "/"),
+    ],
+)
+def test_flatten_rejects_invalid_structure(sample_hierarchy, mutator, message):
+    hierarchy = deepcopy(sample_hierarchy)
+    mutator(hierarchy)
 
-    # Topic 3 has no samples
-    assert "positive_samples" not in flat[2]
-    assert "negative_samples" not in flat[2]
+    with pytest.raises(TaxonomyValidationError, match=message):
+        FlatteningService().flatten(hierarchy)
+
+
+def test_flatten_rejects_non_mapping_root():
+    with pytest.raises(TaxonomyValidationError, match="root"):
+        FlatteningService().flatten([])  # type: ignore[arg-type]
+
+
+def test_flatten_rejects_normalized_path_collision(sample_hierarchy):
+    hierarchy = deepcopy(sample_hierarchy)
+    hierarchy["categories"][0]["topics"].append(
+        {
+            "topic": "Topic-1",
+            "description": "Colliding topic",
+            "positive_samples": "Positive",
+            "negative_samples": "Negative",
+        }
+    )
+
+    with pytest.raises(TaxonomyValidationError, match="duplicate"):
+        FlatteningService().flatten(hierarchy)
+
+
+def test_flatten_rejects_schema_v2_without_policy(sample_hierarchy):
+    hierarchy = deepcopy(sample_hierarchy)
+    hierarchy["schema_version"] = 2
+
+    with pytest.raises(TaxonomyValidationError, match="classification_policy"):
+        FlatteningService().flatten(hierarchy)
