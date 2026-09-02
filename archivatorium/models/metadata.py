@@ -3,6 +3,10 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 MIN_SUBSTANTIVE_CONCEPTUAL_TAGS = 1
+TARGET_MIN_CONCEPTUAL_TAGS = 5
+TARGET_MAX_CONCEPTUAL_TAGS = 12
+MAX_CONCEPTUAL_TAGS = 20
+MAX_NOVEL_CONCEPTUAL_TAGS = 5
 
 type ItemType = Literal[
     "correspondence",
@@ -152,8 +156,9 @@ class WindowTaggingResult(BaseModel):
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(
-            "Canonical conceptual tag paths from USEFUL_TAGS.yaml, resumed #Tags counters, "
-            "or new canonical forms justified by the source text."
+            "Importance-ranked principal concepts. USEFUL_TAGS.yaml and established resumed "
+            "tags are a preferred seed vocabulary, not an allowlist; genuinely distinct new "
+            "canonical forms are allowed when substantively supported by the source text."
         ),
     )
 
@@ -173,9 +178,9 @@ class SubstantiveWindowTaggingResult(WindowTaggingResult):
         ...,
         min_length=MIN_SUBSTANTIVE_CONCEPTUAL_TAGS,
         description=(
-            "Required for substantive documents. Return at least "
-            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} conceptual tag(s); include every clearly "
-            "justified useful conceptual tag. Do not impose a hard maximum."
+            f"Required for substantive documents. Normally return {TARGET_MIN_CONCEPTUAL_TAGS}-"
+            f"{TARGET_MAX_CONCEPTUAL_TAGS} importance-ranked principal concepts, but return fewer "
+            "when fewer are substantively supported; do not pad the list."
         ),
     )
 
@@ -200,9 +205,8 @@ class AggregatedTaggingResult(BaseModel):
     conceptual_tags: list[str] = Field(
         default_factory=list,
         description=(
-            "Frequency-weighted, normalized, duplicate-suppressed conceptual tags. "
-            "Substantive documents must retain at least "
-            f"{MIN_SUBSTANTIVE_CONCEPTUAL_TAGS} useful tag(s)."
+            f"Importance-ranked, normalized, duplicate-suppressed conceptual tags; at most "
+            f"{MAX_CONCEPTUAL_TAGS} total and at most five novel tags are retained per document."
         ),
     )
 

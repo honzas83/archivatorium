@@ -1,5 +1,5 @@
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from archivatorium.processor_metadata import MetadataProcessor
 
@@ -121,22 +121,82 @@ def test_preflight_scan_excludes_support_files(
     assert "hidden-only" not in processor.conceptual_tag_counts
 
 
-def test_tagging_reuse_hints_are_compact_and_category_specific(tmp_path: Path) -> None:
+def test_tagging_reuse_hints_include_only_complete_established_vocabulary(tmp_path: Path) -> None:
     processor = MetadataProcessor(
         ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
         output_dir=tmp_path,
     )
     for idx in range(60):
         processor.conceptual_tag_counts[f"tag-{idx}"] = 100 - idx
+        processor.established_conceptual_tags.add(f"tag-{idx}")
+    processor.conceptual_tag_counts["one-off"] = 1000
     for idx in range(120):
         processor.entity_counts["Org"][f"org-{idx}"] = 100 - idx
         processor.topic_counts[f"category/topic-{idx}"] = 100 - idx
 
     hints = processor._build_tagging_reuse_hints()
 
-    assert len(hints.preferred_conceptual_tags) == 50
+    assert len(hints.preferred_conceptual_tags) == 60
     assert len(hints.preferred_entities["Org"]) == 20
     assert len(hints.preferred_topics) == 100
     assert hints.preferred_conceptual_tags[0] == "tag-0"
+    assert hints.preferred_conceptual_tags[-1] == "tag-59"
+    assert "one-off" not in hints.preferred_conceptual_tags
     assert hints.preferred_topics[0] == "category/topic-0"
     assert hints.preferred_topics[-1] == "category/topic-99"
+
+
+def test_novel_tag_promotes_only_after_two_independent_documents(tmp_path: Path) -> None:
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=tmp_path,
+    )
+    first = tmp_path / "first.md"
+    second = tmp_path / "second.md"
+    content = "> [!abstract]\n> ## Tags\n> #Tags/Emerging-Concept #Tags/Emerging-Concept\n"
+
+    processor._ingest_generated_output_tags(first, content)
+
+    assert processor.conceptual_tag_counts["emerging-concept"] == 1
+    assert processor._build_tagging_reuse_hints().preferred_conceptual_tags == []
+
+    processor._ingest_generated_output_tags(second, content)
+
+    assert processor.conceptual_tag_counts["emerging-concept"] == 2
+    assert processor._build_tagging_reuse_hints().preferred_conceptual_tags == ["emerging-concept"]
+
+
+def test_established_tag_does_not_demote_during_overwrite(tmp_path: Path) -> None:
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=tmp_path,
+    )
+    content = "> [!abstract]\n> ## Tags\n> #Tags/Stable-Concept\n"
+    first = tmp_path / "first.md"
+    second = tmp_path / "second.md"
+    processor._ingest_generated_output_tags(first, content)
+    processor._ingest_generated_output_tags(second, content)
+
+    processor._update_file_counters(second, "> [!abstract]\n> ## Tags\n> #Tags/Replacement\n")
+
+    assert processor.conceptual_tag_counts["stable-concept"] == 1
+    assert "stable-concept" in processor.established_conceptual_tags
+    assert "stable-concept" in processor._build_tagging_reuse_hints().preferred_conceptual_tags
+
+
+def test_preflight_promotes_tags_found_in_two_existing_documents(tmp_path: Path) -> None:
+    for name in ("one.md", "two.md"):
+        (tmp_path / name).write_text(
+            "> [!abstract]\n> ## Tags\n> #Tags/Archive-Established\n",
+            encoding="utf-8",
+        )
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=tmp_path,
+    )
+
+    processor.preflight_scan()
+
+    assert processor._build_tagging_reuse_hints().preferred_conceptual_tags == [
+        "archive-established"
+    ]

@@ -38,3 +38,23 @@ def test_suppress_duplicates_no_duplicates():
 
     result = suppress_duplicates(conceptual, entities, topics)
     assert result == ["#NewTag"]
+
+
+def test_suppress_duplicates_uses_every_meaningful_entity_path_component():
+    conceptual = ["#Luns", "#Joseph-M-A-H", "#Belgium", "#Brussels", "#Consultation"]
+    entities = ["Person/Luns/Joseph-M-A-H", "City/Belgium/Brussels"]
+
+    result = suppress_duplicates(conceptual, entities, [])
+
+    assert result == ["#Consultation"]
+
+
+def test_protected_vocabulary_cannot_bypass_entity_collision():
+    result = suppress_duplicates(
+        ["#NATO", "#Nuclear-Planning"],
+        ["Org/N.A.T.O."],
+        [],
+        protected_terms={"nato", "nuclear-planning"},
+    )
+
+    assert result == ["#Nuclear-Planning"]

@@ -1,7 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from archivatorium.models.metadata import MetadataSchema
+from archivatorium.models.metadata import (
+    AggregatedTaggingResult,
+    MetadataSchema,
+    SubstantiveWindowTaggingResult,
+    WindowTaggingResult,
+)
 
 
 def test_metadata_schema_defaults() -> None:
@@ -103,3 +108,26 @@ def test_metadata_schema_flattened_correspondence() -> None:
     assert schema.sender == "Sender X"
     assert schema.recipient == "Recipient Y"
     assert schema.intent == "Action Z"
+
+
+def test_conceptual_tag_schema_describes_focused_seed_based_simple_list() -> None:
+    window_description = WindowTaggingResult.model_fields["conceptual_tags"].description or ""
+    substantive_description = (
+        SubstantiveWindowTaggingResult.model_fields["conceptual_tags"].description or ""
+    )
+    aggregate_description = (
+        AggregatedTaggingResult.model_fields["conceptual_tags"].description or ""
+    )
+
+    assert "seed" in window_description.lower()
+    assert "not an allowlist" in window_description.lower()
+    assert "5-12" in substantive_description
+    assert "fewer" in substantive_description.lower()
+    assert "20" in aggregate_description
+    assert "five novel" in aggregate_description.lower()
+    assert WindowTaggingResult.model_fields["conceptual_tags"].annotation == list[str]
+    assert set(WindowTaggingResult.model_fields) == {
+        "topic_tags",
+        "entity_tags",
+        "conceptual_tags",
+    }

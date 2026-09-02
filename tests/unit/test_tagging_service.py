@@ -385,9 +385,169 @@ def test_prompt_requires_conceptual_tags_and_removes_permissive_wording(
     )
     prompt = service._generate_tagging_prompt("NATO nuclear planning")
 
-    assert "Return at least 1 conceptual tag(s) for substantive documents" in prompt
-    assert "include every clearly justified useful conceptual tag" in prompt
-    assert "Up to 15" not in prompt
+    assert "normally return 5 to 12" in prompt
+    assert "Do not add weak tags to fill the target range" in prompt
+    assert "descending order of importance" in prompt
+    assert "include every clearly justified useful conceptual tag" not in prompt
+    assert "meaningful all-caps abbreviation" not in prompt
+
+
+def test_prompt_treats_vocabulary_as_seed_and_rejects_combinatorial_expansion(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), Path("dummy.yaml"), context_limit=1000
+    )
+
+    prompt = service._generate_tagging_prompt("NATO nuclear planning")
+
+    assert "preferred seed vocabulary, not an allowlist" in prompt
+    assert "genuinely distinct novel concept" in prompt
+    assert "Cartesian-product" in prompt
+    assert "passing mention" in prompt
+    assert "same rules apply to acronyms" in prompt
+
+
+def test_single_pass_finalizer_deduplicates_and_enforces_novel_budget(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, useful_tags_file: Path
+) -> None:
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        Path("dummy.yaml"),
+        useful_tags_file,
+        context_limit=1000,
+    )
+    hints = TaggingReuseHints(
+        preferred_conceptual_tags=["Established-Concept"],
+        preferred_entities={},
+        preferred_topics=[],
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=[
+            "#Nuclear Planning",
+            "NUCLEAR.PLANNING",
+            "Novel One",
+            "Novel Two",
+            "Novel Three",
+            "Novel Four",
+            "Novel Five",
+            "Novel Six",
+            "Established Concept",
+            "NATO",
+        ],
+        entity_tags=["Org/NATO"],
+    )
+
+    result = service.extract_tags(
+        "A substantive document about planning and consultation.", reuse_hints=hints
+    )
+
+    assert result.conceptual_tags == [
+        "Nuclear-Planning",
+        "Novel-One",
+        "Novel-Two",
+        "Novel-Three",
+        "Novel-Four",
+        "Novel-Five",
+        "Established-Concept",
+    ]
+    mock_ollama.extract_structured.assert_called_once()
+
+
+def test_single_pass_finalizer_caps_total_at_twenty_known_tags(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, tmp_path: Path
+) -> None:
+    tags_file = tmp_path / "known.yaml"
+    tags_file.write_text(
+        "useful_tags:\n" + "".join(f"  - Known Tag {idx}\n" for idx in range(25)),
+        encoding="utf-8",
+    )
+    service = TaggingService(
+        mock_ollama, mock_windowing, Path("dummy.yaml"), tags_file, context_limit=1000
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=[f"Known Tag {idx}" for idx in range(25)]
+    )
+
+    result = service.extract_tags("A substantive policy document.")
+
+    assert result.conceptual_tags == [f"Known-Tag-{idx}" for idx in range(20)]
+
+
+def test_window_finalizer_ranks_aggregate_once_and_applies_document_novel_budget(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, useful_tags_file: Path
+) -> None:
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        Path("dummy.yaml"),
+        useful_tags_file,
+        context_limit=1,
+    )
+    mock_windowing.get_windows.return_value = ["first", "second"]
+    mock_ollama.extract_structured.side_effect = [
+        WindowTaggingResult(conceptual_tags=["Repeated", "Novel-A", "Novel-B", "Novel-C"]),
+        WindowTaggingResult(
+            conceptual_tags=["Repeated", "Novel-D", "Novel-E", "Novel-F", "Nuclear Planning"]
+        ),
+    ]
+
+    result = service.extract_tags("A substantive document long enough for multiple windows.")
+
+    assert result.conceptual_tags == [
+        "Repeated",
+        "Novel-A",
+        "Novel-D",
+        "Novel-B",
+        "Novel-E",
+        "Nuclear-Planning",
+    ]
+    assert mock_ollama.extract_structured.call_count == 2
+
+
+def test_windowed_tagging_uses_same_reasoning_without_extra_calls(
+    mock_ollama: MagicMock, mock_windowing: MagicMock
+) -> None:
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        Path("dummy.yaml"),
+        Path("dummy.yaml"),
+        context_limit=1,
+        model_think="high",
+    )
+    mock_windowing.get_windows.return_value = ["one", "two", "three"]
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(conceptual_tags=["Tag"])
+
+    service.extract_tags("A substantive document requiring three windows.")
+
+    assert mock_ollama.extract_structured.call_count == 3
+    assert [call.kwargs["think"] for call in mock_ollama.extract_structured.call_args_list] == [
+        "high",
+        "high",
+        "high",
+    ]
+
+
+def test_final_filtering_does_not_manufacture_replacement_for_entity_only_result(
+    mock_ollama: MagicMock, mock_windowing: MagicMock, useful_tags_file: Path
+) -> None:
+    service = TaggingService(
+        mock_ollama,
+        mock_windowing,
+        Path("dummy.yaml"),
+        useful_tags_file,
+        context_limit=1000,
+    )
+    mock_ollama.extract_structured.return_value = WindowTaggingResult(
+        conceptual_tags=["NATO"], entity_tags=["Org/NATO"]
+    )
+
+    result = service.extract_tags("A substantive NATO document.")
+
+    assert result.conceptual_tags == []
+    mock_ollama.extract_structured.assert_called_once()
 
 
 def test_topic_tagging_guidance_has_no_hard_maximum(

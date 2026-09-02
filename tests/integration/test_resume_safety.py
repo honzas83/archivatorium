@@ -1,5 +1,5 @@
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 from archivatorium.processor_metadata import MetadataProcessor
 
@@ -134,3 +134,25 @@ def test_resume_preflight_ignores_generated_support_files(
     assert "index-only" not in processor.conceptual_tag_counts
     assert "template-only" not in processor.conceptual_tag_counts
     assert "hidden-only" not in processor.conceptual_tag_counts
+
+
+def test_resume_preflight_establishes_only_two_document_tags(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    body = "> [!abstract]\n> ## Tags\n> #Tags/Recurring #Tags/Recurring\n"
+    (output_dir / "one.md").write_text(body + "#Tags/One-Off\n", encoding="utf-8")
+    (output_dir / "two.md").write_text(body, encoding="utf-8")
+    (output_dir / "Index - Tags.md").write_text(
+        "#Tags/Support-Only #Tags/Support-Only\n", encoding="utf-8"
+    )
+    processor = MetadataProcessor(
+        ollama_client=MockOllamaClient(),  # type: ignore[arg-type]
+        output_dir=output_dir,
+    )
+
+    processor.preflight_scan()
+    processor.preflight_scan()
+
+    assert processor.conceptual_tag_counts["recurring"] == 2
+    assert processor.conceptual_tag_counts["one-off"] == 1
+    assert processor._build_tagging_reuse_hints().preferred_conceptual_tags == ["recurring"]
