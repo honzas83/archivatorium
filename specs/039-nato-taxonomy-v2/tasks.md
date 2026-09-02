@@ -127,7 +127,7 @@ output contains only approved v2 paths, and prior v1 output is not rewritten.
 
 ### Tests for User Story 4
 
-- [ ] T017 [US4] Add CLI integration coverage for explicit v1/v2 hierarchy selection, recursive nested inputs, separate output directories, approved v2 paths, and invalid-hierarchy failure in tests/integration/test_nato_taxonomy_selection.py
+- [X] T017 [US4] Add CLI integration coverage for explicit v1/v2 hierarchy selection, recursive nested inputs, separate output directories, approved v2 paths, and invalid-hierarchy failure in tests/integration/test_nato_taxonomy_selection.py
 
 ### Implementation for User Story 4
 
