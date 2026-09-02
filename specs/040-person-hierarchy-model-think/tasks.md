@@ -113,7 +113,7 @@ surname-only `Entities/Person/Andrae` remains valid.
 ### Implementation for User Story 3
 
 - [X] T016 [P] [US3] Extend canonical Person validation to accept surname-only and surname-plus-given paths and retain the full normalized identity in archivatorium/utils/tag_parser.py
-- [ ] T017 [P] [US3] Specialize People-index sorting, labels, and alphabetic grouping on the surname component without changing other indexes in archivatorium/services/indexing_service.py
+- [X] T017 [P] [US3] Specialize People-index sorting, labels, and alphabetic grouping on the surname component without changing other indexes in archivatorium/services/indexing_service.py
 
 **Checkpoint**: All three user stories are independently testable and the complete Person hierarchy
 survives the archive pipeline.

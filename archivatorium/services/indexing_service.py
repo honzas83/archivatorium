@@ -213,13 +213,21 @@ class IndexingService:
         if not tag_to_entries:
             return
 
-        # Sort tags alphabetically
-        sorted_tags = sorted(tag_to_entries.keys(), key=lambda t: t.lower())
+        def index_label(tag: str) -> str:
+            if prefix == "Entities/Person/":
+                relative_identity = tag.removeprefix(f"#{prefix}")
+                return relative_identity.split("/", 1)[0]
+            return tag.split("/")[-1]
+
+        sorted_tags = sorted(
+            tag_to_entries.keys(),
+            key=lambda tag: (index_label(tag).lower(), tag.lower()),
+        )
 
         lines = [f"# Index of {title}\n"]
         current_letter = ""
         for tag in sorted_tags:
-            label = tag.split("/")[-1]
+            label = index_label(tag)
             if not label:
                 continue
             letter = label[0].upper()
