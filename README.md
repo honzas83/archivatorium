@@ -13,7 +13,7 @@ The `metadata` command generates Markdown files with a specific structure design
 1. **YAML Frontmatter**: Contains core metadata such as `title`, `summary`, `pages`, `intent`, `date`, `archive_code`, and `source` (`[[pdf/<filename>.pdf]]`).
 2. **Abstract Callout**: A block containing:
    - The document **title** and **abstract**.
-   - **Mentioned Entities**: Hierarchical tags for mentioned states, organizations, and cities (e.g., `State/UK`, `Org/NATO`, `City/UK/London`).
+   - **Mentioned Entities**: Hierarchical tags for mentioned states, organizations, cities, and people (e.g., `State/UK`, `Org/NATO`, `City/UK/London`, `Person/Andrae/K-W`).
    - **Categories/Topics**: Hierarchical tags extracted from a provided NATO taxonomy.
    - **Tags**: Flat, canonical conceptual keywords (e.g., `#NuclearStrategy`).
 
@@ -39,7 +39,8 @@ archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--user TEXT`: DigestAuth username (or environment variable `OLLAMA_USER`).
 - `--password TEXT`: DigestAuth password (or environment variable `OLLAMA_PASSWORD`).
 - `--model TEXT`: The VLM model name to use (default: `qwen3.5:9b`).
-- `--mode [standard|glm|firered]`: OCR request profile (default: `standard`). Standard mode preserves the existing prompts and previous-page context; GLM mode uses the native `Text Recognition:` prompt, disables thinking, and recognizes every page independently; FireRed mode uses its Markdown-conversion prompt and recognizes every page without previous-page context.
+- `--mode [standard|qwen38|glm|firered]`: OCR request profile (default: `standard`). Standard mode preserves the existing prompts and previous-page context; Qwen 3.8 uses its dedicated Markdown transcription prompt; GLM uses the native `Text Recognition:` prompt, disables thinking, and recognizes every page independently; FireRed uses its Markdown-conversion prompt and recognizes every page without previous-page context.
+- `--model-think [False|low|medium|high]`: Case-insensitive Qwen 3.8 reasoning effort (default: `medium`). `False` disables reasoning. Standard and FireRed continue to omit reasoning, and GLM continues to disable it regardless of this option.
 - `--temperature FLOAT`: Override the selected mode's temperature (`>= 0`).
 - `--top-p FLOAT`: Override top-p sampling (`0..1`).
 - `--top-k INTEGER`: Override top-k sampling (`>= 0`).
@@ -73,6 +74,14 @@ archivatorium ocr \
   INPUT_DIR OUTPUT_DIR
 ```
 
+For Qwen 3.8 OCR with reasoning disabled:
+
+```bash
+archivatorium ocr INPUT_DIR OUTPUT_DIR \
+  --mode qwen38 \
+  --model-think False
+```
+
 ### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.
 
@@ -98,6 +107,7 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.
 
 #### Options
 - `--model TEXT`: The Ollama model to use (default: `gemma4:31b`).
+- `--model-think [False|low|medium|high]`: Case-insensitive reasoning effort for primary metadata extraction and conditional final-date extraction (default: `medium`). Tag extraction remains non-thinking.
 - `--mask TEXT`: Glob pattern for Markdown files to enrich (default: `*.md`). Non-matching Markdown files are not sent to metadata or tagging enrichment.
 - `--overwrite`: Overwrite existing files in output directory.
 - `--hierarchy-file`: Required path to a YAML topic hierarchy (e.g., `topics/NATO_themes.yaml`).
@@ -133,6 +143,25 @@ are omitted, and an empty thematic-topic list is valid.
 
 Archivatorium does not migrate or rewrite v1 topic paths. The v2 hierarchy contains narrower and
 split concepts, so adopting it requires reclassification through a fresh metadata run.
+
+#### Person Entity Paths
+
+New metadata runs store people surname-first as
+`#Entities/Person/<surname>[/<given-name-or-initials>]`. For example, K-W Andrae and K. W. Andrae
+both become `#Entities/Person/Andrae/K-W`, while Joseph M.A.H. Luns becomes
+`#Entities/Person/Luns/Joseph-M-A-H`. If the given name is unknown, the surname-only form such as
+`#Entities/Person/Andrae` is valid. Titles, ranks, and roles such as minister or secretary are not
+included in the path.
+
+Existing Person tags are not migrated automatically. Rerun `metadata` to generate the new
+hierarchy, optionally selecting a reasoning effort:
+
+```bash
+archivatorium metadata INPUT_DIR OUTPUT_V2 \
+  --hierarchy-file topics/NATO_themes_v2.yaml \
+  --tags-file topics/USEFUL_TAGS.yaml \
+  --model-think high
+```
 
 Generated PDFs are mirrored into a `pdf/` folder beside the generated Markdown file, and generated Markdown links to them as `[[pdf/<filename>.pdf]]`.
 
