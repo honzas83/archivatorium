@@ -207,6 +207,13 @@ def clean(  # noqa: PLR0913
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite existing output files.")
 @click.option("--dry-run", is_flag=True, help="If set, logs metadata without writing files.")
+@click.option(
+    "--concurrency",
+    type=click.IntRange(min=1, max=4),
+    default=1,
+    show_default=True,
+    help="Maximum Markdown metadata jobs processed in parallel.",
+)
 @click.option("--host", help="Ollama server URL.")
 def metadata(  # noqa: PLR0913
     input_dir: Path,
@@ -224,6 +231,7 @@ def metadata(  # noqa: PLR0913
     citekey_mode: str,
     overwrite: bool,
     dry_run: bool,
+    concurrency: int,
     host: str | None = None,
 ) -> None:
     """Extract metadata using the selected LLM and generate archival Markdown."""
@@ -279,39 +287,105 @@ def metadata(  # noqa: PLR0913
         click.echo("No files found to process.")
         return
 
-    with click.progressbar(files, label="Processing files") as bar:
-        for input_file in bar:
+    def process_non_metadata_file(input_file: Path) -> None:
+        relative_path = input_file.relative_to(input_dir)
+        output_file = output_dir / relative_path
+        is_md = input_file.suffix.lower() == ".md"
+        is_filtered = input_file.name.endswith(".filtered.md")
+        is_pdf = input_file.suffix.lower() == ".pdf"
+
+        if is_md and not is_filtered:
+            mirror_file(input_file, output_file)
+        elif is_pdf:
+            pdf_output_file = processor.get_mirrored_pdf_path(input_file)
+            if pdf_output_file.exists() and not pdf_output_file.samefile(input_file):
+                raise ValueError(f"Ambiguous mirrored PDF target already exists: {pdf_output_file}")
+            mirror_file(input_file, pdf_output_file)
+        else:
+            mirror_file(input_file, output_file)
+
+    if concurrency == 1 or dry_run:
+        with click.progressbar(files, label="Processing files") as bar:
+            for input_file in bar:
+                relative_path = input_file.relative_to(input_dir)
+                output_file = output_dir / relative_path
+
+                try:
+                    is_md = input_file.suffix.lower() == ".md"
+                    is_filtered = input_file.name.endswith(".filtered.md")
+                    is_pdf = input_file.suffix.lower() == ".pdf"
+
+                    if dry_run:
+                        click.echo(f"\n[DRY-RUN] Would consider {relative_path}")
+                        continue
+
+                    if is_md and not is_filtered and input_file in matching_markdown:
+                        # Get 50 most frequent tags
+                        frequent_tags = [
+                            tag for tag, _ in processor.conceptual_tag_counts.most_common(50)
+                        ]
+                        processor.process_file(input_file, output_file, frequent_tags)
+                    elif is_md and not is_filtered:
+                        mirror_file(input_file, output_file)
+                    elif is_pdf:
+                        pdf_output_file = processor.get_mirrored_pdf_path(input_file)
+                        if pdf_output_file.exists() and not pdf_output_file.samefile(input_file):
+                            raise ValueError(
+                                f"Ambiguous mirrored PDF target already exists: {pdf_output_file}"
+                            )
+                        mirror_file(input_file, pdf_output_file)
+                    else:
+                        mirror_file(input_file, output_file)
+                except Exception as e:
+                    click.echo(f"\nError processing {relative_path}: {e}", err=True)
+        return
+
+    metadata_files = [
+        input_file
+        for input_file in files
+        if input_file.suffix.lower() == ".md"
+        and not input_file.name.endswith(".filtered.md")
+        and input_file in matching_markdown
+    ]
+    metadata_file_set = set(metadata_files)
+    frequent_tags = [tag for tag, _ in processor.conceptual_tag_counts.most_common(50)]
+
+    with click.progressbar(length=len(files), label="Processing files") as parallel_bar:
+        for input_file in files:
+            if input_file in metadata_file_set:
+                continue
             relative_path = input_file.relative_to(input_dir)
-            output_file = output_dir / relative_path
-
             try:
-                is_md = input_file.suffix.lower() == ".md"
-                is_filtered = input_file.name.endswith(".filtered.md")
-                is_pdf = input_file.suffix.lower() == ".pdf"
-
-                if dry_run:
-                    click.echo(f"\n[DRY-RUN] Would consider {relative_path}")
-                    continue
-
-                if is_md and not is_filtered and input_file in matching_markdown:
-                    # Get 50 most frequent tags
-                    frequent_tags = [
-                        tag for tag, _ in processor.conceptual_tag_counts.most_common(50)
-                    ]
-                    processor.process_file(input_file, output_file, frequent_tags)
-                elif is_md and not is_filtered:
-                    mirror_file(input_file, output_file)
-                elif is_pdf:
-                    pdf_output_file = processor.get_mirrored_pdf_path(input_file)
-                    if pdf_output_file.exists() and not pdf_output_file.samefile(input_file):
-                        raise ValueError(
-                            f"Ambiguous mirrored PDF target already exists: {pdf_output_file}"
-                        )
-                    mirror_file(input_file, pdf_output_file)
-                else:
-                    mirror_file(input_file, output_file)
+                process_non_metadata_file(input_file)
             except Exception as e:
                 click.echo(f"\nError processing {relative_path}: {e}", err=True)
+            parallel_bar.update(1)
+
+        def process_metadata_file(input_file: Path) -> tuple[Path, bool]:
+            worker = processor.fork_for_parallel_document()
+            relative_path = input_file.relative_to(input_dir)
+            succeeded = worker.process_file(
+                input_file,
+                output_dir / relative_path,
+                frequent_tags,
+            )
+            return relative_path, succeeded
+
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            futures = {
+                executor.submit(process_metadata_file, input_file): input_file
+                for input_file in metadata_files
+            }
+            for future in as_completed(futures):
+                input_file = futures[future]
+                relative_path = input_file.relative_to(input_dir)
+                try:
+                    completed_path, succeeded = future.result()
+                    if succeeded:
+                        processor.ingest_parallel_output(output_dir / completed_path)
+                except Exception as exc:
+                    click.echo(f"\nError processing {relative_path}: {exc}", err=True)
+                parallel_bar.update(1)
 
 
 @cli.command()

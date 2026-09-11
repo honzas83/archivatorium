@@ -124,6 +124,36 @@ class MetadataProcessor:
         self.scanned_files_tags: dict[Path, CanonicalTags] = {}
         self._preflight_done = False
 
+    def fork_for_parallel_document(self) -> "MetadataProcessor":
+        """Create an isolated document worker from the completed preflight snapshot."""
+
+        worker = MetadataProcessor(
+            ollama_client=self.client,
+            output_dir=self.output_dir,
+            overwrite=self.overwrite,
+            vault_root=self.vault_root,
+            pdf_dir=self.pdf_dir,
+            tagging_service=self.tagging_service,
+            input_dir=self.input_dir,
+            citekey_mode=self.citekey_mode,
+            model_think=self.model_think,
+        )
+        worker.conceptual_tag_counts = self.conceptual_tag_counts.copy()
+        worker.established_conceptual_tags = self.established_conceptual_tags.copy()
+        worker.topic_counts = self.topic_counts.copy()
+        worker.entity_counts = {
+            entity_type: counts.copy() for entity_type, counts in self.entity_counts.items()
+        }
+        worker.scanned_files_tags = self.scanned_files_tags.copy()
+        worker._preflight_done = True
+        return worker
+
+    def ingest_parallel_output(self, output_file: Path) -> None:
+        """Reconcile one successful worker output into the command-level counters."""
+
+        markdown_file = output_file.with_suffix(".md")
+        self._update_file_counters(markdown_file, safe_read_text(markdown_file))
+
     def get_mirrored_pdf_path(self, input_file: Path) -> Path:
         """Return the generated vault location for a source PDF beside its Markdown."""
         relative_parent = Path()
