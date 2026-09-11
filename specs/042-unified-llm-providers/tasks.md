@@ -41,11 +41,11 @@ story uses.
 
 **CRITICAL**: No user-story implementation begins until this phase is complete.
 
-- [ ] T004 Write failing transport-independent contract tests for structured extraction, visible text responses, immutable retry semantics, and normalized errors in `tests/contract/test_llm_client.py`
-- [ ] T005 Implement typed provider identifiers, messages, attachments, reasoning directives, generation options, structured contracts, responses, capabilities, errors, transport protocol, and shared `LLMClient` facade in `archivatorium/services/llm_client.py`
-- [ ] T006 [P] Write failing provider/default/endpoint/model/option-resolution tests, including early validation and no-fallback assertions, in `tests/unit/test_llm_config.py`
-- [ ] T007 Implement provider selection, command-specific defaults, endpoint alias conflict checks, explicit-option tracking, and provider-independent connection configuration in `archivatorium/services/llm_factory.py`
-- [ ] T008 Export only the shared public LLM types and factory entry points from `archivatorium/services/__init__.py`
+- [X] T004 Write failing transport-independent contract tests for structured extraction, visible text responses, immutable retry semantics, and normalized errors in `tests/contract/test_llm_client.py`
+- [X] T005 Implement typed provider identifiers, messages, attachments, reasoning directives, generation options, structured contracts, responses, capabilities, errors, transport protocol, and shared `LLMClient` facade in `archivatorium/services/llm_client.py`
+- [X] T006 [P] Write failing provider/default/endpoint/model/option-resolution tests, including early validation and no-fallback assertions, in `tests/unit/test_llm_config.py`
+- [X] T007 Implement provider selection, command-specific defaults, endpoint alias conflict checks, explicit-option tracking, and provider-independent connection configuration in `archivatorium/services/llm_factory.py`
+- [X] T008 Export only the shared public LLM types and factory entry points from `archivatorium/services/__init__.py`
 
 **Checkpoint**: Provider-neutral requests and validated connection configuration are usable without
 either archival workflow constructing SDK-specific payloads.
