@@ -31,14 +31,16 @@ service or authorized HTTPS access to e-INFRA
 
 **Project Type**: Single Python CLI application
 
-**Performance Goals**: Preserve current sequential Ollama call counts and processing behavior; make
-no more than one capability lookup per e-INFRA OCR run; keep remote concurrency at one in this
-feature; assemble streamed OCR output without duplicate or missing visible chunks
+**Performance Goals**: Preserve current sequential Ollama behavior when concurrency is omitted;
+allow one through four independent PDF OCR jobs per command; make no more than one capability
+lookup per e-INFRA OCR run even under parallel startup; assemble streamed OCR output without
+duplicate or missing visible chunks
 
 **Constraints**: Ollama remains the default; unchanged Ollama invocations must retain native request
 semantics and deterministic output bytes; no automatic provider fallback; credentials and private
 reasoning never enter logs or artifacts; provider validation occurs before document processing;
-remote output budgets include reasoning tokens; existing output schemas and prompts remain unchanged
+remote output budgets include reasoning tokens; existing output schemas and prompts remain unchanged;
+pages within one PDF remain sequential so previous-page context is never weakened
 
 **Scale/Scope**: Two model-dependent CLI commands, one shared client/factory, two provider
 transports, three LLM consumers, four OCR profiles, existing structured metadata/tag schemas,
@@ -187,8 +189,11 @@ migration so existing internal callers and tests can move without changing nativ
   images, reasoning, and inference semantics.
 - Do not unify retry behavior by changing Ollama: structured validation retains four total attempts;
   OCR retains three attempts with current backoff and per-file continuation.
-- Never fail over between providers. Maintain sequential execution; any future concurrency must be
-  capped at the documented account limit.
+- Never fail over between providers. Keep concurrency at one by default. When explicitly set above
+  one, schedule independent PDFs through a bounded thread pool capped at four while retaining one
+  sequential page chain and one resume/output boundary per PDF.
+- Share the command-scoped e-INFRA client across workers and serialize first capability discovery so
+  simultaneous first pages do not duplicate model-list requests.
 
 ### Validation strategy
 
@@ -197,6 +202,8 @@ migration so existing internal callers and tests can move without changing nativ
 - Test shared behavior with fake transports, then test each provider translation independently.
 - Cover CLI option sources, dynamic defaults, aliases/conflicts, credential permissions/redaction,
   incompatible options, early failure, model/reasoning propagation, and absence of fallback.
+- Cover concurrency bounds, observed maximum simultaneous jobs, independent output, per-file failure
+  continuation, and unchanged omitted-option Ollama behavior.
 - Keep live e-INFRA tests doubly opt-in, sequential, synthetic, and outside normal test execution.
   Validate one structured metadata/tagging flow and one short Qwen 3.8 OCR/resume flow without
   snapshotting model output.

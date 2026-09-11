@@ -159,6 +159,20 @@ gates across all stories.
 
 ---
 
+## Phase 7: Bounded OCR Concurrency
+
+**Purpose**: Add explicitly requested throughput while retaining the default Ollama contract and
+each PDF's sequential page-context and resume semantics.
+
+- [X] T043 Back-propagate bounded independent-PDF concurrency into `spec.md`, `research.md`, `plan.md`, `data-model.md`, and provider contracts
+- [X] T044 Add `--concurrency` to OCR with a default of one and an inclusive limit of four in `archivatorium/cli.py`
+- [X] T045 Run independent PDF OCR jobs through a bounded executor while preserving the exact sequential path for omitted/default concurrency in `archivatorium/cli.py`
+- [X] T046 Make e-INFRA capability lookup safe for a command-scoped client shared by parallel workers in `archivatorium/services/einfra_client.py`
+- [X] T047 Add concurrency bound, observed parallelism, output isolation, and default compatibility coverage in `tests/integration/test_ocr_concurrency.py`
+- [X] T048 Document concurrency scope, limits, single-PDF behavior, and examples in `README.md` and `specs/042-unified-llm-providers/quickstart.md`, then run feature and full regression gates
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -173,6 +187,8 @@ gates across all stories.
   Story 2's e-INFRA transport/error/authentication foundation.
 - **Phase 6 - Polish**: Depends on every user story selected for delivery. Full release validation
   requires all three.
+- **Phase 7 - Bounded OCR Concurrency**: Depends on the completed OCR provider boundary and immutable
+  default-concurrency compatibility baseline.
 
 ### User Story Dependency Graph
 
@@ -227,10 +243,11 @@ After User Story 2, T029, T030, and T031 can be written in parallel. Implementat
 order from transport (T032), through validation (T033), workflow (T034), CLI (T035), and integration
 (T036).
 
-### Polish
+### Polish and Concurrency
 
-T037, T038, and T039 can proceed in parallel after the implementation stories. T040-T042 are final
-cross-cutting gates and run sequentially.
+T037, T038, and T039 can proceed in parallel after the implementation stories. T040-T042 close the
+initial provider work. T043-T048 form a later ordered increment because tests depend on the public
+CLI and bounded executor design.
 
 ## Implementation Strategy
 
@@ -249,6 +266,8 @@ cross-cutting gates and run sequentially.
 2. **US2**: Add authenticated e-INFRA structured metadata and tagging with no archival-schema change.
 3. **US3**: Extend the same remote transport to capability-checked streamed OCR and resume.
 4. **Polish**: Add opt-in live checks, user documentation, privacy tests, and all quality gates.
+5. **Concurrency**: Add opt-in bounded parallelism across independent PDFs without changing the
+   default path or per-PDF page semantics.
 
 ### Validation Discipline
 
@@ -257,7 +276,8 @@ cross-cutting gates and run sequentially.
   unless the user explicitly amends the specification.
 - Keep all automated remote tests mocked and deterministic. Live tests require both `-m live_einfra`
   and `ARCHIVATORIUM_RUN_EINFRA_LIVE=1` and use only synthetic data.
-- Keep model calls sequential and never add automatic provider fallback.
+- Keep pages within each PDF sequential, cap explicitly requested independent-PDF concurrency at
+  four, and never add automatic provider fallback.
 
 ## Notes
 

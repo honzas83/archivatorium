@@ -160,13 +160,19 @@ uv run archivatorium ocr \
   --llm-api-key-file /secure/path/e-infra-token \
   --model qwen3.8-27b \
   --mode qwen38 \
-  --model-think low
+  --model-think low \
+  --concurrency 4
 ```
 
 Expected outcome: the selected model is verified as multimodal, each page's visible streamed output
 is assembled once in order, reasoning is excluded, and existing Markdown page layout is retained.
 Interrupt after at least one complete saved run and repeat the command to verify completed pages are
 skipped under the existing resume contract.
+
+`--concurrency` accepts values from 1 through 4 and defaults to 1. Values above one process
+independent PDFs concurrently, while pages within each PDF remain sequential so previous-page
+context and resume behavior are preserved. A directory with only one PDF therefore sees no parallel
+speedup.
 
 ## Explicitly gated live smoke test
 

@@ -143,7 +143,7 @@ remediation.
 
 ## Concurrency
 
-This feature keeps sequential model calls. The boundary must not introduce background parallelism.
-Any later concurrency control must cap e-INFRA requests at four per account unless current service
-documentation states a different limit.
-
+Model calls remain sequential by default and within each PDF. Explicit OCR concurrency may share
+one command-scoped client across up to four independent PDF workers. Capability discovery must be
+thread-safe and performed at most once per model per client. Concurrency must cap e-INFRA requests
+at four per account unless current service documentation states a different limit.

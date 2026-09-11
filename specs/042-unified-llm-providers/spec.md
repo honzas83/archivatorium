@@ -49,6 +49,8 @@ As an archivatorium user with e-INFRA access, I can select e-INFRA for metadata 
 
 As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 model to transcribe PDF pages while preserving the current OCR mode prompts, recursive traversal, page headers, recovery behaviour, and output normalization.
 
+I can optionally process independent PDF documents concurrently while retaining sequential pages, previous-page context, ordered output, and resume isolation within each document.
+
 **Why this priority**: Remote OCR completes provider coverage across all model-dependent workflows, but it depends on the shared provider selection, authentication, reasoning, and response behaviour established by the earlier stories.
 
 **Independent Test**: Process a small multipage PDF through e-INFRA using `qwen3.8-27b` and the Qwen 3.8 OCR mode, interrupt and resume the run, and confirm that page ordering, saved transcription, context handling, retry behaviour, and skipped completed pages satisfy the existing OCR contract.
@@ -59,6 +61,7 @@ As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 
 2. **Given** the Qwen 3.8 OCR mode and a command-scoped reasoning choice, **When** one or more pages are processed or retried, **Then** every attempt uses the same selected reasoning level and sufficient output allowance for both reasoning and transcription.
 3. **Given** a long-running e-INFRA response, **When** output is produced incrementally, **Then** the complete visible response is assembled without leaking private reasoning or altering the final Markdown layout.
 4. **Given** an interrupted PDF run with valid completed page output, **When** the run resumes, **Then** completed pages are skipped and missing pages are processed exactly once apart from bounded retries.
+5. **Given** two or more independent PDFs and `--concurrency N` where `2 <= N <= 4`, **When** OCR runs, **Then** no more than N PDF jobs issue OCR requests concurrently, pages within each PDF remain sequential, and each output retains its own page order and resume state.
 
 ### Edge Cases
 
@@ -75,6 +78,7 @@ As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 
 - An unchanged Ollama command relies on environment variables rather than explicit options.
 - The local Ollama server supports only the existing native request behaviour and not an alternate compatibility interface.
 - The input contains protected or sensitive archival material for which remote processing has not been authorized.
+- Concurrency is larger than the number of PDFs, only one PDF is present, or one parallel PDF fails while other jobs are still running.
 
 ## Requirements *(mandatory)*
 
@@ -108,10 +112,13 @@ As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 
 - **FR-026**: Retries MUST be bounded, retain identical provider, model, reasoning, prompt, and image semantics, and respect any documented service retry delay.
 - **FR-027**: The system MUST NOT switch providers automatically after a failure or send source content to a provider the user did not explicitly select.
 - **FR-028**: A failed or interrupted remote request MUST NOT leave a page or document marked complete unless its existing output validity rules are satisfied.
-- **FR-029**: The system MUST retain the existing limit of sequential processing by default and MUST prevent future remote concurrency from exceeding four requests per account unless the service documents a different limit.
+- **FR-029**: The system MUST retain sequential processing by default and MUST limit explicitly requested OCR concurrency to the inclusive range 1 through 4.
 - **FR-030**: User documentation MUST include provider selection, secure credential setup, the initial Qwen 3.8 model, metadata and OCR examples, supported and incompatible options, model availability caveats, and the prohibition on committing credentials.
 - **FR-031**: Live-provider validation MUST be opt-in, use local non-versioned data and credentials, and remain separate from the default automated test suite.
 - **FR-032**: The feature MUST NOT change the output schemas, canonical tag model, topic taxonomy rules, metadata reconciliation rules, OCR prompts, or archival file layout.
+- **FR-033**: The OCR command MUST accept `--concurrency N`, with `N=1` as the default.
+- **FR-034**: Concurrency greater than one MUST run independent PDF jobs in parallel while retaining sequential page processing, previous-page context, retry semantics, page ordering, output paths, and resume state within each PDF.
+- **FR-035**: A failure in one concurrent PDF job MUST retain the existing per-file continuation behaviour and MUST NOT cancel successful or still-running independent jobs.
 
 ### Key Entities
 
@@ -134,6 +141,7 @@ As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 
 - **SC-006**: All provider-independent acceptance tests exercise metadata, tagging, and OCR without requiring those workflows to know which supported provider produced the response.
 - **SC-007**: Existing users can run their previously documented Ollama commands without adding or renaming any option, and all such compatibility scenarios complete with no feature-caused change in model semantics.
 - **SC-008**: No credential file, credential value, live archival sample, or live-provider output is added to version control by the feature validation workflow.
+- **SC-009**: With two or more synthetic PDFs and concurrency set to two through four, automated tests observe no more than the configured number of simultaneous jobs, retain correct per-file output, and pass the unchanged default-concurrency Ollama compatibility suite.
 
 ## Assumptions
 
@@ -142,9 +150,8 @@ As an archivatorium user with e-INFRA access, I can use the multimodal Qwen 3.8 
 - The existing `False`, `low`, `medium`, and `high` reasoning choices remain the public contract. Their provider-specific representation is invisible to users.
 - Ollama keeps its current default models independently for metadata and OCR. The e-INFRA provider has its own default model.
 - Existing OCR modes and their prompts remain independent from the selected provider and model.
-- The current processing flow is sequential. No throughput benchmarking or new parallel processing is included in this feature.
+- OCR remains sequential unless concurrency is explicitly greater than one. Parallelism applies across independent PDFs, not across pages of one PDF, because `standard` and `qwen38` depend on previous-page context.
 - Automatic failover is excluded because it could transmit archival content to an unselected service and would make reproducibility harder.
 - Users are responsible for confirming that remote processing is authorized for their source material. Documentation will distinguish local processing from e-INFRA processing and warn against sending unauthorized protected material.
 - The repository-root `meta-api-key` file may be used for local opt-in validation only after it is excluded from version control and protected by restrictive filesystem permissions; it is not a committed project asset or a default credential location.
 - Clean, interlinking, indexing, and other non-model workflows are outside this feature except for confirming that their inputs remain compatible.
-

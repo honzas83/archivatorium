@@ -76,6 +76,8 @@ archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--repeat-last-n INTEGER`: Override how many recent tokens are checked for repetition (`-1` means the full context, `0` disables the check; GLM default: `512`).
 - `--num-predict INTEGER`: Override maximum output tokens (`-1` or `>= 1`).
 - `--dpi INTEGER`: DPI for page rendering (default: `300`).
+- `--concurrency INTEGER`: Process up to 1 through 4 independent PDFs concurrently (default: `1`).
+  Pages within one PDF remain sequential to preserve previous-page context and resume behavior.
 - `--no-page-header`: Do not include `---\n\n# Page N\n\n` markers in the output (Note: this disables page-level resuming).
 
 *Note: Requires system package `poppler` (e.g. `brew install poppler` on macOS or `apt-get install poppler-utils` on Linux).*
@@ -117,7 +119,8 @@ archivatorium ocr INPUT_DIR OUTPUT_DIR \
   --llm-provider e-infra \
   --llm-api-key-file /secure/path/e-infra-token \
   --mode qwen38 \
-  --model-think low
+  --model-think low \
+  --concurrency 4
 ```
 
 e-INFRA OCR streams visible output and validates that the selected model is available and

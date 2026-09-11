@@ -35,6 +35,24 @@ semantics merely to share a protocol.
 - Normalize both Ollama retry loops immediately: rejected because structured extraction currently
   permits four total attempts while OCR permits three and retries different error classes.
 
+## Decision: Parallelize independent PDFs, not dependent pages
+
+**Decision**: Add bounded OCR concurrency across PDF files. Keep every page chain within one PDF
+sequential and retain one output/resume boundary per document. Expose `--concurrency`, defaulting to
+one and capping the value at four.
+
+**Rationale**: Standard and Qwen 3.8 modes use the preceding page transcription as model context.
+Parallelizing pages would silently remove or weaken that input. Independent PDFs have no such data
+dependency, so they can overlap safely while preserving page order, retries, and recovery.
+
+**Alternatives considered**:
+
+- Parallelize pages within one PDF: rejected because adjacent-page context would be unavailable for
+  simultaneous requests and completed pages could not be persisted through the existing ordered
+  resume path without changed semantics.
+- Create a separate client for each worker: rejected for e-INFRA because one command-scoped client
+  can share connection resources and a thread-safe capability cache.
+
 ## Decision: Use the official OpenAI client for e-INFRA Chat Completions
 
 **Decision**: Add the official OpenAI Python client and configure it with
@@ -229,4 +247,3 @@ and functional rather than comparative.
   complete request equality, and byte-level outputs are not fully characterized.
 - Put live calls in normal pytest: rejected because credentials, service availability, and
   sensitive-data controls make them unsuitable as default tests.
-
