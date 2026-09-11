@@ -16,6 +16,7 @@ from archivatorium.services.llm_factory import (
     ProviderSelection,
     build_llm_client,
     resolve_connection,
+    validate_ocr_configuration,
 )
 from archivatorium.services.tagging_service import TaggingService
 from archivatorium.services.windowing_service import SlidingWindowService
@@ -167,7 +168,9 @@ def clean(  # noqa: PLR0913
     type=click.Path(path_type=Path),
     help="Protected file containing the e-INFRA API token.",
 )
-@click.option("--model", default=None, help="Model to use (provider-specific default when omitted).")
+@click.option(
+    "--model", default=None, help="Model to use (provider-specific default when omitted)."
+)
 @click.option(
     "--model-think",
     type=MODEL_THINK_CHOICE,
@@ -370,10 +373,28 @@ def interlink(
 @cli.command()
 @click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("output_dir", type=click.Path(path_type=Path))
+@click.option(
+    "--llm-provider",
+    type=click.Choice(["ollama", "e-infra"]),
+    default="ollama",
+    show_default=True,
+    help="LLM service to use.",
+)
+@click.option("--llm-base-url", help="Provider endpoint URL; --host remains an alias.")
+@click.option(
+    "--llm-api-key-file",
+    type=click.Path(path_type=Path),
+    help="Protected file containing the e-INFRA API token.",
+)
 @click.option("--host", help="Ollama server URL.")
 @click.option("--user", help="DigestAuth username.")
 @click.option("--password", help="DigestAuth password.")
-@click.option("--model", default="qwen3.5:9b", show_default=True, help="VLM model to use.")
+@click.option(
+    "--model",
+    default=None,
+    show_default="qwen3.5:9b for Ollama; qwen3.8-27b for e-INFRA",
+    help="VLM model to use.",
+)
 @click.option(
     "--mode",
     type=click.Choice(["standard", "qwen38", "glm", "firered"]),
@@ -429,10 +450,13 @@ def interlink(
 def ocr(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
+    llm_provider: str,
+    llm_base_url: str | None,
+    llm_api_key_file: Path | None,
     host: str | None,
     user: str | None,
     password: str | None,
-    model: str,
+    model: str | None,
     mode: str,
     temperature: float | None,
     top_p: float | None,
@@ -444,17 +468,44 @@ def ocr(  # noqa: PLR0913
     dpi: int,
     no_page_header: bool,
 ) -> None:
-    """OCR multipage PDF files using Ollama (VLM) → Markdown."""
+    """OCR multipage PDF files using the selected vision model."""
     started_at = perf_counter()
     overall_attempted_pages = 0
     try:
         from archivatorium.ocr_engine import OCREngine
 
+        try:
+            connection = resolve_connection(
+                ProviderSelection(
+                    provider=llm_provider,
+                    command=LLMCommand.OCR,
+                    endpoint_input=llm_base_url,
+                    legacy_host=host,
+                    model_input=model,
+                    credential_file=llm_api_key_file,
+                )
+            )
+            validate_ocr_configuration(
+                connection,
+                mode=mode,
+                user=user,
+                password=password,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repeat_penalty=repeat_penalty,
+                repeat_last_n=repeat_last_n,
+                num_predict=num_predict,
+            )
+            llm_client = build_llm_client(connection) if connection.provider == "e-infra" else None
+        except LLMError as exc:
+            raise click.UsageError(str(exc)) from exc
+
         engine = OCREngine(
-            host=host,
+            host=connection.endpoint,
             user=user,
             password=password,
-            model=model,
+            model=connection.model,
             dpi=dpi,
             mode=mode,
             temperature=temperature,
@@ -464,6 +515,7 @@ def ocr(  # noqa: PLR0913
             repeat_last_n=repeat_last_n,
             num_predict=num_predict,
             model_think=model_think,
+            llm_client=llm_client,
         )
 
         # Recursively find pdf files

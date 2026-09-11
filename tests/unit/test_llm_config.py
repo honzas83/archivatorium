@@ -11,6 +11,7 @@ from archivatorium.services.llm_factory import (
     LLMCommand,
     ProviderSelection,
     resolve_connection,
+    validate_ocr_configuration,
 )
 
 
@@ -168,3 +169,42 @@ def test_openai_api_key_is_not_an_einfra_credential() -> None:
             ProviderSelection(provider="e-infra", command=LLMCommand.METADATA),
             environ={"OPENAI_API_KEY": "wrong-ambient-secret"},
         )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"mode": "glm"},
+        {"mode": "qwen38", "user": "digest-user"},
+        {"mode": "qwen38", "password": "digest-password"},
+        {"mode": "qwen38", "top_k": 1},
+        {"mode": "qwen38", "repeat_penalty": 1.1},
+        {"mode": "qwen38", "repeat_last_n": 32},
+        {"mode": "qwen38", "num_predict": -1},
+    ],
+)
+def test_einfra_rejects_unrepresentable_ocr_configuration(kwargs: dict[str, object]) -> None:
+    connection = resolve_connection(
+        ProviderSelection(provider="e-infra", command=LLMCommand.OCR),
+        environ={"E_INFRA_API_TOKEN": "synthetic"},
+    )
+
+    with pytest.raises(LLMError) as raised:
+        validate_ocr_configuration(connection, **kwargs)
+
+    assert raised.value.category is LLMErrorCategory.CONFIGURATION
+
+
+def test_einfra_accepts_supported_ocr_configuration() -> None:
+    connection = resolve_connection(
+        ProviderSelection(provider="e-infra", command=LLMCommand.OCR),
+        environ={"E_INFRA_API_TOKEN": "synthetic"},
+    )
+
+    validate_ocr_configuration(
+        connection,
+        mode="qwen38",
+        temperature=0.0,
+        top_p=0.9,
+        num_predict=16384,
+    )

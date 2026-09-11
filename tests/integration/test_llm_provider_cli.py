@@ -1,11 +1,19 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from archivatorium.cli import cli
 from archivatorium.models.metadata import MetadataSchema, WindowTaggingResult
-from archivatorium.services.llm_client import LLMClient, LLMError, LLMErrorCategory
+from archivatorium.services.llm_client import (
+    CompletionState,
+    LLMClient,
+    LLMError,
+    LLMErrorCategory,
+    ModelRequest,
+    ModelResponse,
+)
 
 
 def test_metadata_exposes_common_provider_options() -> None:
@@ -160,3 +168,104 @@ def test_per_document_einfra_failure_does_not_fallback_or_write_output(tmp_path:
     assert not (tmp_path / "output" / "document.md").exists()
     build.assert_called_once()
     ollama.assert_not_called()
+
+
+def _ocr_args(tmp_path: Path) -> list[str]:
+    input_dir = tmp_path / "pdf-input"
+    input_dir.mkdir()
+    return ["ocr", str(input_dir), str(tmp_path / "ocr-output")]
+
+
+def test_ocr_exposes_common_provider_options() -> None:
+    result = CliRunner().invoke(cli, ["ocr", "--help"])
+
+    assert result.exit_code == 0
+    assert "--llm-provider" in result.output
+    assert "--llm-base-url" in result.output
+    assert "--llm-api-key-file" in result.output
+    assert "--host" in result.output
+
+
+def test_einfra_ocr_uses_remote_defaults_and_one_injected_client(tmp_path: Path) -> None:
+    fake_client = MagicMock(spec=LLMClient)
+    with (
+        patch("archivatorium.cli.build_llm_client", return_value=fake_client) as build,
+        patch("archivatorium.ocr_engine.OCREngine") as engine,
+    ):
+        result = CliRunner().invoke(
+            cli,
+            _ocr_args(tmp_path) + ["--llm-provider", "e-infra", "--mode", "qwen38"],
+            env={"E_INFRA_API_TOKEN": "synthetic-token"},
+        )
+
+    assert result.exit_code == 0, result.output
+    connection = build.call_args.args[0]
+    assert connection.model == "qwen3.8-27b"
+    assert connection.endpoint == "https://llm.ai.e-infra.cz/v1/"
+    assert engine.call_args.kwargs["model"] == "qwen3.8-27b"
+    assert engine.call_args.kwargs["llm_client"] is fake_client
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        ["--mode", "glm"],
+        ["--mode", "qwen38", "--top-k", "1"],
+        ["--mode", "qwen38", "--repeat-penalty", "1.1"],
+        ["--mode", "qwen38", "--repeat-last-n", "10"],
+        ["--mode", "qwen38", "--num-predict", "-1"],
+        ["--mode", "qwen38", "--user", "digest"],
+        ["--mode", "qwen38", "--password", "digest"],
+    ],
+)
+def test_invalid_einfra_ocr_configuration_fails_before_discovery(
+    tmp_path: Path, options: list[str]
+) -> None:
+    with patch("archivatorium.ocr_engine.OCREngine") as engine:
+        result = CliRunner().invoke(
+            cli,
+            _ocr_args(tmp_path) + ["--llm-provider", "e-infra", *options],
+            env={"E_INFRA_API_TOKEN": "synthetic-token"},
+        )
+
+    assert result.exit_code == 2
+    engine.assert_not_called()
+
+
+class _TextFake:
+    provider = "e-infra"
+
+    def __init__(self, responses: list[str]) -> None:
+        self.responses = iter(responses)
+        self.requests: list[ModelRequest] = []
+
+    def generate_text(self, request: ModelRequest) -> ModelResponse:
+        self.requests.append(request)
+        return ModelResponse(
+            visible_text=next(self.responses),
+            finish_state=CompletionState.COMPLETE,
+        )
+
+
+def test_einfra_multipage_ocr_preserves_layout_context_and_resume(tmp_path: Path) -> None:
+    args = _ocr_args(tmp_path) + ["--llm-provider", "e-infra", "--mode", "qwen38"]
+    (tmp_path / "pdf-input" / "document.pdf").write_bytes(b"synthetic pdf")
+    fake = _TextFake(["PAGE ONE", "PAGE TWO"])
+
+    with (
+        patch("archivatorium.cli.build_llm_client", return_value=fake),
+        patch("archivatorium.ocr_engine.PdfReader") as reader,
+        patch("archivatorium.ocr_engine.convert_from_path") as convert,
+    ):
+        reader.return_value.pages = [MagicMock(), MagicMock()]
+        convert.return_value = [MagicMock()]
+        first = CliRunner().invoke(cli, args, env={"E_INFRA_API_TOKEN": "synthetic-token"})
+        second = CliRunner().invoke(cli, args, env={"E_INFRA_API_TOKEN": "synthetic-token"})
+
+    assert first.exit_code == 0, first.output
+    assert second.exit_code == 0, second.output
+    assert len(fake.requests) == 2
+    assert all(request.delivery == "incremental" for request in fake.requests)
+    assert "PAGE ONE" in fake.requests[1].messages[-1].text
+    saved = (tmp_path / "ocr-output" / "document.md").read_text(encoding="utf-8")
+    assert saved == "---\n\n# Page 1\n\nPAGE ONE\n\n---\n\n# Page 2\n\nPAGE TWO"

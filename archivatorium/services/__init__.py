@@ -20,6 +20,7 @@ from archivatorium.services.llm_factory import (
     ProviderSelection,
     build_llm_client,
     resolve_connection,
+    validate_ocr_configuration,
 )
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "StructuredLLMClient",
     "build_llm_client",
     "resolve_connection",
+    "validate_ocr_configuration",
 ]

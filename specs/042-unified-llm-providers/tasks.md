@@ -128,17 +128,17 @@ reasoning exclusion, retry identity, completed-page skipping, and final Markdown
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Write failing transport tests for MIME-aware base64 data URLs, ordered content parts, reasoning mapping, 16,384-token allowance, chunk assembly, duplicate prevention, reasoning-delta exclusion, length exhaustion, and interrupted-stream buffer discard in `tests/unit/test_einfra_provider.py`
-- [ ] T030 [P] [US3] Write failing capability tests for one lookup per command, exact-model matching, multimodal acceptance, text-only/unknown/unavailable rejection before image transmission, and maximum-output validation in `tests/unit/test_llm_config.py`
-- [ ] T031 [P] [US3] Add OCR CLI tests for provider-aware defaults, endpoint alias agreement/conflict, credential/DigestAuth incompatibility, unsupported explicit sampling values, unlimited output, e-INFRA/GLM rejection, and validation before PDF discovery in `tests/integration/test_llm_provider_cli.py`
+- [X] T029 [P] [US3] Write failing transport tests for MIME-aware base64 data URLs, ordered content parts, reasoning mapping, 16,384-token allowance, chunk assembly, duplicate prevention, reasoning-delta exclusion, length exhaustion, and interrupted-stream buffer discard in `tests/unit/test_einfra_provider.py`
+- [X] T030 [P] [US3] Write failing capability tests for one lookup per command, exact-model matching, multimodal acceptance, text-only/unknown/unavailable rejection before image transmission, and maximum-output validation in `tests/unit/test_llm_config.py`
+- [X] T031 [P] [US3] Add OCR CLI tests for provider-aware defaults, endpoint alias agreement/conflict, credential/DigestAuth incompatibility, unsupported explicit sampling values, unlimited output, e-INFRA/GLM rejection, and validation before PDF discovery in `tests/integration/test_llm_provider_cli.py`
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement e-INFRA capability discovery/cache, multimodal validation, local-image encoding, streamed visible-text assembly, completion-state checks, and interrupted-stream retries in `archivatorium/services/einfra_client.py`
-- [ ] T033 [US3] Validate OCR mode and explicit generation options against the selected provider and capabilities before page processing in `archivatorium/services/llm_factory.py`
-- [ ] T034 [US3] Route OCR requests and complete responses through the shared client while keeping existing mode prompts, prior-page context, defensive `</think>` cleanup, page persistence, and per-file recovery in `archivatorium/ocr_engine.py`
-- [ ] T035 [US3] Add the common provider options and provider-aware e-INFRA model default to OCR, construct one command-scoped client, and retain legacy Ollama host/DigestAuth resolution in `archivatorium/cli.py`
-- [ ] T036 [US3] Add mocked multipage e-INFRA OCR tests for sequential calls, stream retry identity, partial-output rejection, page ordering, resume, completed-page skipping, no-page-header behavior, and byte-compatible Markdown layout in `tests/integration/test_ocr_cli.py` and `tests/integration/test_llm_provider_cli.py`
+- [X] T032 [US3] Implement e-INFRA capability discovery/cache, multimodal validation, local-image encoding, streamed visible-text assembly, completion-state checks, and interrupted-stream retries in `archivatorium/services/einfra_client.py`
+- [X] T033 [US3] Validate OCR mode and explicit generation options against the selected provider and capabilities before page processing in `archivatorium/services/llm_factory.py`
+- [X] T034 [US3] Route OCR requests and complete responses through the shared client while keeping existing mode prompts, prior-page context, defensive `</think>` cleanup, page persistence, and per-file recovery in `archivatorium/ocr_engine.py`
+- [X] T035 [US3] Add the common provider options and provider-aware e-INFRA model default to OCR, construct one command-scoped client, and retain legacy Ollama host/DigestAuth resolution in `archivatorium/cli.py`
+- [X] T036 [US3] Add mocked multipage e-INFRA OCR tests for sequential calls, stream retry identity, partial-output rejection, page ordering, resume, completed-page skipping, no-page-header behavior, and byte-compatible Markdown layout in `tests/integration/test_ocr_cli.py` and `tests/integration/test_llm_provider_cli.py`
 
 **Checkpoint**: e-INFRA OCR is complete and resumable using only visible streamed output; every
 Ollama OCR profile still satisfies the immutable native compatibility baseline.

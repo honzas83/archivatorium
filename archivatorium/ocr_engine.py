@@ -302,6 +302,7 @@ class OCREngine:
         else:
             self.client = None
             self.llm_client = llm_client
+        self.provider = self.llm_client.provider
 
     def _build_client(self) -> Client:
         timeout = httpx.Timeout(240.0)
@@ -356,9 +357,15 @@ class OCREngine:
         request = self._to_model_request(request_kwargs)
 
         last_err = None
-        for attempt in range(1, retry + 1):
+        total_attempts = retry if self.provider == "ollama" else 1
+        for attempt in range(1, total_attempts + 1):
             try:
-                logger.info("Calling Ollama (attempt %d) for image %s", attempt, image_path.name)
+                if self.provider == "ollama":
+                    logger.info(
+                        "Calling Ollama (attempt %d) for image %s", attempt, image_path.name
+                    )
+                else:
+                    logger.info("Calling e-INFRA for image %s", image_path.name)
                 response = self.llm_client.generate_text(request)
                 normalized_content = normalize_ocr_response(response.visible_text)
                 logger.info(
@@ -367,8 +374,11 @@ class OCREngine:
                 return normalized_content
             except Exception as e:
                 last_err = e
-                logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
-                if attempt < retry:
+                if self.provider == "ollama":
+                    logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
+                else:
+                    logger.warning("e-INFRA call failed for image %s: %s", image_path.name, e)
+                if attempt < total_attempts:
                     sleep_s = retry_backoff**attempt
                     logger.info("Retrying in %.1f s", sleep_s)
                     time.sleep(sleep_s)
@@ -379,8 +389,7 @@ class OCREngine:
             raise last_err
         return ""
 
-    @staticmethod
-    def _to_model_request(request: dict[str, Any]) -> ModelRequest:
+    def _to_model_request(self, request: dict[str, Any]) -> ModelRequest:
         native_options = request["options"]
         messages = tuple(
             ModelMessage(
@@ -410,6 +419,7 @@ class OCREngine:
                 explicit_fields=frozenset(native_options),
             ),
             reasoning=reasoning,
+            delivery="incremental" if self.provider == "e-infra" else "complete",
         )
 
     def _build_messages(self, image_path: Path, last_text: str) -> list[dict[str, Any]]:

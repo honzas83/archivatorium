@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -162,3 +163,185 @@ def test_authentication_failure_is_permanent_and_redacted() -> None:
     assert raised.value.retryable is False
     assert "secret-token" not in str(raised.value)
     sdk.chat.completions.create.assert_called_once()
+
+
+def _chunk(content: str | None = None, finish_reason: str | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        id="chunk-id",
+        choices=[
+            SimpleNamespace(
+                finish_reason=finish_reason,
+                delta=SimpleNamespace(content=content, reasoning_content="PRIVATE"),
+            )
+        ],
+    )
+
+
+def _vision_sdk(streams: list[object]) -> MagicMock:
+    sdk = MagicMock()
+    sdk.models.list.return_value = SimpleNamespace(data=[SimpleNamespace(id="qwen3.8-27b")])
+    sdk.chat.completions.create.side_effect = streams
+    return sdk
+
+
+def test_streamed_image_request_encodes_mime_data_and_visible_chunks(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = _vision_sdk([[_chunk("PAGE "), _chunk("TEXT"), _chunk(None, "stop")]])
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="transcribe", images=(image,)),),
+        reasoning=ReasoningDirective.effort("low"),
+        delivery="incremental",
+    )
+
+    response = EinfraTransport("secret", client=sdk).generate(request)
+
+    assert response.visible_text == "PAGE TEXT"
+    assert "PRIVATE" not in response.visible_text
+    kwargs = sdk.chat.completions.create.call_args.kwargs
+    assert kwargs["stream"] is True
+    assert kwargs["max_completion_tokens"] == 16384
+    assert kwargs["messages"] == [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "transcribe"},
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64,UE5H"}},
+            ],
+        }
+    ]
+
+
+def test_capability_is_looked_up_once_per_transport(tmp_path: Path) -> None:
+    image = tmp_path / "page.jpg"
+    image.write_bytes(b"JPEG")
+    sdk = _vision_sdk(
+        [
+            [_chunk("ONE"), _chunk(None, "stop")],
+            [_chunk("TWO"), _chunk(None, "stop")],
+        ]
+    )
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+    transport = EinfraTransport("secret", client=sdk)
+
+    assert transport.generate(request).visible_text == "ONE"
+    assert transport.generate(request).visible_text == "TWO"
+    sdk.models.list.assert_called_once_with()
+
+
+def test_unknown_model_fails_before_image_transmission(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = MagicMock()
+    sdk.models.list.return_value = SimpleNamespace(data=[])
+    request = ModelRequest(
+        model="missing-model",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk).generate(request)
+
+    assert raised.value.category is LLMErrorCategory.UNKNOWN_MODEL
+    sdk.chat.completions.create.assert_not_called()
+
+
+def test_known_text_only_model_fails_before_image_transmission(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = MagicMock()
+    sdk.models.list.return_value = SimpleNamespace(
+        data=[SimpleNamespace(id="text-model", capabilities={"vision": False})]
+    )
+    request = ModelRequest(
+        model="text-model",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk).generate(request)
+
+    assert raised.value.category is LLMErrorCategory.UNSUPPORTED_CAPABILITY
+    sdk.chat.completions.create.assert_not_called()
+
+
+def test_interrupted_stream_discards_partial_content_before_retry(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+
+    def interrupted():
+        yield _chunk("DISCARD")
+        raise ConnectionError("stream interrupted")
+
+    sdk = _vision_sdk([interrupted(), [_chunk("RECOVERED"), _chunk(None, "stop")]])
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+
+    response = EinfraTransport("secret", client=sdk, sleep=MagicMock()).generate(request)
+
+    assert response.visible_text == "RECOVERED"
+    assert "DISCARD" not in response.visible_text
+    assert sdk.chat.completions.create.call_count == 2
+
+
+def test_stream_without_terminal_finish_is_not_accepted(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = _vision_sdk([[_chunk("PARTIAL")]] * 3)
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk, sleep=MagicMock()).generate(request)
+
+    assert raised.value.category is LLMErrorCategory.INTERRUPTED
+    assert "PARTIAL" not in str(raised.value)
+
+
+def test_stream_length_finish_is_reported_as_truncated(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = _vision_sdk([[_chunk("PARTIAL"), _chunk(None, "length")]])
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        delivery="incremental",
+    )
+
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk).generate(request)
+
+    assert raised.value.category is LLMErrorCategory.TRUNCATED
+
+
+def test_output_allowance_above_model_capability_fails_before_transmission(
+    tmp_path: Path,
+) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    sdk = _vision_sdk([])
+    request = ModelRequest(
+        model="qwen3.8-27b",
+        messages=(ModelMessage(role="user", text="ocr", images=(image,)),),
+        options=GenerationOptions(output_tokens=32769),
+        delivery="incremental",
+    )
+
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk).generate(request)
+
+    assert raised.value.category is LLMErrorCategory.CONFIGURATION
+    sdk.chat.completions.create.assert_not_called()

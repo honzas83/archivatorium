@@ -170,3 +170,39 @@ def build_llm_client(
         EinfraTransport(connection.secret, base_url=connection.endpoint),
         default_model=connection.model,
     )
+
+
+def validate_ocr_configuration(
+    connection: ModelConnection,
+    *,
+    mode: str,
+    user: str | None = None,
+    password: str | None = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    top_k: int | None = None,
+    repeat_penalty: float | None = None,
+    repeat_last_n: int | None = None,
+    num_predict: int | None = None,
+) -> None:
+    """Reject explicit OCR semantics that e-INFRA cannot represent."""
+
+    del temperature, top_p
+    if connection.provider == "ollama":
+        return
+    if mode == "glm":
+        raise _configuration_error("OCR mode glm is not supported by e-INFRA")
+    incompatible = {
+        "--user": user,
+        "--password": password,
+        "--top-k": top_k,
+        "--repeat-penalty": repeat_penalty,
+        "--repeat-last-n": repeat_last_n,
+    }
+    selected = [name for name, value in incompatible.items() if value is not None]
+    if selected:
+        raise _configuration_error(
+            f"{', '.join(selected)} cannot be used with the e-INFRA provider"
+        )
+    if num_predict == -1:
+        raise _configuration_error("--num-predict=-1 is not supported by e-INFRA")
