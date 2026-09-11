@@ -248,3 +248,6 @@ NATO_NPG_*.old/
 NATO_NPG_metadata.*/
 NATO_NPG_metadata.v*
 .agents/
+
+# Local e-INFRA credential (never commit)
+/meta-api-key

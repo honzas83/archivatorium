@@ -17,6 +17,7 @@ dependencies = [
     "PyPDF2",
     "pdf2image",
     "httpx",
+    "openai>=1.0",
 ]
 
 [project.scripts]
@@ -56,3 +57,6 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "--cov=archivatorium --cov-report=term-missing"
+markers = [
+    "live_einfra: opt-in tests that call the live e-INFRA service",
+]

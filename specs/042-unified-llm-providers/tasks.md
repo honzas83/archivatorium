@@ -28,9 +28,9 @@ e-INFRA OCR can each be validated as a coherent increment.
 **Purpose**: Add the dependency, test classification, and secret-protection scaffolding required by
 the feature without changing runtime behavior.
 
-- [ ] T001 Add the official OpenAI Python client dependency and register the opt-in `live_einfra` pytest marker in `pyproject.toml`
-- [ ] T002 [P] Add a root-anchored `/meta-api-key` exclusion and retain existing data exclusions in `.gitignore`
-- [ ] T003 [P] Create provider-test package scaffolding in `tests/contract/__init__.py` and `tests/live/__init__.py`
+- [X] T001 Add the official OpenAI Python client dependency and register the opt-in `live_einfra` pytest marker in `pyproject.toml`
+- [X] T002 [P] Add a root-anchored `/meta-api-key` exclusion and retain existing data exclusions in `.gitignore`
+- [X] T003 [P] Create provider-test package scaffolding in `tests/contract/__init__.py` and `tests/live/__init__.py`
 
 ---
 
