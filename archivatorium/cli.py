@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from time import perf_counter
 from typing import cast
@@ -13,8 +14,8 @@ from archivatorium.services.interlinking_service import InterlinkingService
 from archivatorium.services.llm_client import LLMClient, LLMError
 from archivatorium.services.llm_factory import (
     LLMCommand,
-    ProviderSelection,
     ProviderName,
+    ProviderSelection,
     build_llm_client,
     resolve_connection,
     validate_ocr_configuration,
@@ -445,6 +446,13 @@ def interlink(
 )
 @click.option("--dpi", type=int, default=300, show_default=True, help="DPI for page rendering.")
 @click.option(
+    "--concurrency",
+    type=click.IntRange(min=1, max=4),
+    default=1,
+    show_default=True,
+    help="Maximum PDF OCR jobs processed in parallel.",
+)
+@click.option(
     "--no-page-header",
     is_flag=True,
     help="Do not include Page headers in the output.",
@@ -468,6 +476,7 @@ def ocr(  # noqa: PLR0913
     num_predict: int | None,
     model_think: ModelThink,
     dpi: int,
+    concurrency: int,
     no_page_header: bool,
 ) -> None:
     """OCR multipage PDF files using the selected vision model."""
@@ -507,22 +516,25 @@ def ocr(  # noqa: PLR0913
         except LLMError as exc:
             raise click.UsageError(str(exc)) from exc
 
-        engine = OCREngine(
-            host=connection.endpoint,
-            user=user,
-            password=password,
-            model=connection.model,
-            dpi=dpi,
-            mode=mode,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repeat_penalty=repeat_penalty,
-            repeat_last_n=repeat_last_n,
-            num_predict=num_predict,
-            model_think=model_think,
-            llm_client=llm_client,
-        )
+        def build_ocr_engine() -> OCREngine:
+            return OCREngine(
+                host=connection.endpoint,
+                user=user,
+                password=password,
+                model=connection.model,
+                dpi=dpi,
+                mode=mode,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repeat_penalty=repeat_penalty,
+                repeat_last_n=repeat_last_n,
+                num_predict=num_predict,
+                model_think=model_think,
+                llm_client=llm_client,
+            )
+
+        engine = build_ocr_engine() if concurrency == 1 else None
 
         # Recursively find pdf files
         pdf_files = sorted(list(input_dir.rglob("*")))
@@ -533,21 +545,59 @@ def ocr(  # noqa: PLR0913
             return
 
         click.echo(f"Found {len(pdf_files)} PDF files to process.")
-        with click.progressbar(pdf_files, label="Processing PDFs") as bar:
-            for pdf_file in bar:
+        if concurrency == 1:
+            assert engine is not None
+            with click.progressbar(pdf_files, label="Processing PDFs") as bar:
+                for pdf_file in bar:
+                    rel_path = pdf_file.relative_to(input_dir)
+                    output_md = output_dir / rel_path.with_suffix(".md")
+                    try:
+                        engine.run_ocr(
+                            input_pdf=pdf_file,
+                            output_md=output_md,
+                            page_header=not no_page_header,
+                        )
+                    except Exception as e:
+                        click.echo(f"\nError processing {rel_path}: {e}", err=True)
+                    finally:
+                        overall_attempted_pages += engine.last_run_attempted_pages
+                        _log_ocr_cumulative_timing(started_at, overall_attempted_pages)
+            return
+
+        def process_pdf(pdf_file: Path) -> tuple[Path, int, Exception | None]:
+            engine = build_ocr_engine()
+            rel_path = pdf_file.relative_to(input_dir)
+            output_md = output_dir / rel_path.with_suffix(".md")
+            error: Exception | None = None
+            try:
+                engine.run_ocr(
+                    input_pdf=pdf_file,
+                    output_md=output_md,
+                    page_header=not no_page_header,
+                )
+            except Exception as exc:
+                error = exc
+            return rel_path, engine.last_run_attempted_pages, error
+
+        with (
+            ThreadPoolExecutor(max_workers=concurrency) as executor,
+            click.progressbar(length=len(pdf_files), label="Processing PDFs") as parallel_bar,
+        ):
+            futures = {executor.submit(process_pdf, pdf_file): pdf_file for pdf_file in pdf_files}
+            for future in as_completed(futures):
+                pdf_file = futures[future]
                 rel_path = pdf_file.relative_to(input_dir)
-                output_md = output_dir / rel_path.with_suffix(".md")
+                attempted_pages = 0
+                error: Exception | None = None
                 try:
-                    engine.run_ocr(
-                        input_pdf=pdf_file,
-                        output_md=output_md,
-                        page_header=not no_page_header,
-                    )
-                except Exception as e:
-                    click.echo(f"\nError processing {rel_path}: {e}", err=True)
-                finally:
-                    overall_attempted_pages += engine.last_run_attempted_pages
-                    _log_ocr_cumulative_timing(started_at, overall_attempted_pages)
+                    rel_path, attempted_pages, error = future.result()
+                except Exception as exc:
+                    error = exc
+                if error is not None:
+                    click.echo(f"\nError processing {rel_path}: {error}", err=True)
+                overall_attempted_pages += attempted_pages
+                _log_ocr_cumulative_timing(started_at, overall_attempted_pages)
+                parallel_bar.update(1)
     finally:
         _log_ocr_overall_timing(started_at, overall_attempted_pages)
 

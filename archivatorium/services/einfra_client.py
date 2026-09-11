@@ -7,6 +7,7 @@ import mimetypes
 import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from openai import OpenAI
@@ -48,6 +49,7 @@ class EinfraTransport:
         self._max_attempts = max_attempts
         self._sleep = sleep
         self._capabilities: dict[str, ProviderCapability] = {}
+        self._capability_lock = Lock()
 
     def generate(self, request: ModelRequest) -> ModelResponse:
         if any(message.images for message in request.messages):
@@ -125,8 +127,11 @@ class EinfraTransport:
     def _validate_image_request(self, request: ModelRequest) -> None:
         capability = self._capabilities.get(request.model)
         if capability is None:
-            capability = self._load_capability(request.model)
-            self._capabilities[request.model] = capability
+            with self._capability_lock:
+                capability = self._capabilities.get(request.model)
+                if capability is None:
+                    capability = self._load_capability(request.model)
+                    self._capabilities[request.model] = capability
         if capability.multimodal is not True:
             raise LLMError(
                 LLMErrorCategory.UNSUPPORTED_CAPABILITY,
