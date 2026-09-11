@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import os
 import stat
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal
 
-from archivatorium.services.llm_client import LLMError, LLMErrorCategory
+from archivatorium.services.llm_client import (
+    LLMClient,
+    LLMError,
+    LLMErrorCategory,
+    StructuredLLMClient,
+)
 
 EINFRA_BASE_URL = "https://llm.ai.e-infra.cz/v1/"
 EINFRA_DEFAULT_MODEL = "qwen3.8-27b"
@@ -138,4 +143,30 @@ def resolve_connection(
         model=selection.model_input or EINFRA_DEFAULT_MODEL,
         credential_source=credential_source,
         secret=secret,
+    )
+
+
+def build_llm_client(
+    connection: ModelConnection,
+    *,
+    ollama_client_factory: Callable[..., StructuredLLMClient] | None = None,
+) -> StructuredLLMClient:
+    """Construct exactly the selected provider; never fall back."""
+
+    if connection.provider == "ollama":
+        if ollama_client_factory is None:
+            from archivatorium.services.ollama_client import OllamaClient
+
+            ollama_client_factory = OllamaClient
+        return ollama_client_factory(model=connection.model, host=connection.endpoint)
+
+    from archivatorium.services.einfra_client import EinfraTransport
+
+    if connection.secret is None or connection.endpoint is None:
+        raise _configuration_error(
+            "e-INFRA connection is missing validated credentials or endpoint"
+        )
+    return LLMClient(
+        EinfraTransport(connection.secret, base_url=connection.endpoint),
+        default_model=connection.model,
     )

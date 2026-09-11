@@ -98,18 +98,18 @@ leakage in output or diagnostics.
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Add credential-file/environment precedence, whitespace, file type, permissions, unreadable/empty input, dynamic default, endpoint normalization, incompatible option, and redaction tests in `tests/unit/test_llm_config.py`
-- [ ] T021 [P] [US2] Write failing e-INFRA structured-request tests for Bearer auth, disabled SDK retries, JSON Schema format, 8,192-token allowance, reasoning mapping, visible JSON extraction, error classification, `Retry-After`, truncation, and empty output in `tests/unit/test_einfra_provider.py`
-- [ ] T022 [P] [US2] Write metadata CLI tests for additive provider options, help text, `qwen3.8-27b` defaults, model/base-URL overrides, early failures, and absence of implicit `OPENAI_API_KEY` or `meta-api-key` lookup in `tests/integration/test_llm_provider_cli.py`
+- [X] T020 [P] [US2] Add credential-file/environment precedence, whitespace, file type, permissions, unreadable/empty input, dynamic default, endpoint normalization, incompatible option, and redaction tests in `tests/unit/test_llm_config.py`
+- [X] T021 [P] [US2] Write failing e-INFRA structured-request tests for Bearer auth, disabled SDK retries, JSON Schema format, 8,192-token allowance, reasoning mapping, visible JSON extraction, error classification, `Retry-After`, truncation, and empty output in `tests/unit/test_einfra_provider.py`
+- [X] T022 [P] [US2] Write metadata CLI tests for additive provider options, help text, `qwen3.8-27b` defaults, model/base-URL overrides, early failures, and absence of implicit `OPENAI_API_KEY` or `meta-api-key` lookup in `tests/integration/test_llm_provider_cli.py`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implement the OpenAI-compatible e-INFRA transport foundation, safe client construction, structured Chat Completions translation, response normalization, remote error mapping, bounded retry, and redaction in `archivatorium/services/einfra_client.py`
-- [ ] T024 [US2] Implement secure e-INFRA credential resolution and instantiate the selected transport with no provider fallback in `archivatorium/services/llm_factory.py`
-- [ ] T025 [US2] Add `--llm-provider`, `--llm-base-url`, and `--llm-api-key-file` to metadata with provider-aware omitted-model resolution and pre-processing validation in `archivatorium/cli.py`
-- [ ] T026 [P] [US2] Verify metadata, final-date, and all tagging windows use one shared client, model, and reasoning choice without provider fields entering output in `tests/unit/test_metadata_reasoning.py` and `tests/unit/test_tagging_service.py`
-- [ ] T027 [US2] Wire the resolved e-INFRA shared client through metadata and tagging construction without provider branches in `archivatorium/cli.py`, `archivatorium/processor_metadata.py`, and `archivatorium/services/tagging_service.py`
-- [ ] T028 [US2] Add end-to-end mocked e-INFRA metadata/tagging success, validation retry, transient retry, permanent failure, per-document continuation, output-schema parity, no-fallback, and credential-redaction coverage in `tests/integration/test_llm_provider_cli.py`
+- [X] T023 [US2] Implement the OpenAI-compatible e-INFRA transport foundation, safe client construction, structured Chat Completions translation, response normalization, remote error mapping, bounded retry, and redaction in `archivatorium/services/einfra_client.py`
+- [X] T024 [US2] Implement secure e-INFRA credential resolution and instantiate the selected transport with no provider fallback in `archivatorium/services/llm_factory.py`
+- [X] T025 [US2] Add `--llm-provider`, `--llm-base-url`, and `--llm-api-key-file` to metadata with provider-aware omitted-model resolution and pre-processing validation in `archivatorium/cli.py`
+- [X] T026 [P] [US2] Verify metadata, final-date, and all tagging windows use one shared client, model, and reasoning choice without provider fields entering output in `tests/unit/test_metadata_reasoning.py` and `tests/unit/test_tagging_service.py`
+- [X] T027 [US2] Wire the resolved e-INFRA shared client through metadata and tagging construction without provider branches in `archivatorium/cli.py`, `archivatorium/processor_metadata.py`, and `archivatorium/services/tagging_service.py`
+- [X] T028 [US2] Add end-to-end mocked e-INFRA metadata/tagging success, validation retry, transient retry, permanent failure, per-document continuation, output-schema parity, no-fallback, and credential-redaction coverage in `tests/integration/test_llm_provider_cli.py`
 
 **Checkpoint**: e-INFRA metadata and tagging complete through the same downstream models and document
 rules as Ollama, while Ollama compatibility tests remain unchanged and green.

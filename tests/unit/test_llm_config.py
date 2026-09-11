@@ -109,3 +109,62 @@ def test_ollama_rejects_explicit_einfra_key_file(tmp_path: Path) -> None:
             ),
             environ={},
         )
+
+
+def test_explicit_protected_key_file_wins_over_environment(tmp_path: Path) -> None:
+    key_file = tmp_path / "token"
+    key_file.write_text(" file-secret \n", encoding="utf-8")
+    key_file.chmod(0o600)
+
+    connection = resolve_connection(
+        ProviderSelection(
+            provider="e-infra",
+            command=LLMCommand.METADATA,
+            credential_file=key_file,
+        ),
+        environ={"E_INFRA_API_TOKEN": "environment-secret"},
+    )
+
+    assert connection.secret == "file-secret"
+    assert connection.credential_source == "file"
+
+
+@pytest.mark.parametrize("mode", [0o604, 0o640, 0o644])
+def test_insecure_key_file_permissions_are_rejected(tmp_path: Path, mode: int) -> None:
+    key_file = tmp_path / "token"
+    key_file.write_text("secret", encoding="utf-8")
+    key_file.chmod(mode)
+
+    with pytest.raises(LLMError, match="group or others"):
+        resolve_connection(
+            ProviderSelection(
+                provider="e-infra",
+                command=LLMCommand.METADATA,
+                credential_file=key_file,
+            ),
+            environ={},
+        )
+
+
+def test_empty_key_file_is_rejected_without_using_environment(tmp_path: Path) -> None:
+    key_file = tmp_path / "token"
+    key_file.write_text(" \n", encoding="utf-8")
+    key_file.chmod(0o600)
+
+    with pytest.raises(LLMError, match="empty"):
+        resolve_connection(
+            ProviderSelection(
+                provider="e-infra",
+                command=LLMCommand.METADATA,
+                credential_file=key_file,
+            ),
+            environ={"E_INFRA_API_TOKEN": "fallback-must-not-be-used"},
+        )
+
+
+def test_openai_api_key_is_not_an_einfra_credential() -> None:
+    with pytest.raises(LLMError, match="E_INFRA_API_TOKEN"):
+        resolve_connection(
+            ProviderSelection(provider="e-infra", command=LLMCommand.METADATA),
+            environ={"OPENAI_API_KEY": "wrong-ambient-secret"},
+        )

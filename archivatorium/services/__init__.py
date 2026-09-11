@@ -18,6 +18,7 @@ from archivatorium.services.llm_factory import (
     LLMCommand,
     ModelConnection,
     ProviderSelection,
+    build_llm_client,
     resolve_connection,
 )
 
@@ -37,5 +38,6 @@ __all__ = [
     "ProviderSelection",
     "ReasoningDirective",
     "StructuredLLMClient",
+    "build_llm_client",
     "resolve_connection",
 ]

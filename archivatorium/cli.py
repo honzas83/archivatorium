@@ -10,6 +10,13 @@ from archivatorium.processor_metadata import MetadataProcessor
 from archivatorium.services.indexing_service import IndexEntry, IndexingService
 from archivatorium.services.interlinking_service import InterlinkingService
 from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.llm_client import LLMError
+from archivatorium.services.llm_factory import (
+    LLMCommand,
+    ProviderSelection,
+    build_llm_client,
+    resolve_connection,
+)
 from archivatorium.services.tagging_service import TaggingService
 from archivatorium.services.windowing_service import SlidingWindowService
 from archivatorium.utils.files import initialize_vault_from_template
@@ -147,7 +154,20 @@ def clean(  # noqa: PLR0913
 @click.argument("input_dir", type=click.Path(exists=True, path_type=Path))
 @click.argument("output_dir", type=click.Path(path_type=Path))
 @click.option("--mask", default="*.md", help="Glob pattern for files to process (default: *.md).")
-@click.option("--model", default="gemma4:31b", help="Ollama model to use.")
+@click.option(
+    "--llm-provider",
+    type=click.Choice(["ollama", "e-infra"]),
+    default="ollama",
+    show_default=True,
+    help="LLM service to use.",
+)
+@click.option("--llm-base-url", help="Provider endpoint URL; --host remains an alias.")
+@click.option(
+    "--llm-api-key-file",
+    type=click.Path(path_type=Path),
+    help="Protected file containing the e-INFRA API token.",
+)
+@click.option("--model", default=None, help="Model to use (provider-specific default when omitted).")
 @click.option(
     "--model-think",
     type=MODEL_THINK_CHOICE,
@@ -186,7 +206,10 @@ def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
     mask: str,
-    model: str,
+    llm_provider: str,
+    llm_base_url: str | None,
+    llm_api_key_file: Path | None,
+    model: str | None,
     model_think: ModelThink,
     pdf_dir: Path | None,
     vault_root: Path | None,
@@ -197,7 +220,23 @@ def metadata(  # noqa: PLR0913
     dry_run: bool,
     host: str | None = None,
 ) -> None:
-    """Extract metadata using Ollama and generate sidecar YAML files."""
+    """Extract metadata using the selected LLM and generate archival Markdown."""
+    try:
+        connection = resolve_connection(
+            ProviderSelection(
+                provider=llm_provider,
+                command=LLMCommand.METADATA,
+                endpoint_input=llm_base_url,
+                legacy_host=host,
+                model_input=model,
+                credential_file=llm_api_key_file,
+            )
+        )
+        llm_client = build_llm_client(connection, ollama_client_factory=OllamaClient)
+    except LLMError as exc:
+        raise click.UsageError(str(exc)) from exc
+
+    resolved_model = connection.model
     effective_vault_root = vault_root or output_dir
     effective_pdf_dir = pdf_dir or output_dir
 
@@ -205,19 +244,18 @@ def metadata(  # noqa: PLR0913
     if template_dir.exists() and not dry_run:
         initialize_vault_from_template(template_dir, output_dir)
 
-    ollama_client = OllamaClient(model=model, host=host)
     windowing_service = SlidingWindowService()
     tagging_service = TaggingService(
-        ollama_client=ollama_client,
+        ollama_client=llm_client,
         windowing_service=windowing_service,
         themes_path=hierarchy_file,
         useful_tags_path=tags_file,
-        model_name=model,
+        model_name=resolved_model,
         model_think=model_think,
     )
 
     processor = MetadataProcessor(
-        ollama_client=ollama_client,
+        ollama_client=llm_client,
         output_dir=output_dir,
         overwrite=overwrite,
         vault_root=effective_vault_root,
