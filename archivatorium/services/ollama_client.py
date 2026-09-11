@@ -1,22 +1,90 @@
-import json
-import logging
-import re
+"""Native Ollama transport and backward-compatible structured facade."""
+
+from __future__ import annotations
+
 from typing import Any, TypeVar
 
 from ollama import Client
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
+
+from archivatorium.services.llm_client import (
+    CompletionState,
+    LLMClient,
+    ModelRequest,
+    ModelResponse,
+)
 
 T = TypeVar("T", bound=BaseModel)
-
-logger = logging.getLogger(__name__)
 
 OLLAMA_TIMEOUT = 300.0
 
 
+class OllamaTransport:
+    """Translate shared requests to the established native Ollama chat API."""
+
+    provider = "ollama"
+
+    def __init__(self, client: Any) -> None:
+        self.client = client
+
+    def generate(self, request: ModelRequest) -> ModelResponse:
+        messages: list[dict[str, Any]] = []
+        for message in request.messages:
+            native_message: dict[str, Any] = {"role": message.role, "content": message.text}
+            if message.images:
+                native_message["images"] = [str(image) for image in message.images]
+            messages.append(native_message)
+
+        options: dict[str, int | float] = {}
+        if request.options.context_tokens is not None:
+            options["num_ctx"] = request.options.context_tokens
+        for shared_name, native_name in (
+            ("temperature", "temperature"),
+            ("top_p", "top_p"),
+            ("top_k", "top_k"),
+            ("repeat_penalty", "repeat_penalty"),
+            ("repeat_last_n", "repeat_last_n"),
+            ("output_tokens", "num_predict"),
+        ):
+            value = getattr(request.options, shared_name)
+            if value is not None:
+                options[native_name] = value
+
+        kwargs: dict[str, Any] = {"model": request.model, "messages": messages}
+        if request.structured_result is not None:
+            kwargs["format"] = request.structured_result.json_schema
+        if options:
+            kwargs["options"] = options
+        if request.structured_result is None:
+            kwargs["stream"] = False
+        if request.reasoning.mode == "disabled":
+            kwargs["think"] = False
+        elif request.reasoning.mode == "effort":
+            kwargs["think"] = request.reasoning.level
+
+        response = self.client.chat(**kwargs)
+        if request.structured_result is not None:
+            content = response["message"]["content"]
+        else:
+            content = getattr(response, "message", {}).get("content", "")
+            if not content and isinstance(response, dict):
+                content = response.get("message", {}).get("content", "")
+        return ModelResponse(
+            visible_text=content or "",
+            finish_state=CompletionState.COMPLETE,
+        )
+
+
 class OllamaClient:
+    """Historical structured-client API retained for existing callers."""
+
     def __init__(self, model: str = "gemma4:26b", host: str | None = None):
         self.model = model
         self.client = Client(host=host, timeout=OLLAMA_TIMEOUT)
+
+    @property
+    def provider(self) -> str:
+        return "ollama"
 
     def extract_structured(
         self,
@@ -26,61 +94,11 @@ class OllamaClient:
         model: str | None = None,
         **kwargs: Any,
     ) -> T:
-        """
-        Sends a prompt to Ollama and returns a validated Pydantic model.
-        Includes retry logic for validation errors.
-        """
-        attempt = 0
-        last_error = None
-
-        while attempt <= retries:
-            try:
-                response = self.client.chat(
-                    model=model or self.model,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are a specialized metadata extraction assistant. "
-                                "Extract requested fields accurately and respond "
-                                "strictly in JSON format matching the schema."
-                            ),
-                        },
-                        {
-                            "role": "user",
-                            "content": (
-                                f"{prompt}\n\nStrictly follow this JSON schema:\n"
-                                f"{json.dumps(schema.model_json_schema(), indent=2)}"
-                            ),
-                        },
-                    ],
-                    format=schema.model_json_schema(),
-                    options={"temperature": 0},
-                    **kwargs,
-                )
-
-                content = response["message"]["content"].strip()
-
-                # Defensively strip markdown code blocks if the model ignored the format constraint
-                if content.startswith("```"):
-                    # Remove opening block
-                    content = re.sub(r"^```(?:json)?\s*", "", content)
-                    # Remove closing block
-                    content = re.sub(r"\s*```$", "", content)
-
-                return schema.model_validate_json(content)
-            except ValidationError as e:
-                attempt += 1
-                last_error = e
-                logger.warning(f"Schema validation failed on attempt {attempt}: {e}")
-                if attempt <= retries:
-                    prompt += (
-                        f"\n\nIMPORTANT: Previous response failed validation: {e}. "
-                        "Please ensure the output strictly matches the schema."
-                    )
-            except Exception as e:
-                logger.error(f"Ollama API error: {e}")
-                raise
-
-        logger.error(f"Failed extraction after {retries + 1} attempts.")
-        raise last_error if last_error else Exception("Extraction failed")
+        facade = LLMClient(OllamaTransport(self.client), self.model)
+        return facade.extract_structured(
+            prompt,
+            schema,
+            retries=retries,
+            model=model,
+            **kwargs,
+        )

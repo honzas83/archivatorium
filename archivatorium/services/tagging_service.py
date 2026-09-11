@@ -21,7 +21,7 @@ from archivatorium.services.flattening_service import (
     FlatteningService,
     TaxonomyValidationError,
 )
-from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.llm_client import StructuredLLMClient
 from archivatorium.services.windowing_service import SlidingWindowService
 from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
 from archivatorium.utils.nlp import (
@@ -71,7 +71,7 @@ class TaggingService:
 
     def __init__(
         self,
-        ollama_client: OllamaClient,
+        ollama_client: StructuredLLMClient,
         windowing_service: SlidingWindowService,
         themes_path: Path,
         useful_tags_path: Path | None = None,

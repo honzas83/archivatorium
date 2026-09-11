@@ -11,6 +11,14 @@ from ollama import Client
 from pdf2image import convert_from_path
 from PyPDF2 import PdfReader
 
+from archivatorium.services.llm_client import (
+    GenerationOptions,
+    LLMClient,
+    ModelMessage,
+    ModelRequest,
+    ReasoningDirective,
+)
+from archivatorium.services.ollama_client import OllamaTransport
 from archivatorium.utils.model_think import MODEL_THINK_DEFAULT, ModelThink
 
 logger = logging.getLogger("archivatorium.ocr_engine")
@@ -269,6 +277,7 @@ class OCREngine:
         repeat_last_n: int | None = None,
         num_predict: int | None = None,
         model_think: ModelThink = MODEL_THINK_DEFAULT,
+        llm_client: LLMClient | None = None,
     ):
         self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.user = user or os.environ.get("OLLAMA_USER")
@@ -287,7 +296,12 @@ class OCREngine:
             num_predict=num_predict,
         )
         self.last_run_attempted_pages = 0
-        self.client = self._build_client()
+        if llm_client is None:
+            self.client = self._build_client()
+            self.llm_client = LLMClient(OllamaTransport(self.client), self.model)
+        else:
+            self.client = None
+            self.llm_client = llm_client
 
     def _build_client(self) -> Client:
         timeout = httpx.Timeout(240.0)
@@ -339,17 +353,14 @@ class OCREngine:
     ) -> str:
         messages = self._build_messages(image_path, last_text)
         request_kwargs = self._build_chat_request(messages, num_ctx)
+        request = self._to_model_request(request_kwargs)
 
         last_err = None
         for attempt in range(1, retry + 1):
             try:
                 logger.info("Calling Ollama (attempt %d) for image %s", attempt, image_path.name)
-                resp = self.client.chat(**request_kwargs)
-                # handle both dict and object response formats
-                content = getattr(resp, "message", {}).get("content", "")
-                if not content and isinstance(resp, dict):
-                    content = resp.get("message", {}).get("content", "")
-                normalized_content = normalize_ocr_response(content or "")
+                response = self.llm_client.generate_text(request)
+                normalized_content = normalize_ocr_response(response.visible_text)
                 logger.info(
                     "Received %d characters of OCR text from model", len(normalized_content)
                 )
@@ -367,6 +378,39 @@ class OCREngine:
         if last_err:
             raise last_err
         return ""
+
+    @staticmethod
+    def _to_model_request(request: dict[str, Any]) -> ModelRequest:
+        native_options = request["options"]
+        messages = tuple(
+            ModelMessage(
+                role=message["role"],
+                text=message["content"],
+                images=tuple(Path(image) for image in message.get("images", [])),
+            )
+            for message in request["messages"]
+        )
+        if "think" not in request:
+            reasoning = ReasoningDirective.omitted()
+        elif request["think"] is False:
+            reasoning = ReasoningDirective.disabled()
+        else:
+            reasoning = ReasoningDirective.effort(request["think"])
+        return ModelRequest(
+            model=request["model"],
+            messages=messages,
+            options=GenerationOptions(
+                temperature=native_options.get("temperature"),
+                top_p=native_options.get("top_p"),
+                top_k=native_options.get("top_k"),
+                repeat_penalty=native_options.get("repeat_penalty"),
+                repeat_last_n=native_options.get("repeat_last_n"),
+                output_tokens=native_options.get("num_predict"),
+                context_tokens=native_options.get("num_ctx"),
+                explicit_fields=frozenset(native_options),
+            ),
+            reasoning=reasoning,
+        )
 
     def _build_messages(self, image_path: Path, last_text: str) -> list[dict[str, Any]]:
         messages: list[dict[str, Any]] = []

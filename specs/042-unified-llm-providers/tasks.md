@@ -64,20 +64,20 @@ must be byte-for-byte identical; the existing Ollama suite must pass without wea
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Capture metadata/tagging native kwargs, prompt bytes, schema formatting, four-attempt validation correction, response cleanup, timeout, and exception behavior in `tests/unit/test_ollama_provider.py`
-- [ ] T010 [P] [US1] Extend every OCR profile, inference override, reasoning omission/value, response shape, empty result, retry/backoff, and timeout characterization in `tests/unit/test_ocr_engine.py` and `tests/unit/test_ocr_reasoning.py`
-- [ ] T011 [P] [US1] Capture metadata host/model/reasoning defaults and existing explicit-option behavior before refactoring in `tests/integration/test_metadata_command.py` and `tests/integration/test_model_think_cli.py`
-- [ ] T012 [P] [US1] Add deterministic golden tests for full Ollama call order, recursive metadata/OCR output bytes, resume, no-page-header behavior, and failed-output safety in `tests/integration/test_ollama_compatibility.py`
+- [X] T009 [P] [US1] Capture metadata/tagging native kwargs, prompt bytes, schema formatting, four-attempt validation correction, response cleanup, timeout, and exception behavior in `tests/unit/test_ollama_provider.py`
+- [X] T010 [P] [US1] Extend every OCR profile, inference override, reasoning omission/value, response shape, empty result, retry/backoff, and timeout characterization in `tests/unit/test_ocr_engine.py` and `tests/unit/test_ocr_reasoning.py`
+- [X] T011 [P] [US1] Capture metadata host/model/reasoning defaults and existing explicit-option behavior before refactoring in `tests/integration/test_metadata_command.py` and `tests/integration/test_model_think_cli.py`
+- [X] T012 [P] [US1] Add deterministic golden tests for full Ollama call order, recursive metadata/OCR output bytes, resume, no-page-header behavior, and failed-output safety in `tests/integration/test_ollama_compatibility.py`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement the native Ollama transport with unchanged structured and OCR timeouts, wire kwargs, response shapes, and provider-specific failure behavior in `archivatorium/services/ollama_client.py`
-- [ ] T014 [US1] Preserve the historical `OllamaClient` constructor and `extract_structured` facade while delegating through the shared contract in `archivatorium/services/ollama_client.py`
-- [ ] T015 [P] [US1] Change `MetadataProcessor` type dependencies to the shared structured-client protocol without altering prompts, call ordering, reconciliation, or persistence in `archivatorium/processor_metadata.py`
-- [ ] T016 [P] [US1] Change `TaggingService` type dependencies to the shared structured-client protocol without altering windowing, model/reasoning propagation, taxonomy rules, or quality checks in `archivatorium/services/tagging_service.py`
-- [ ] T017 [US1] Inject the shared text-generation client into `OCREngine` while preserving profile messages, image paths, native options, retries, normalization, traversal, temporary-file cleanup, and resume behavior in `archivatorium/ocr_engine.py`
-- [ ] T018 [US1] Resolve and construct the default Ollama client once per metadata or OCR command while retaining all legacy CLI spellings, environment precedence, model defaults, and output timing in `archivatorium/cli.py`
-- [ ] T019 [US1] Strengthen unchanged-command coverage for Ollama host/DigestAuth/environment precedence, recursive processing, partial credentials, and per-file continuation in `tests/integration/test_ocr_cli.py` and `tests/integration/test_metadata_command.py`
+- [X] T013 [US1] Implement the native Ollama transport with unchanged structured and OCR timeouts, wire kwargs, response shapes, and provider-specific failure behavior in `archivatorium/services/ollama_client.py`
+- [X] T014 [US1] Preserve the historical `OllamaClient` constructor and `extract_structured` facade while delegating through the shared contract in `archivatorium/services/ollama_client.py`
+- [X] T015 [P] [US1] Change `MetadataProcessor` type dependencies to the shared structured-client protocol without altering prompts, call ordering, reconciliation, or persistence in `archivatorium/processor_metadata.py`
+- [X] T016 [P] [US1] Change `TaggingService` type dependencies to the shared structured-client protocol without altering windowing, model/reasoning propagation, taxonomy rules, or quality checks in `archivatorium/services/tagging_service.py`
+- [X] T017 [US1] Inject the shared text-generation client into `OCREngine` while preserving profile messages, image paths, native options, retries, normalization, traversal, temporary-file cleanup, and resume behavior in `archivatorium/ocr_engine.py`
+- [X] T018 [US1] Resolve and construct the default Ollama client once per metadata or OCR command while retaining all legacy CLI spellings, environment precedence, model defaults, and output timing in `archivatorium/cli.py`
+- [X] T019 [US1] Strengthen unchanged-command coverage for Ollama host/DigestAuth/environment precedence, recursive processing, partial credentials, and per-file continuation in `tests/integration/test_ocr_cli.py` and `tests/integration/test_metadata_command.py`
 
 **Checkpoint**: Omitted-provider and explicitly selected Ollama runs are indistinguishable from the
 pre-feature behavior under deterministic fixtures. Do not proceed if any compatibility assertion

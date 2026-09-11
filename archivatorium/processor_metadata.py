@@ -17,7 +17,7 @@ from archivatorium.models.metadata import (
     LastDateSchema,
     MetadataSchema,
 )
-from archivatorium.services.ollama_client import OllamaClient
+from archivatorium.services.llm_client import StructuredLLMClient
 from archivatorium.services.tagging_service import TaggingService
 from archivatorium.utils.metadata import (
     extract_last_page_header,
@@ -93,7 +93,7 @@ class TaggingReuseHints:
 class MetadataProcessor:
     def __init__(  # noqa: PLR0913
         self,
-        ollama_client: OllamaClient,
+        ollama_client: StructuredLLMClient,
         output_dir: Path,
         overwrite: bool = False,
         vault_root: Path | None = None,
