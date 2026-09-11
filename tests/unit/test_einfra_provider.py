@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -276,7 +277,7 @@ def test_interrupted_stream_discards_partial_content_before_retry(tmp_path: Path
     image = tmp_path / "page.png"
     image.write_bytes(b"PNG")
 
-    def interrupted():
+    def interrupted() -> Iterator[SimpleNamespace]:
         yield _chunk("DISCARD")
         raise ConnectionError("stream interrupted")
 

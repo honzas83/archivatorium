@@ -190,7 +190,7 @@ def test_einfra_rejects_unrepresentable_ocr_configuration(kwargs: dict[str, obje
     )
 
     with pytest.raises(LLMError) as raised:
-        validate_ocr_configuration(connection, **kwargs)
+        validate_ocr_configuration(connection, **kwargs)  # type: ignore[arg-type]
 
     assert raised.value.category is LLMErrorCategory.CONFIGURATION
 

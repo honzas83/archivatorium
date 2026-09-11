@@ -115,10 +115,11 @@ class EinfraTransport:
                     raise
                 self._sleep(error.retry_after if error.retry_after is not None else float(attempt))
             except Exception as exc:
-                error = self._normalize_sdk_error(exc, request.model)
-                if not error.retryable or attempt == self._max_attempts:
-                    raise error from exc
-                self._sleep(error.retry_after if error.retry_after is not None else float(attempt))
+                normalized_error = self._normalize_sdk_error(exc, request.model)
+                if not normalized_error.retryable or attempt == self._max_attempts:
+                    raise normalized_error from exc
+                retry_after = normalized_error.retry_after
+                self._sleep(retry_after if retry_after is not None else float(attempt))
         raise AssertionError("unreachable retry state")
 
     def _validate_image_request(self, request: ModelRequest) -> None:

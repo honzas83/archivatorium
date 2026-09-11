@@ -54,9 +54,13 @@ def test_deterministic_ocr_output_bytes_and_page_order(tmp_path: Path) -> None:
 
     with patch("archivatorium.ocr_engine.Client"):
         engine = OCREngine(mode="qwen38")
-    engine.count_pdf_pages = MagicMock(return_value=2)
-    engine.render_pdf_page_to_png = MagicMock(side_effect=page_images)
-    engine.ocr_single_page = MagicMock(side_effect=["PAGE ONE\n", "PAGE TWO"])
+    engine.count_pdf_pages = MagicMock(return_value=2)  # type: ignore[method-assign]
+    engine.render_pdf_page_to_png = MagicMock(  # type: ignore[method-assign]
+        side_effect=page_images
+    )
+    engine.ocr_single_page = MagicMock(  # type: ignore[method-assign]
+        side_effect=["PAGE ONE\n", "PAGE TWO"]
+    )
 
     result = engine.run_ocr(Path("source.pdf"), output)
 
@@ -74,9 +78,11 @@ def test_resume_skips_completed_page_without_render_or_inference(tmp_path: Path)
 
     with patch("archivatorium.ocr_engine.Client"):
         engine = OCREngine(mode="standard")
-    engine.count_pdf_pages = MagicMock(return_value=2)
-    engine.render_pdf_page_to_png = MagicMock(return_value=page_two)
-    engine.ocr_single_page = MagicMock(return_value="NEW")
+    engine.count_pdf_pages = MagicMock(return_value=2)  # type: ignore[method-assign]
+    engine.render_pdf_page_to_png = MagicMock(  # type: ignore[method-assign]
+        return_value=page_two
+    )
+    engine.ocr_single_page = MagicMock(return_value="NEW")  # type: ignore[method-assign]
 
     result = engine.run_ocr(Path("source.pdf"), output)
 

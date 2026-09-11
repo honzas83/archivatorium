@@ -296,6 +296,7 @@ class OCREngine:
             num_predict=num_predict,
         )
         self.last_run_attempted_pages = 0
+        self.client: Client | None
         if llm_client is None:
             self.client = self._build_client()
             self.llm_client = LLMClient(OllamaTransport(self.client), self.model)

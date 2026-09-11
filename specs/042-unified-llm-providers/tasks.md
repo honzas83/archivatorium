@@ -154,8 +154,8 @@ gates across all stories.
 - [X] T038 [P] Document provider selection, secure credentials, Qwen 3.8 defaults, metadata/OCR examples, option compatibility, authorization caveats, no-fallback behavior, and model availability in `README.md`
 - [X] T039 [P] Reconcile executable examples, expected failures, secret-permission checks, and live-test opt-in instructions with the delivered CLI in `specs/042-unified-llm-providers/quickstart.md`
 - [X] T040 Add regression coverage proving credentials, Authorization headers, provider diagnostics, private reasoning, and partial streams never enter logs or archival files in `tests/contract/test_llm_client.py` and `tests/integration/test_llm_provider_cli.py`
-- [ ] T041 Run `ruff check`, `ruff format --check`, `flake8`, and strict `mypy` over `archivatorium/` and `tests/`, fixing only feature-related findings in those paths
-- [ ] T042 Run the complete default `pytest` and coverage suites, the focused Ollama compatibility suite, and the `specs/042-unified-llm-providers/quickstart.md` offline scenarios; document only genuine environmental blockers in `specs/042-unified-llm-providers/quickstart.md`
+- [X] T041 Run `ruff check`, `ruff format --check`, `flake8`, and strict `mypy` over `archivatorium/` and `tests/`, fixing only feature-related findings in those paths
+- [X] T042 Run the complete default `pytest` and coverage suites, the focused Ollama compatibility suite, and the `specs/042-unified-llm-providers/quickstart.md` offline scenarios; document only genuine environmental blockers in `specs/042-unified-llm-providers/quickstart.md`
 
 ---
 

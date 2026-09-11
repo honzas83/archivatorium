@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from time import perf_counter
+from typing import cast
 
 import click
 
@@ -9,15 +10,16 @@ from archivatorium.data_model import ProcessingConfig
 from archivatorium.processor_metadata import MetadataProcessor
 from archivatorium.services.indexing_service import IndexEntry, IndexingService
 from archivatorium.services.interlinking_service import InterlinkingService
-from archivatorium.services.ollama_client import OllamaClient
-from archivatorium.services.llm_client import LLMError
+from archivatorium.services.llm_client import LLMClient, LLMError
 from archivatorium.services.llm_factory import (
     LLMCommand,
     ProviderSelection,
+    ProviderName,
     build_llm_client,
     resolve_connection,
     validate_ocr_configuration,
 )
+from archivatorium.services.ollama_client import OllamaClient
 from archivatorium.services.tagging_service import TaggingService
 from archivatorium.services.windowing_service import SlidingWindowService
 from archivatorium.utils.files import initialize_vault_from_template
@@ -209,7 +211,7 @@ def metadata(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
     mask: str,
-    llm_provider: str,
+    llm_provider: ProviderName,
     llm_base_url: str | None,
     llm_api_key_file: Path | None,
     model: str | None,
@@ -450,7 +452,7 @@ def interlink(
 def ocr(  # noqa: PLR0913
     input_dir: Path,
     output_dir: Path,
-    llm_provider: str,
+    llm_provider: ProviderName,
     llm_base_url: str | None,
     llm_api_key_file: Path | None,
     host: str | None,
@@ -497,7 +499,11 @@ def ocr(  # noqa: PLR0913
                 repeat_last_n=repeat_last_n,
                 num_predict=num_predict,
             )
-            llm_client = build_llm_client(connection) if connection.provider == "e-infra" else None
+            llm_client = (
+                cast(LLMClient, build_llm_client(connection))
+                if connection.provider == "e-infra"
+                else None
+            )
         except LLMError as exc:
             raise click.UsageError(str(exc)) from exc
 
