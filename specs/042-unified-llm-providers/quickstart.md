@@ -41,11 +41,15 @@ Invalid provider configuration must fail before processing:
 ```console
 uv run archivatorium ocr data/042-unified-llm-providers/pdf-input /tmp/invalid-output \
   --llm-provider e-infra \
+  --llm-api-key-file /secure/path/e-infra-token \
   --mode glm
 ```
 
 Expected outcome: the command identifies the unsupported e-INFRA/GLM combination and creates no
 output or model request.
+
+The exact service model list can change. `qwen3.8-27b` is the initial default; an unavailable
+explicit or default model fails clearly and is never replaced automatically.
 
 ## Validate unchanged Ollama behavior
 
@@ -193,4 +197,3 @@ uv run coverage report
 Before each implementation commit, inspect the working tree and stage only files assigned to the
 completed task. Existing unrelated modified tests, local data, scripts, and credentials must remain
 unstaged.
-

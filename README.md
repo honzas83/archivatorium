@@ -17,24 +17,52 @@ The `metadata` command generates Markdown files with a specific structure design
    - **Categories/Topics**: Hierarchical tags extracted from a provided NATO taxonomy.
    - **Tags**: Flat, canonical conceptual keywords (e.g., `#NuclearStrategy`).
 
-### Metadata Prerequisites
-The metadata extraction feature requires [Ollama](https://ollama.com/) to be installed and running locally.
+### LLM Providers
+
+Metadata, tagging, and OCR support two explicit providers behind the same application interface:
+
+- `ollama` is the default and preserves all existing commands, models, native options, prompts,
+  retries, and output behavior.
+- `e-infra` uses the OpenAI-compatible endpoint at `https://llm.ai.e-infra.cz/v1/`. Its default
+  model is `qwen3.8-27b` for both metadata and OCR.
+
+Both model-dependent commands accept `--llm-provider`, `--llm-base-url`, and
+`--llm-api-key-file`. The existing `--host` option remains an endpoint alias. Supplying both endpoint
+options with different values is an error. Archivatorium never switches providers after a failure.
+
+For local processing, install and run [Ollama](https://ollama.com/):
+
 ```bash
 ollama pull gemma4:31b
 ```
+
+For e-INFRA, place the token in `E_INFRA_API_TOKEN` or select a protected file explicitly. The file
+must be readable only by its owner:
+
+```bash
+chmod 600 /secure/path/e-infra-token
+export E_INFRA_API_TOKEN="$(< /secure/path/e-infra-token)"
+```
+
+Never place a token directly in command arguments or commit credential files. The repository-local
+`meta-api-key` name is ignored as a safety measure but is never discovered automatically.
 
 ## Usage
 
 The toolkit provides several primary commands for processing documents: `ocr`, `clean`, `metadata`, and `interlink`.
 
-### 1. OCR Processing (Ollama VLM)
-Converts multipage PDF files in `INPUT_DIR` recursively to Markdown files in `OUTPUT_DIR` using a local VLM (Ollama). Includes on-the-fly rendering and incremental per-page recovery/resumption.
+### 1. OCR Processing
+Converts multipage PDF files in `INPUT_DIR` recursively to Markdown files in `OUTPUT_DIR` using the
+selected vision model. Includes on-the-fly rendering and incremental per-page recovery/resumption.
 
 ```bash
 archivatorium ocr [OPTIONS] INPUT_DIR OUTPUT_DIR
 ```
 
 #### Options
+- `--llm-provider [ollama|e-infra]`: Select one provider for the complete command (default: `ollama`).
+- `--llm-base-url TEXT`: Provider endpoint; `--host` remains an alias.
+- `--llm-api-key-file PATH`: Protected e-INFRA token file, taking precedence over `E_INFRA_API_TOKEN`.
 - `--host TEXT`: URL for the Ollama server (or environment variable `OLLAMA_HOST`).
 - `--user TEXT`: DigestAuth username (or environment variable `OLLAMA_USER`).
 - `--password TEXT`: DigestAuth password (or environment variable `OLLAMA_PASSWORD`).
@@ -82,6 +110,22 @@ archivatorium ocr INPUT_DIR OUTPUT_DIR \
   --model-think False
 ```
 
+For e-INFRA Qwen 3.8 OCR:
+
+```bash
+archivatorium ocr INPUT_DIR OUTPUT_DIR \
+  --llm-provider e-infra \
+  --llm-api-key-file /secure/path/e-infra-token \
+  --mode qwen38 \
+  --model-think low
+```
+
+e-INFRA OCR streams visible output and validates that the selected model is available and
+multimodal before sending an image. It supports `standard`, `qwen38`, and `firered` modes.
+The `glm` mode, explicit `--top-k`, repetition options, and `--num-predict=-1` are rejected because
+their Ollama-native semantics cannot be represented safely. Model availability can change; use
+`--model` to select another service model and expect a clear error rather than automatic substitution.
+
 ### 2. Cleaning OCR Text
 Removes headers/footers and reformats paragraphs.
 
@@ -99,14 +143,17 @@ archivatorium clean [OPTIONS] INPUT_DIR OUTPUT_DIR
 - `--filter-file PATH`: Path to a text file containing phrases to filter out.
 
 ### 3. Extracting Metadata
-Extracts structured data and flat production topics using a local LLM.
+Extracts structured data and flat production topics using the selected LLM provider.
 
 ```bash
 archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.yaml --tags-file topics/USEFUL_TAGS.yaml [OPTIONS]
 ```
 
 #### Options
-- `--model TEXT`: The Ollama model to use (default: `gemma4:31b`).
+- `--llm-provider [ollama|e-infra]`: Select one provider for the complete command (default: `ollama`).
+- `--llm-base-url TEXT`: Provider endpoint; `--host` remains an alias.
+- `--llm-api-key-file PATH`: Protected e-INFRA token file, taking precedence over `E_INFRA_API_TOKEN`.
+- `--model TEXT`: Model override (defaults: Ollama `gemma4:31b`, e-INFRA `qwen3.8-27b`).
 - `--model-think [False|low|medium|high]`: Case-insensitive reasoning effort for primary metadata extraction, conditional final-date extraction, and every tag-inference window (default: `medium`). `False` disables reasoning with a boolean request value.
 - `--mask TEXT`: Glob pattern for Markdown files to enrich (default: `*.md`). Non-matching Markdown files are not sent to metadata or tagging enrichment.
 - `--overwrite`: Overwrite existing files in output directory.
@@ -116,6 +163,21 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.
 - `--pdf-dir PATH`: Optional source PDF lookup directory; defaults to `OUTPUT_DIR`.
 - `--citekey-mode {stem,path}`: Deterministic citekey mode.
 - `--dry-run`: Scan inputs and report planned metadata actions.
+
+Example e-INFRA metadata and tagging run:
+
+```bash
+archivatorium metadata INPUT_DIR OUTPUT_DIR \
+  --llm-provider e-infra \
+  --llm-api-key-file /secure/path/e-infra-token \
+  --model-think low \
+  --hierarchy-file topics/NATO_themes_v2.yaml \
+  --tags-file topics/USEFUL_TAGS.yaml
+```
+
+Remote processing sends document content to e-INFRA. Use it only for material whose remote
+processing is authorized. Provider identity, usage data, credentials, and private reasoning are not
+written into archival output.
 
 #### Selecting the NATO Topic Taxonomy
 

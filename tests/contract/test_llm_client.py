@@ -15,6 +15,7 @@ from archivatorium.services.llm_client import (
     ModelResponse,
     ReasoningDirective,
 )
+from archivatorium.services.llm_factory import LLMCommand, ModelConnection
 
 
 class _Result(BaseModel):
@@ -110,3 +111,23 @@ def test_transport_error_is_not_converted_to_validation_retry() -> None:
 
     assert raised.value is error
     assert len(transport.requests) == 1
+
+
+def test_connection_representation_and_normalized_error_do_not_expose_secret() -> None:
+    connection = ModelConnection(
+        provider="e-infra",
+        command=LLMCommand.METADATA,
+        endpoint="https://llm.ai.e-infra.cz/v1/",
+        model="qwen3.8-27b",
+        credential_source="environment",
+        secret="never-display-this-token",
+    )
+    error = LLMError(
+        LLMErrorCategory.AUTHENTICATION,
+        "e-INFRA authentication failed",
+        retryable=False,
+    )
+
+    assert "never-display-this-token" not in repr(connection)
+    assert "never-display-this-token" not in str(error)
+    assert "Authorization" not in str(error)

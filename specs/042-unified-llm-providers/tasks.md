@@ -150,10 +150,10 @@ Ollama OCR profile still satisfies the immutable native compatibility baseline.
 **Purpose**: Finish opt-in live validation, user guidance, privacy review, and constitutional quality
 gates across all stories.
 
-- [ ] T037 [P] Add doubly opt-in, sequential, synthetic e-INFRA structured and short OCR/resume smoke tests that retain no request or response content in `tests/live/test_einfra_smoke.py`
-- [ ] T038 [P] Document provider selection, secure credentials, Qwen 3.8 defaults, metadata/OCR examples, option compatibility, authorization caveats, no-fallback behavior, and model availability in `README.md`
-- [ ] T039 [P] Reconcile executable examples, expected failures, secret-permission checks, and live-test opt-in instructions with the delivered CLI in `specs/042-unified-llm-providers/quickstart.md`
-- [ ] T040 Add regression coverage proving credentials, Authorization headers, provider diagnostics, private reasoning, and partial streams never enter logs or archival files in `tests/contract/test_llm_client.py` and `tests/integration/test_llm_provider_cli.py`
+- [X] T037 [P] Add doubly opt-in, sequential, synthetic e-INFRA structured and short OCR/resume smoke tests that retain no request or response content in `tests/live/test_einfra_smoke.py`
+- [X] T038 [P] Document provider selection, secure credentials, Qwen 3.8 defaults, metadata/OCR examples, option compatibility, authorization caveats, no-fallback behavior, and model availability in `README.md`
+- [X] T039 [P] Reconcile executable examples, expected failures, secret-permission checks, and live-test opt-in instructions with the delivered CLI in `specs/042-unified-llm-providers/quickstart.md`
+- [X] T040 Add regression coverage proving credentials, Authorization headers, provider diagnostics, private reasoning, and partial streams never enter logs or archival files in `tests/contract/test_llm_client.py` and `tests/integration/test_llm_provider_cli.py`
 - [ ] T041 Run `ruff check`, `ruff format --check`, `flake8`, and strict `mypy` over `archivatorium/` and `tests/`, fixing only feature-related findings in those paths
 - [ ] T042 Run the complete default `pytest` and coverage suites, the focused Ollama compatibility suite, and the `specs/042-unified-llm-providers/quickstart.md` offline scenarios; document only genuine environmental blockers in `specs/042-unified-llm-providers/quickstart.md`
 
