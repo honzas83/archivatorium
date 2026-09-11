@@ -143,12 +143,19 @@ uv run archivatorium metadata \
   --llm-api-key-file /secure/path/e-infra-token \
   --model qwen3.8-27b \
   --model-think low \
+  --concurrency 4 \
   --hierarchy-file topics/NATO_themes_v2.yaml \
   --tags-file topics/USEFUL_TAGS.yaml
 ```
 
 Expected outcome: valid existing metadata and canonical-tag output with no provider, usage,
 credential, or private-reasoning fields added to the Markdown.
+
+For metadata, `--concurrency` accepts values from 1 through 4 and defaults to 1. Values above one
+process independent matching Markdown documents concurrently. Each document retains a sequential
+metadata, conditional date, tagging, validation, and persistence chain based on the same completed
+preflight vocabulary snapshot. Successful outputs are then reconciled into the global counters and
+registry on the coordinator thread. Dry-run does not issue concurrent model requests.
 
 ## Optional e-INFRA OCR and resume run
 

@@ -143,7 +143,9 @@ remediation.
 
 ## Concurrency
 
-Model calls remain sequential by default and within each PDF. Explicit OCR concurrency may share
-one command-scoped client across up to four independent PDF workers. Capability discovery must be
-thread-safe and performed at most once per model per client. Concurrency must cap e-INFRA requests
-at four per account unless current service documentation states a different limit.
+Model calls remain sequential by default and within each document pipeline. Explicit metadata or
+OCR concurrency may share one command-scoped client across up to four independent workers. OCR
+capability discovery must be thread-safe and performed at most once per model per client. Metadata
+workers must isolate mutable preflight state, then reconcile successful persisted outputs into the
+global registry on the coordinator thread. Concurrency must cap e-INFRA requests at four per account
+unless current service documentation states a different limit.

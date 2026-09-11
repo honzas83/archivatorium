@@ -35,15 +35,19 @@ semantics merely to share a protocol.
 - Normalize both Ollama retry loops immediately: rejected because structured extraction currently
   permits four total attempts while OCR permits three and retries different error classes.
 
-## Decision: Parallelize independent PDFs, not dependent pages
+## Decision: Parallelize independent documents, not dependent model stages
 
-**Decision**: Add bounded OCR concurrency across PDF files. Keep every page chain within one PDF
-sequential and retain one output/resume boundary per document. Expose `--concurrency`, defaulting to
-one and capping the value at four.
+**Decision**: Add bounded concurrency across OCR PDF files and metadata Markdown documents. Keep
+every page chain and every per-document metadata/tagging chain sequential. Expose `--concurrency`,
+defaulting to one and capping the value at four.
 
 **Rationale**: Standard and Qwen 3.8 modes use the preceding page transcription as model context.
 Parallelizing pages would silently remove or weaken that input. Independent PDFs have no such data
 dependency, so they can overlap safely while preserving page order, retries, and recovery.
+Metadata documents are likewise independent after preflight; each worker receives an isolated copy
+of that snapshot so completion timing cannot race on or alter another document's model context.
+The coordinator serially parses each successful persisted result back into the command-level
+registry, subtracting any prior tags for that output before adding the new canonical tags.
 
 **Alternatives considered**:
 
@@ -52,6 +56,8 @@ dependency, so they can overlap safely while preserving page order, retries, and
   resume path without changed semantics.
 - Create a separate client for each worker: rejected for e-INFRA because one command-scoped client
   can share connection resources and a thread-safe capability cache.
+- Share one mutable metadata processor: rejected because generated tag/entity counter updates would
+  make prompts depend on worker timing and could corrupt compound counter updates.
 
 ## Decision: Use the official OpenAI client for e-INFRA Chat Completions
 

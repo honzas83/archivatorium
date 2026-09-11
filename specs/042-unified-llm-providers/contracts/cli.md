@@ -8,7 +8,8 @@ Both model-dependent commands add the same provider options:
 archivatorium metadata INPUT_DIR OUTPUT_DIR [existing options] \
   [--llm-provider ollama|e-infra] \
   [--llm-base-url URL] \
-  [--llm-api-key-file PATH]
+  [--llm-api-key-file PATH] \
+  [--concurrency N]
 
 archivatorium ocr INPUT_DIR OUTPUT_DIR [existing options] \
   [--llm-provider ollama|e-infra] \
@@ -30,7 +31,7 @@ provider endpoint. It is not removed or repurposed as a credential field.
 | `--llm-api-key-file` | e-INFRA environment lookup; ignored for Ollama | Selects the e-INFRA token file and takes precedence over the environment. |
 | `--model` | Provider-and-command default | Overrides the model without changing provider or OCR mode. |
 | `--model-think` | Existing `medium` default | Case-insensitive `False`, `low`, `medium`, or `high`. |
-| `--concurrency` | `1` | Runs at most N independent PDF jobs concurrently; accepts 1 through 4. |
+| `--concurrency` | `1` | Runs at most N independent command-specific document jobs concurrently; accepts 1 through 4. |
 
 If both endpoint options are supplied, their normalized values must agree; otherwise the command
 fails before processing. Trailing slash equivalence may be applied for e-INFRA. Ollama endpoint text
@@ -116,7 +117,7 @@ Standard and FireRed OCR continue to omit reasoning control. GLM continues to fo
 Qwen 3.8 uses the command-scoped value on every page and retry. Metadata primary, final-date, and
 tagging calls continue to receive the command-scoped value.
 
-## OCR concurrency
+## Metadata and OCR concurrency
 
 The default value of one follows the existing code path and preserves unchanged Ollama commands.
 Values outside 1 through 4 fail during CLI parsing.
@@ -125,6 +126,12 @@ Concurrency schedules independent PDFs, not pages within a PDF. Each PDF therefo
 sequential previous-page context, retry flow, page order, output file, and resume state. If fewer
 PDFs are ready than the configured value, actual concurrency is lower. A failure in one PDF is
 reported without cancelling other independent jobs.
+
+For metadata, concurrency schedules matching Markdown documents after one preflight scan. Each
+worker starts from an isolated copy of that preflight vocabulary and keeps its metadata, conditional
+date extraction, tagging windows, validation, and persistence sequential. Non-matching files remain
+mirrored without model calls. After successful persistence, the coordinator updates the global
+tag/entity/topic counters and file registry. Dry-run performs no parallel model work.
 
 ## Validation timing and outcomes
 

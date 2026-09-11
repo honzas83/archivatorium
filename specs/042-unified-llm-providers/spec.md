@@ -42,6 +42,7 @@ As an archivatorium user with e-INFRA access, I can select e-INFRA for metadata 
 2. **Given** an explicit supported e-INFRA model, **When** metadata extraction and every tag-inference window run, **Then** all calls use that model and the same command-scoped reasoning choice.
 3. **Given** a structured response that conforms to the requested metadata or tagging contract, **When** it is returned by e-INFRA, **Then** it is validated and processed through the same downstream document rules used for Ollama.
 4. **Given** a response that is truncated, empty, malformed, or temporarily unavailable, **When** it is handled, **Then** the user receives bounded retries where safe and a clear failure that identifies the affected document without exposing credentials or private reasoning.
+5. **Given** two or more independent Markdown documents and `--concurrency N` where `2 <= N <= 4`, **When** metadata processing runs, **Then** no more than N document jobs call the shared backend concurrently and every document retains its own complete metadata, date, tagging, validation, and output sequence.
 
 ---
 
@@ -112,13 +113,16 @@ I can optionally process independent PDF documents concurrently while retaining 
 - **FR-026**: Retries MUST be bounded, retain identical provider, model, reasoning, prompt, and image semantics, and respect any documented service retry delay.
 - **FR-027**: The system MUST NOT switch providers automatically after a failure or send source content to a provider the user did not explicitly select.
 - **FR-028**: A failed or interrupted remote request MUST NOT leave a page or document marked complete unless its existing output validity rules are satisfied.
-- **FR-029**: The system MUST retain sequential processing by default and MUST limit explicitly requested OCR concurrency to the inclusive range 1 through 4.
+- **FR-029**: The system MUST retain sequential processing by default and MUST limit explicitly requested metadata or OCR concurrency to the inclusive range 1 through 4.
 - **FR-030**: User documentation MUST include provider selection, secure credential setup, the initial Qwen 3.8 model, metadata and OCR examples, supported and incompatible options, model availability caveats, and the prohibition on committing credentials.
 - **FR-031**: Live-provider validation MUST be opt-in, use local non-versioned data and credentials, and remain separate from the default automated test suite.
 - **FR-032**: The feature MUST NOT change the output schemas, canonical tag model, topic taxonomy rules, metadata reconciliation rules, OCR prompts, or archival file layout.
-- **FR-033**: The OCR command MUST accept `--concurrency N`, with `N=1` as the default.
+- **FR-033**: The metadata and OCR commands MUST accept `--concurrency N`, with `N=1` as the default.
 - **FR-034**: Concurrency greater than one MUST run independent PDF jobs in parallel while retaining sequential page processing, previous-page context, retry semantics, page ordering, output paths, and resume state within each PDF.
 - **FR-035**: A failure in one concurrent PDF job MUST retain the existing per-file continuation behaviour and MUST NOT cancel successful or still-running independent jobs.
+- **FR-036**: Metadata concurrency greater than one MUST run independent Markdown document jobs in parallel while retaining sequential metadata, conditional date, tagging-window, validation, and persistence calls within each document.
+- **FR-037**: Every concurrent metadata worker MUST begin from the same completed preflight tag/entity snapshot, MUST NOT race on mutable cross-document counters, and MUST share the command-scoped provider client; after successful persistence, the coordinator MUST reconcile that output into the global counters and registry.
+- **FR-038**: A failure in one concurrent metadata job MUST NOT cancel successful or still-running independent document jobs.
 
 ### Key Entities
 
@@ -141,7 +145,7 @@ I can optionally process independent PDF documents concurrently while retaining 
 - **SC-006**: All provider-independent acceptance tests exercise metadata, tagging, and OCR without requiring those workflows to know which supported provider produced the response.
 - **SC-007**: Existing users can run their previously documented Ollama commands without adding or renaming any option, and all such compatibility scenarios complete with no feature-caused change in model semantics.
 - **SC-008**: No credential file, credential value, live archival sample, or live-provider output is added to version control by the feature validation workflow.
-- **SC-009**: With two or more synthetic PDFs and concurrency set to two through four, automated tests observe no more than the configured number of simultaneous jobs, retain correct per-file output, and pass the unchanged default-concurrency Ollama compatibility suite.
+- **SC-009**: With two or more synthetic PDFs or Markdown documents and concurrency set to two through four, automated tests observe no more than the configured number of simultaneous jobs, retain correct per-file output, and pass the unchanged default-concurrency Ollama compatibility suite.
 
 ## Assumptions
 
@@ -151,6 +155,7 @@ I can optionally process independent PDF documents concurrently while retaining 
 - Ollama keeps its current default models independently for metadata and OCR. The e-INFRA provider has its own default model.
 - Existing OCR modes and their prompts remain independent from the selected provider and model.
 - OCR remains sequential unless concurrency is explicitly greater than one. Parallelism applies across independent PDFs, not across pages of one PDF, because `standard` and `qwen38` depend on previous-page context.
+- Metadata remains sequential unless concurrency is explicitly greater than one. Parallel documents use an isolated copy of the preflight vocabulary rather than incorporating nondeterministically timed results from other workers; successful results are merged into global counters after processing.
 - Automatic failover is excluded because it could transmit archival content to an unselected service and would make reproducibility harder.
 - Users are responsible for confirming that remote processing is authorized for their source material. Documentation will distinguish local processing from e-INFRA processing and warn against sending unauthorized protected material.
 - The repository-root `meta-api-key` file may be used for local opt-in validation only after it is excluded from version control and protected by restrictive filesystem permissions; it is not a committed project asset or a default credential location.

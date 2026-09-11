@@ -181,16 +181,20 @@ for OCR is a safe failure, not permission to send an image blindly.
 Ollama keeps its established provider-specific logging, raised exceptions, retry classes, and empty
 OCR response behavior behind the same application-facing interface.
 
-## OCR Execution Policy
+## Concurrent Execution Policy
 
 | Field | Type | Required | Meaning |
 |-------|------|----------|---------|
-| `concurrency` | integer 1 through 4 | Yes | Maximum independent PDF jobs; defaults to one. |
-| `unit` | fixed `pdf` | Yes | Pages within a PDF are never parallelized. |
-| `client_scope` | fixed `command` | Yes | Parallel e-INFRA workers share the resolved client and capability cache. |
+| `concurrency` | integer 1 through 4 | Yes | Maximum independent document jobs; defaults to one. |
+| `unit` | `pdf` or `markdown` | Yes | OCR schedules PDFs; metadata schedules matching Markdown files. |
+| `client_scope` | fixed `command` | Yes | Parallel workers share the resolved provider client. |
+| `metadata_snapshot` | preflight counters and registry | Metadata only | Copied into each document worker before processing. |
 
 Each PDF owns its sequential page context, attempted-page count, output path, failure outcome, and
 resume state. Worker completion order does not affect the ordering of pages or files on disk.
+Each Markdown document owns a processor snapshot and sequential metadata/tagging pipeline; generated
+tags do not mutate another concurrently running document's context. After a worker succeeds, the
+coordinator serially replaces that output's prior contribution in the global counters and registry.
 
 ## Ollama Compatibility Baseline
 
@@ -214,7 +218,7 @@ CLI values and environment
   -> validate endpoint/options/credential source
   -> Model Connection
   -> build one shared client for the command
-  -> schedule one to four independent PDF jobs (OCR only)
+  -> schedule one to four independent document jobs
   -> build provider-neutral Model Request
   -> validate Provider Capability
   -> translate and send through selected transport

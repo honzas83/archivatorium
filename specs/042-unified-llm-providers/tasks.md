@@ -173,6 +173,21 @@ each PDF's sequential page-context and resume semantics.
 
 ---
 
+## Phase 8: Bounded Metadata Concurrency
+
+**Purpose**: Extend the same explicit concurrency control to independent Markdown metadata jobs
+without sharing mutable preflight counters or changing the default path.
+
+- [X] T049 Extend `--concurrency` to metadata with the same default and inclusive limit in `archivatorium/cli.py`
+- [X] T050 Add isolated preflight-snapshot workers sharing the command-scoped provider client and coordinator-side global counter reconciliation in `archivatorium/processor_metadata.py`
+- [X] T051 Schedule matching Markdown metadata jobs through the bounded executor while retaining sequential dry-run and default behavior in `archivatorium/cli.py`
+- [X] T052 Add observed metadata parallelism, bounds, default-path, and worker-isolation coverage in `tests/integration/test_metadata_concurrency.py` and `tests/unit/test_metadata_concurrency.py`
+- [X] T053 Back-propagate metadata concurrency semantics into `spec.md`, `research.md`, `plan.md`, `data-model.md`, and provider contracts
+- [X] T054 Document metadata concurrency, preflight snapshots, dry-run behavior, limits, and examples in `README.md` and `specs/042-unified-llm-providers/quickstart.md`
+- [X] T055 Run focused metadata/Ollama compatibility tests and the complete default regression and coverage suite
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -189,6 +204,8 @@ each PDF's sequential page-context and resume semantics.
   requires all three.
 - **Phase 7 - Bounded OCR Concurrency**: Depends on the completed OCR provider boundary and immutable
   default-concurrency compatibility baseline.
+- **Phase 8 - Bounded Metadata Concurrency**: Depends on the shared structured provider boundary,
+  metadata preflight registry, and completed bounded executor pattern.
 
 ### User Story Dependency Graph
 
@@ -266,8 +283,10 @@ CLI and bounded executor design.
 2. **US2**: Add authenticated e-INFRA structured metadata and tagging with no archival-schema change.
 3. **US3**: Extend the same remote transport to capability-checked streamed OCR and resume.
 4. **Polish**: Add opt-in live checks, user documentation, privacy tests, and all quality gates.
-5. **Concurrency**: Add opt-in bounded parallelism across independent PDFs without changing the
+5. **OCR Concurrency**: Add opt-in bounded parallelism across independent PDFs without changing the
    default path or per-PDF page semantics.
+6. **Metadata Concurrency**: Apply the same bounded option across independent Markdown documents
+   using isolated preflight snapshots and sequential per-document model stages.
 
 ### Validation Discipline
 
@@ -276,8 +295,8 @@ CLI and bounded executor design.
   unless the user explicitly amends the specification.
 - Keep all automated remote tests mocked and deterministic. Live tests require both `-m live_einfra`
   and `ARCHIVATORIUM_RUN_EINFRA_LIVE=1` and use only synthetic data.
-- Keep pages within each PDF sequential, cap explicitly requested independent-PDF concurrency at
-  four, and never add automatic provider fallback.
+- Keep model stages within each document sequential, cap explicitly requested independent-document
+  concurrency at four, and never add automatic provider fallback.
 
 ## Notes
 

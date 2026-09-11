@@ -32,9 +32,9 @@ service or authorized HTTPS access to e-INFRA
 **Project Type**: Single Python CLI application
 
 **Performance Goals**: Preserve current sequential Ollama behavior when concurrency is omitted;
-allow one through four independent PDF OCR jobs per command; make no more than one capability
-lookup per e-INFRA OCR run even under parallel startup; assemble streamed OCR output without
-duplicate or missing visible chunks
+allow one through four independent PDF OCR or Markdown metadata jobs per command; make no more than
+one capability lookup per e-INFRA OCR run even under parallel startup; assemble streamed OCR output
+without duplicate or missing visible chunks
 
 **Constraints**: Ollama remains the default; unchanged Ollama invocations must retain native request
 semantics and deterministic output bytes; no automatic provider fallback; credentials and private
@@ -194,6 +194,10 @@ migration so existing internal callers and tests can move without changing nativ
   sequential page chain and one resume/output boundary per PDF.
 - Share the command-scoped e-INFRA client across workers and serialize first capability discovery so
   simultaneous first pages do not duplicate model-list requests.
+- For metadata, complete preflight once, then give each parallel document an isolated snapshot of
+  the vocabulary and counters. Keep metadata, conditional date extraction, tagging windows,
+  validation, and persistence sequential within that document. Reconcile each successful output
+  into the global counters on the coordinator thread after the worker completes.
 
 ### Validation strategy
 
@@ -204,6 +208,8 @@ migration so existing internal callers and tests can move without changing nativ
   incompatible options, early failure, model/reasoning propagation, and absence of fallback.
 - Cover concurrency bounds, observed maximum simultaneous jobs, independent output, per-file failure
   continuation, and unchanged omitted-option Ollama behavior.
+- Verify parallel metadata processors share the resolved backend client but do not share mutable
+  preflight counters, and verify successful outputs update the global registry afterward.
 - Keep live e-INFRA tests doubly opt-in, sequential, synthetic, and outside normal test execution.
   Validate one structured metadata/tagging flow and one short Qwen 3.8 OCR/resume flow without
   snapshotting model output.

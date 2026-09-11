@@ -158,6 +158,10 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR --hierarchy-file topics/NATO_themes.
 - `--llm-api-key-file PATH`: Protected e-INFRA token file, taking precedence over `E_INFRA_API_TOKEN`.
 - `--model TEXT`: Model override (defaults: Ollama `gemma4:31b`, e-INFRA `qwen3.8-27b`).
 - `--model-think [False|low|medium|high]`: Case-insensitive reasoning effort for primary metadata extraction, conditional final-date extraction, and every tag-inference window (default: `medium`). `False` disables reasoning with a boolean request value.
+- `--concurrency INTEGER`: Process up to 1 through 4 independent matching Markdown documents
+  concurrently (default: `1`). Each document keeps its metadata and tagging calls sequential and
+  starts from the same preflight vocabulary snapshot. Successful outputs are reconciled into the
+  global tag, entity, and topic counters after processing.
 - `--mask TEXT`: Glob pattern for Markdown files to enrich (default: `*.md`). Non-matching Markdown files are not sent to metadata or tagging enrichment.
 - `--overwrite`: Overwrite existing files in output directory.
 - `--hierarchy-file`: Required path to a YAML topic hierarchy (e.g., `topics/NATO_themes.yaml`).
@@ -174,6 +178,7 @@ archivatorium metadata INPUT_DIR OUTPUT_DIR \
   --llm-provider e-infra \
   --llm-api-key-file /secure/path/e-infra-token \
   --model-think low \
+  --concurrency 4 \
   --hierarchy-file topics/NATO_themes_v2.yaml \
   --tags-file topics/USEFUL_TAGS.yaml
 ```
