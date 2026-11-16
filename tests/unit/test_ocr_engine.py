@@ -946,3 +946,122 @@ def test_standard_mode_allows_explicit_inference_tuning(mock_ollama_client, ocr_
 def test_invalid_programmatic_inference_values_are_rejected(option, value, message):
     with pytest.raises(ValueError, match=message):
         OCREngine(**{option: value})
+
+
+@pytest.mark.parametrize("failures", [1, 3])
+def test_einfra_invalid_request_retries_same_page(failures):
+    from archivatorium.services.llm_client import (
+        CompletionState,
+        LLMError,
+        LLMErrorCategory,
+        ModelResponse,
+    )
+
+    client = MagicMock(provider="e-infra")
+    error = LLMError(LLMErrorCategory.INVALID_REQUEST, "invalid_request", retryable=False)
+    client.generate_text.side_effect = [error] * failures + [
+        ModelResponse("Recovered", CompletionState.COMPLETE)
+    ]
+    engine = OCREngine(llm_client=client, mode="qwen38")
+
+    with patch("archivatorium.ocr_engine.time.sleep") as sleep:
+        if failures == 3:
+            with pytest.raises(LLMError, match="invalid_request"):
+                engine.ocr_single_page(Path("page.png"), last_text="Previous page")
+        else:
+            assert (
+                engine.ocr_single_page(Path("page.png"), last_text="Previous page") == "Recovered"
+            )
+
+    calls = client.generate_text.call_args_list
+    assert len(calls) == min(failures + 1, 3)
+    assert all(call == calls[0] for call in calls)
+    assert sleep.call_count == len(calls) - 1
+
+
+@pytest.mark.parametrize("category", ["authentication", "transient", "unsupported_capability"])
+def test_einfra_other_errors_do_not_add_transport_retries(category):
+    from archivatorium.services.llm_client import LLMError, LLMErrorCategory
+
+    client = MagicMock(provider="e-infra")
+    client.generate_text.side_effect = LLMError(
+        LLMErrorCategory(category), category, retryable=category == "transient"
+    )
+    engine = OCREngine(llm_client=client)
+
+    with (
+        patch("archivatorium.ocr_engine.time.sleep") as sleep,
+        pytest.raises(LLMError, match=category),
+    ):
+        engine.ocr_single_page(Path("page.png"))
+
+    client.generate_text.assert_called_once()
+    sleep.assert_not_called()
+
+
+@pytest.mark.parametrize("failure_stage", ["ocr", "render"])
+@pytest.mark.parametrize("existing_checkpoint", [False, True])
+def test_run_ocr_saves_completed_pages_on_failure_and_resumes(
+    tmp_path, failure_stage, existing_checkpoint
+):
+    from archivatorium.markdown_parser import MarkdownPageParser
+    from archivatorium.services.llm_client import (
+        CompletionState,
+        LLMError,
+        LLMErrorCategory,
+        ModelResponse,
+    )
+
+    output = tmp_path / "nested" / "output.md"
+    output.parent.mkdir()
+    if existing_checkpoint:
+        output.write_text("---\n\n# Page 1\n\nExisting page", encoding="utf-8")
+    image = tmp_path / "page.png"
+    client = MagicMock(provider="e-infra")
+    error = LLMError(LLMErrorCategory.INVALID_REQUEST, "invalid_request", retryable=False)
+    client.generate_text.side_effect = [
+        *(
+            []
+            if existing_checkpoint
+            else [ModelResponse("Existing page", CompletionState.COMPLETE)]
+        ),
+        ModelResponse("New page", CompletionState.COMPLETE),
+        *([error] * 3),
+    ]
+    engine = OCREngine(llm_client=client)
+
+    with (
+        patch.object(engine, "count_pdf_pages", return_value=3),
+        patch.object(engine, "render_pdf_page_to_png") as render,
+        patch("archivatorium.ocr_engine.time.sleep"),
+    ):
+        completed_images = [image] if existing_checkpoint else [image, image]
+        render.side_effect = [*completed_images, error] if failure_stage == "render" else None
+        render.return_value = image
+        with pytest.raises(LLMError, match="invalid_request"):
+            engine.run_ocr(Path("source.pdf"), output)
+
+        assert MarkdownPageParser.parse_pages(output.read_text()) == {
+            1: "Existing page",
+            2: "New page",
+        }
+        assert engine.last_run_attempted_pages == (2 if existing_checkpoint else 3)
+        assert client.generate_text.call_count == (
+            (4 if failure_stage == "ocr" else 1) + (0 if existing_checkpoint else 1)
+        )
+
+        render.reset_mock(side_effect=True)
+        client.generate_text.side_effect = None
+        client.generate_text.return_value = ModelResponse("Last page", CompletionState.COMPLETE)
+        client.generate_text.reset_mock()
+        engine.run_ocr(Path("source.pdf"), output)
+
+    render.assert_called_once_with(Path("source.pdf"), 3)
+    request = client.generate_text.call_args.args[0]
+    assert "previous transcribed page was: New page" in request.messages[-1].text
+    assert engine.last_run_attempted_pages == 1
+    assert MarkdownPageParser.parse_pages(output.read_text()) == {
+        1: "Existing page",
+        2: "New page",
+        3: "Last page",
+    }

@@ -14,6 +14,8 @@ from PyPDF2 import PdfReader
 from archivatorium.services.llm_client import (
     GenerationOptions,
     LLMClient,
+    LLMError,
+    LLMErrorCategory,
     ModelMessage,
     ModelRequest,
     ReasoningDirective,
@@ -358,7 +360,7 @@ class OCREngine:
         request = self._to_model_request(request_kwargs)
 
         last_err = None
-        total_attempts = retry if self.provider == "ollama" else 1
+        total_attempts = retry
         for attempt in range(1, total_attempts + 1):
             try:
                 if self.provider == "ollama":
@@ -366,7 +368,9 @@ class OCREngine:
                         "Calling Ollama (attempt %d) for image %s", attempt, image_path.name
                     )
                 else:
-                    logger.info("Calling e-INFRA for image %s", image_path.name)
+                    logger.info(
+                        "Calling e-INFRA (attempt %d) for image %s", attempt, image_path.name
+                    )
                 response = self.llm_client.generate_text(request)
                 normalized_content = normalize_ocr_response(response.visible_text)
                 logger.info(
@@ -379,6 +383,11 @@ class OCREngine:
                     logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
                 else:
                     logger.warning("e-INFRA call failed for image %s: %s", image_path.name, e)
+                # e-INFRA already retries transient failures inside its transport.
+                if self.provider != "ollama" and (
+                    not isinstance(e, LLMError) or e.category != LLMErrorCategory.INVALID_REQUEST
+                ):
+                    raise
                 if attempt < total_attempts:
                     sleep_s = retry_backoff**attempt
                     logger.info("Retrying in %.1f s", sleep_s)
@@ -495,50 +504,53 @@ class OCREngine:
             all_pages = dict(existing_pages)
             last_text = ""
 
-            for i in range(s, e + 1):
-                # Check if this page is already successfully recognized
-                existing_text = all_pages.get(i, "").strip()
-                if existing_text:
-                    logger.info("Skipping page %d (already recognized)", i)
-                    last_text = existing_text
-                    continue
+            try:
+                for i in range(s, e + 1):
+                    # Check if this page is already successfully recognized
+                    existing_text = all_pages.get(i, "").strip()
+                    if existing_text:
+                        logger.info("Skipping page %d (already recognized)", i)
+                        last_text = existing_text
+                        continue
 
-                attempted_pages += 1
-                logger.info("Processing page %d/%d", i - s + 1, e - s + 1)
-                png_path = None
-                try:
-                    png_path = self.render_pdf_page_to_png(input_pdf, i)
-                    # Context is the previous page's content
-                    context_text = ""
-                    if self.profile.include_previous_page_context:
-                        context_text = last_text or all_pages.get(i - 1, "")
-                    text = self.ocr_single_page(
-                        image_path=png_path,
-                        last_text=context_text,
-                        num_ctx=8192 * 3,
-                    )
-                    all_pages[i] = text.strip()
-                    last_text = text
-                finally:
-                    if png_path and png_path.exists():
-                        try:
-                            png_path.unlink()
-                            logger.debug("Removed temporary file %s", png_path)
-                        except Exception as ex:
-                            logger.warning("Failed to remove temporary file %s: %s", png_path, ex)
+                    attempted_pages += 1
+                    logger.info("Processing page %d/%d", i - s + 1, e - s + 1)
+                    png_path = None
+                    try:
+                        png_path = self.render_pdf_page_to_png(input_pdf, i)
+                        # Context is the previous page's content
+                        context_text = ""
+                        if self.profile.include_previous_page_context:
+                            context_text = last_text or all_pages.get(i - 1, "")
+                        text = self.ocr_single_page(
+                            image_path=png_path,
+                            last_text=context_text,
+                            num_ctx=8192 * 3,
+                        )
+                        all_pages[i] = text.strip()
+                        last_text = text
+                    finally:
+                        if png_path and png_path.exists():
+                            try:
+                                png_path.unlink()
+                                logger.debug("Removed temporary file %s", png_path)
+                            except Exception as ex:
+                                logger.warning(
+                                    "Failed to remove temporary file %s: %s", png_path, ex
+                                )
+            finally:
+                # 3) Merge and sort all pages
+                sorted_keys = sorted(all_pages.keys())
+                chunks = []
+                for k in sorted_keys:
+                    header = f"\n\n---\n\n# Page {k}\n\n" if page_header else "\n\n---\n\n"
+                    chunks.append(header + all_pages[k])
 
-            # 3) Merge and sort all pages
-            sorted_keys = sorted(all_pages.keys())
-            chunks = []
-            for k in sorted_keys:
-                header = f"\n\n---\n\n# Page {k}\n\n" if page_header else "\n\n---\n\n"
-                chunks.append(header + all_pages[k])
-
-            merged = "".join(chunks).lstrip()
-            if output_md:
-                output_md.parent.mkdir(parents=True, exist_ok=True)
-                output_md.write_text(merged, encoding="utf-8")
-                logger.info("Saved output to %s", output_md)
+                merged = "".join(chunks).lstrip()
+                if output_md and (all_pages or not attempted_pages):
+                    output_md.parent.mkdir(parents=True, exist_ok=True)
+                    output_md.write_text(merged, encoding="utf-8")
+                    logger.info("Saved output to %s", output_md)
 
             logger.info("OCR finished successfully")
             return merged
