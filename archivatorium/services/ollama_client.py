@@ -8,6 +8,7 @@ from ollama import Client
 from pydantic import BaseModel
 
 from archivatorium.services.llm_client import (
+    DEFAULT_MAX_ATTEMPTS,
     CompletionState,
     LLMClient,
     ModelRequest,
@@ -90,7 +91,7 @@ class OllamaClient:
         self,
         prompt: str,
         schema: type[T],
-        retries: int = 3,
+        retries: int = DEFAULT_MAX_ATTEMPTS - 1,
         model: str | None = None,
         **kwargs: Any,
     ) -> T:

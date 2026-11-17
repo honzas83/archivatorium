@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
-import time
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -37,8 +36,6 @@ class EinfraTransport:
         *,
         base_url: str = "https://llm.ai.e-infra.cz/v1/",
         client: Any | None = None,
-        max_attempts: int = 3,
-        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._client = client or OpenAI(
             api_key=api_key,
@@ -46,8 +43,6 @@ class EinfraTransport:
             max_retries=0,
             timeout=EINFRA_REQUEST_TIMEOUT,
         )
-        self._max_attempts = max_attempts
-        self._sleep = sleep
         self._capabilities: dict[str, ProviderCapability] = {}
         self._capability_lock = Lock()
 
@@ -55,7 +50,7 @@ class EinfraTransport:
         if any(message.images for message in request.messages):
             self._validate_image_request(request)
         kwargs = self._build_request(request)
-        return self._execute_with_retry(kwargs, request)
+        return self._execute(kwargs, request)
 
     def _build_request(self, request: ModelRequest) -> dict[str, Any]:
         messages: list[dict[str, Any]] = []
@@ -103,26 +98,17 @@ class EinfraTransport:
             kwargs["max_completion_tokens"] = output_tokens
         return kwargs
 
-    def _execute_with_retry(
-        self, kwargs: Mapping[str, Any], request: ModelRequest
-    ) -> ModelResponse:
-        for attempt in range(1, self._max_attempts + 1):
-            try:
-                response = self._client.chat.completions.create(**dict(kwargs))
-                if request.delivery == "incremental":
-                    return self._parse_stream(response, request.model)
-                return self._parse_complete_response(response, request.model)
-            except LLMError as error:
-                if not error.retryable or attempt == self._max_attempts:
-                    raise
-                self._sleep(error.retry_after if error.retry_after is not None else float(attempt))
-            except Exception as exc:
-                normalized_error = self._normalize_sdk_error(exc, request.model)
-                if not normalized_error.retryable or attempt == self._max_attempts:
-                    raise normalized_error from exc
-                retry_after = normalized_error.retry_after
-                self._sleep(retry_after if retry_after is not None else float(attempt))
-        raise AssertionError("unreachable retry state")
+    def _execute(self, kwargs: Mapping[str, Any], request: ModelRequest) -> ModelResponse:
+        # Callers own the retry budget, including validation failures.
+        try:
+            response = self._client.chat.completions.create(**dict(kwargs))
+            if request.delivery == "incremental":
+                return self._parse_stream(response, request.model)
+            return self._parse_complete_response(response, request.model)
+        except LLMError:
+            raise
+        except Exception as exc:
+            raise self._normalize_sdk_error(exc, request.model) from exc
 
     def _validate_image_request(self, request: ModelRequest) -> None:
         capability = self._capabilities.get(request.model)

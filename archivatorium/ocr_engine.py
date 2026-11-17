@@ -12,10 +12,10 @@ from pdf2image import convert_from_path
 from PyPDF2 import PdfReader
 
 from archivatorium.services.llm_client import (
+    DEFAULT_MAX_ATTEMPTS,
     GenerationOptions,
     LLMClient,
     LLMError,
-    LLMErrorCategory,
     ModelMessage,
     ModelRequest,
     ReasoningDirective,
@@ -352,7 +352,7 @@ class OCREngine:
         image_path: Path,
         last_text: str = "",
         num_ctx: int = 8192,
-        retry: int = 3,
+        retry: int = DEFAULT_MAX_ATTEMPTS,
         retry_backoff: float = 2.0,
     ) -> str:
         messages = self._build_messages(image_path, last_text)
@@ -383,13 +383,9 @@ class OCREngine:
                     logger.warning("Ollama call failed on attempt %d: %s", attempt, e)
                 else:
                     logger.warning("e-INFRA call failed for image %s: %s", image_path.name, e)
-                # e-INFRA already retries transient failures inside its transport.
-                if self.provider != "ollama" and (
-                    not isinstance(e, LLMError) or e.category != LLMErrorCategory.INVALID_REQUEST
-                ):
-                    raise
                 if attempt < total_attempts:
-                    sleep_s = retry_backoff**attempt
+                    delay = e.retry_after if isinstance(e, LLMError) else None
+                    sleep_s = delay if delay is not None else retry_backoff**attempt
                     logger.info("Retrying in %.1f s", sleep_s)
                     time.sleep(sleep_s)
                 else:

@@ -69,13 +69,16 @@ def test_structured_validation_retry_accumulates_only_corrective_prompt() -> Non
     assert prompts[2].count("IMPORTANT: Previous response failed validation:") == 2
 
 
-def test_non_validation_exception_is_not_retried() -> None:
+def test_non_validation_exception_uses_five_attempts() -> None:
     client = OllamaClient.__new__(OllamaClient)
     client.model = "chosen"
     client.client = MagicMock()
     client.client.chat.side_effect = RuntimeError("offline")
 
-    with pytest.raises(RuntimeError, match="offline"):
-        client.extract_structured("prompt", _Payload, retries=3)
+    with (
+        patch("archivatorium.services.llm_client.time.sleep"),
+        pytest.raises(RuntimeError, match="offline"),
+    ):
+        client.extract_structured("prompt", _Payload)
 
-    client.client.chat.assert_called_once()
+    assert client.client.chat.call_count == 5

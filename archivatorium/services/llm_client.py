@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -18,6 +19,8 @@ from archivatorium.utils.model_think import ModelThink
 T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_MAX_ATTEMPTS = 5
 
 STRUCTURED_SYSTEM_INSTRUCTION = (
     "You are a specialized metadata extraction assistant. "
@@ -192,7 +195,7 @@ class StructuredLLMClient(Protocol):
         self,
         prompt: str,
         schema: type[T],
-        retries: int = 3,
+        retries: int = DEFAULT_MAX_ATTEMPTS - 1,
         model: str | None = None,
         **kwargs: Any,
     ) -> T:
@@ -217,11 +220,11 @@ class LLMClient:
         self,
         prompt: str,
         schema: type[T],
-        retries: int = 3,
+        retries: int = DEFAULT_MAX_ATTEMPTS - 1,
         model: str | None = None,
         **kwargs: Any,
     ) -> T:
-        """Preserve the historical structured prompt and validation retry contract."""
+        """Share one attempt budget across request failures and schema validation."""
 
         think = cast(ModelThink | None, kwargs.pop("think", None))
         if kwargs:
@@ -251,7 +254,16 @@ class LLMClient:
                     schema_name=schema.__name__, json_schema=json_schema
                 ),
             )
-            response = self.transport.generate(request)
+            try:
+                response = self.transport.generate(request)
+            except Exception as exc:
+                attempt += 1
+                logger.warning("Model request failed on attempt %d: %s", attempt, exc)
+                if attempt > retries:
+                    raise
+                delay = exc.retry_after if isinstance(exc, LLMError) else None
+                time.sleep(delay if delay is not None else float(attempt))
+                continue
             content = response.visible_text.strip()
             if content.startswith("```"):
                 content = re.sub(r"^```(?:json)?\s*", "", content)

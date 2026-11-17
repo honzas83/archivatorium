@@ -948,7 +948,7 @@ def test_invalid_programmatic_inference_values_are_rejected(option, value, messa
         OCREngine(**{option: value})
 
 
-@pytest.mark.parametrize("failures", [1, 3])
+@pytest.mark.parametrize("failures", [1, 4, 5])
 def test_einfra_invalid_request_retries_same_page(failures):
     from archivatorium.services.llm_client import (
         CompletionState,
@@ -965,7 +965,7 @@ def test_einfra_invalid_request_retries_same_page(failures):
     engine = OCREngine(llm_client=client, mode="qwen38")
 
     with patch("archivatorium.ocr_engine.time.sleep") as sleep:
-        if failures == 3:
+        if failures == 5:
             with pytest.raises(LLMError, match="invalid_request"):
                 engine.ocr_single_page(Path("page.png"), last_text="Previous page")
         else:
@@ -974,13 +974,13 @@ def test_einfra_invalid_request_retries_same_page(failures):
             )
 
     calls = client.generate_text.call_args_list
-    assert len(calls) == min(failures + 1, 3)
+    assert len(calls) == min(failures + 1, 5)
     assert all(call == calls[0] for call in calls)
     assert sleep.call_count == len(calls) - 1
 
 
 @pytest.mark.parametrize("category", ["authentication", "transient", "unsupported_capability"])
-def test_einfra_other_errors_do_not_add_transport_retries(category):
+def test_einfra_other_errors_use_five_attempts(category):
     from archivatorium.services.llm_client import LLMError, LLMErrorCategory
 
     client = MagicMock(provider="e-infra")
@@ -995,8 +995,8 @@ def test_einfra_other_errors_do_not_add_transport_retries(category):
     ):
         engine.ocr_single_page(Path("page.png"))
 
-    client.generate_text.assert_called_once()
-    sleep.assert_not_called()
+    assert client.generate_text.call_count == 5
+    assert sleep.call_count == 4
 
 
 @pytest.mark.parametrize("failure_stage", ["ocr", "render"])
@@ -1026,7 +1026,7 @@ def test_run_ocr_saves_completed_pages_on_failure_and_resumes(
             else [ModelResponse("Existing page", CompletionState.COMPLETE)]
         ),
         ModelResponse("New page", CompletionState.COMPLETE),
-        *([error] * 3),
+        *([error] * 5),
     ]
     engine = OCREngine(llm_client=client)
 
@@ -1047,7 +1047,7 @@ def test_run_ocr_saves_completed_pages_on_failure_and_resumes(
         }
         assert engine.last_run_attempted_pages == (2 if existing_checkpoint else 3)
         assert client.generate_text.call_count == (
-            (4 if failure_stage == "ocr" else 1) + (0 if existing_checkpoint else 1)
+            (6 if failure_stage == "ocr" else 1) + (0 if existing_checkpoint else 1)
         )
 
         render.reset_mock(side_effect=True)

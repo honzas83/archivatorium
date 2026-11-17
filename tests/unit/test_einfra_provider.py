@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from archivatorium.services.einfra_client import EinfraTransport
 from archivatorium.services.llm_client import (
-    CompletionState,
     GenerationOptions,
     LLMClient,
     LLMError,
@@ -123,27 +122,23 @@ def test_incomplete_or_empty_response_is_never_success(
     assert raised.value.category is category
 
 
-def test_safe_transient_failure_retries_identical_request() -> None:
+def test_transient_failure_is_normalized_without_nested_retries() -> None:
     sdk = MagicMock()
     error = RuntimeError("temporary secret-bearing provider detail")
     error.status_code = 503  # type: ignore[attr-defined]
     sdk.chat.completions.create.side_effect = [error, _completion("visible")]
-    sleep = MagicMock()
     request = ModelRequest(
         model="qwen3.8-27b",
         messages=(ModelMessage(role="user", text="prompt"),),
         options=GenerationOptions(output_tokens=99),
     )
 
-    response = EinfraTransport("secret", client=sdk, sleep=sleep).generate(request)
+    with pytest.raises(LLMError) as raised:
+        EinfraTransport("secret", client=sdk).generate(request)
 
-    assert response.finish_state is CompletionState.COMPLETE
-    assert sdk.chat.completions.create.call_count == 2
-    assert (
-        sdk.chat.completions.create.call_args_list[0]
-        == sdk.chat.completions.create.call_args_list[1]
-    )
-    sleep.assert_called_once_with(1.0)
+    assert raised.value.category is LLMErrorCategory.TRANSIENT
+    assert "secret-bearing" not in str(raised.value)
+    sdk.chat.completions.create.assert_called_once()
 
 
 def test_authentication_failure_is_permanent_and_redacted() -> None:
@@ -288,7 +283,10 @@ def test_interrupted_stream_discards_partial_content_before_retry(tmp_path: Path
         delivery="incremental",
     )
 
-    response = EinfraTransport("secret", client=sdk, sleep=MagicMock()).generate(request)
+    transport = EinfraTransport("secret", client=sdk)
+    with pytest.raises(LLMError):
+        transport.generate(request)
+    response = transport.generate(request)
 
     assert response.visible_text == "RECOVERED"
     assert "DISCARD" not in response.visible_text
@@ -306,7 +304,7 @@ def test_stream_without_terminal_finish_is_not_accepted(tmp_path: Path) -> None:
     )
 
     with pytest.raises(LLMError) as raised:
-        EinfraTransport("secret", client=sdk, sleep=MagicMock()).generate(request)
+        EinfraTransport("secret", client=sdk).generate(request)
 
     assert raised.value.category is LLMErrorCategory.INTERRUPTED
     assert "PARTIAL" not in str(raised.value)
@@ -346,3 +344,45 @@ def test_output_allowance_above_model_capability_fails_before_transmission(
 
     assert raised.value.category is LLMErrorCategory.CONFIGURATION
     sdk.chat.completions.create.assert_not_called()
+
+
+@pytest.mark.parametrize("workflow", ["ocr", "metadata"])
+@pytest.mark.parametrize("status", [400, 401, 429, 503])
+@pytest.mark.parametrize("recover", [False, True])
+def test_model_operations_have_one_five_attempt_budget(
+    tmp_path, monkeypatch, workflow, status, recover
+):
+    from archivatorium.ocr_engine import OCREngine
+
+    sleep = MagicMock()
+    monkeypatch.setattr("time.sleep", sleep)
+    image = tmp_path / "page.png"
+    image.write_bytes(b"PNG")
+    error = RuntimeError("private provider details")
+    error.status_code = status  # type: ignore[attr-defined]
+    error.response = SimpleNamespace(headers={"retry-after": "7"})  # type: ignore[attr-defined]
+    success = (
+        [_chunk("Recovered"), _chunk(None, "stop")]
+        if workflow == "ocr"
+        else _completion('{"value":"Recovered"}')
+    )
+    sdk = _vision_sdk([error] * 4 + [success if recover else error])
+    client = LLMClient(EinfraTransport("secret", client=sdk), "qwen3.8-27b")
+
+    def run():
+        if workflow == "ocr":
+            return OCREngine(llm_client=client, model="qwen3.8-27b").ocr_single_page(image)
+        return client.extract_structured("prompt", _Payload).value
+
+    if recover:
+        assert run() == "Recovered"
+    else:
+        with pytest.raises(LLMError):
+            run()
+
+    assert sdk.chat.completions.create.call_count == 5
+    assert sleep.call_count == 4
+    if status in (429, 503):
+        assert all(call.args == (7.0,) for call in sleep.call_args_list)
+    calls = sdk.chat.completions.create.call_args_list
+    assert all(call == calls[0] for call in calls)

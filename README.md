@@ -129,9 +129,10 @@ The `glm` mode, explicit `--top-k`, repetition options, and `--num-predict=-1` a
 their Ollama-native semantics cannot be represented safely. Model availability can change; use
 `--model` to select another service model and expect a clear error rather than automatic substitution.
 
-OCR retries an e-INFRA `invalid_request` up to three attempts per page. If processing still
-fails, completed pages are saved to the output Markdown before the command continues to the next
-PDF. Restarting the same command resumes from the missing page using those saved pages as context.
+OCR and metadata use up to five total attempts per model operation, including request errors
+(such as `invalid_request`) and metadata schema validation failures. These failures share one
+attempt budget; provider retries do not multiply it. If OCR processing still fails, completed
+pages are saved to the output Markdown before the command continues to the next PDF. Restarting the same command resumes from the missing page using those saved pages as context.
 Keep page headers enabled (the default) for automatic resume; `--no-page-header` output cannot
 identify completed pages.
 

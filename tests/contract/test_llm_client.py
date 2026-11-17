@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
@@ -101,16 +102,20 @@ def test_extract_structured_retries_only_validation_and_keeps_semantics() -> Non
     assert "IMPORTANT: Previous response failed validation:" in second.messages[1].text
 
 
-def test_transport_error_is_not_converted_to_validation_retry() -> None:
+def test_transport_errors_retry_without_changing_prompt() -> None:
     error = LLMError(LLMErrorCategory.AUTHENTICATION, "Authentication failed", retryable=False)
-    transport = _FakeTransport([error])
+    transport = _FakeTransport([error] * 5)
     client = LLMClient(transport, default_model="default")
 
-    with pytest.raises(LLMError) as raised:
-        client.extract_structured("original", _Result, retries=3)
+    with (
+        patch("archivatorium.services.llm_client.time.sleep"),
+        pytest.raises(LLMError) as raised,
+    ):
+        client.extract_structured("original", _Result)
 
     assert raised.value is error
-    assert len(transport.requests) == 1
+    assert len(transport.requests) == 5
+    assert all(request == transport.requests[0] for request in transport.requests)
 
 
 def test_connection_representation_and_normalized_error_do_not_expose_secret() -> None:
@@ -131,3 +136,28 @@ def test_connection_representation_and_normalized_error_do_not_expose_secret() -
     assert "never-display-this-token" not in repr(connection)
     assert "never-display-this-token" not in str(error)
     assert "Authorization" not in str(error)
+
+
+@pytest.mark.parametrize("recover", [False, True])
+def test_request_and_validation_failures_share_five_attempts(recover):
+    from pydantic import ValidationError
+
+    error = LLMError(LLMErrorCategory.INVALID_REQUEST, "invalid_request", retryable=False)
+    invalid = ModelResponse("{}", CompletionState.COMPLETE)
+    valid = ModelResponse('{"value":"ok"}', CompletionState.COMPLETE)
+    transport = _FakeTransport([error, invalid, error, invalid, valid if recover else invalid])
+    client = LLMClient(transport, "model")
+
+    with patch("archivatorium.services.llm_client.time.sleep") as sleep:
+        if recover:
+            assert client.extract_structured("prompt", _Result).value == "ok"
+        else:
+            with pytest.raises(ValidationError):
+                client.extract_structured("prompt", _Result)
+
+    assert len(transport.requests) == 5
+    assert sleep.call_count == 2
+    prompts = [request.messages[1].text for request in transport.requests]
+    assert [
+        prompt.count("IMPORTANT: Previous response failed validation:") for prompt in prompts
+    ] == [0, 0, 1, 1, 2]
